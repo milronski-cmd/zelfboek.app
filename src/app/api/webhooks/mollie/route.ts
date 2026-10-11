@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leesKoppeling } from "@/lib/koppelingen";
+import { mollieToegang } from "@/lib/koppelen";
 import { haalBetaling } from "@/lib/kanalen/mollie";
 import { rond } from "@/lib/btw";
 
@@ -20,12 +20,12 @@ export async function POST(req: Request) {
   const oId = factuur?.ondernemingId ?? ondernemingId;
   if (!oId) return NextResponse.json({ ontvangen: true, genegeerd: "onbekende onderneming" });
 
-  const cfg = await leesKoppeling<{ apiKey: string }>(oId, "mollie");
-  if (!cfg?.apiKey) return NextResponse.json({ ontvangen: true, genegeerd: "geen Mollie-sleutel" });
+  const toegang = await mollieToegang(oId).catch(() => null);
+  if (!toegang) return NextResponse.json({ ontvangen: true, genegeerd: "geen Mollie-koppeling" });
 
   let betaling: Awaited<ReturnType<typeof haalBetaling>>;
   // Tijdelijke storing bij Mollie: 503 teruggeven, dan probeert Mollie het later opnieuw.
-  try { betaling = await haalBetaling(cfg.apiKey, paymentId); } catch { return NextResponse.json({ fout: "betaling niet opvraagbaar" }, { status: 503 }); }
+  try { betaling = await haalBetaling(toegang.token, paymentId); } catch { return NextResponse.json({ fout: "betaling niet opvraagbaar" }, { status: 503 }); }
 
   const factuurId = factuur?.id ?? betaling.metadata?.factuurId;
   if (!factuurId) return NextResponse.json({ ontvangen: true });

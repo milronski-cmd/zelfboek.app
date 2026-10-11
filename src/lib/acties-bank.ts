@@ -7,13 +7,14 @@ import { btwUitInclusief, rond } from "./btw";
 import { parseBankbestand, importeerRegels, beoordeelOpenstaand as beoordeelOpen } from "./bank/importeer";
 import { startAutorisatie } from "./bank/enablebanking";
 import { syncAlleBanken, syncEenBron } from "./bank/sync";
-import { bewaarKoppeling, verwijderKoppeling as verwijderK, type KoppelingSoort } from "./koppelingen";
+import { bewaarKoppeling, leesKoppeling, verwijderKoppeling as verwijderK, type KoppelingSoort } from "./koppelingen";
 import { importeerPaypalCsv } from "./kanalen/paypal";
 import { importeerMoneybird } from "./import/moneybird";
 import { importeerEboekhouden } from "./import/eboekhouden";
 import { importeerJorttCsv } from "./import/jortt";
 import { importeerExcel } from "./import/excel";
-import { maakHash } from "./bank/csv";
+import { maakHash, maakRegel, type BankRegel } from "./bank/csv";
+import { AANBIEDERS, ingesteld, isOAuthSoort, leesState, maakState, normaalAdres, proefmodus, terugUrl } from "./koppelen";
 
 export type Resultaat = { ok: true; melding: string } | { ok: false; fout: string };
 
@@ -130,19 +131,95 @@ export async function koppelingVerwijderen(formData: FormData): Promise<void> {
   ververs();
 }
 
-/** PSD2: doorsturen naar de bank voor toestemming. */
+/** PSD2: doorsturen naar de bank voor toestemming. Zonder Enable Banking-contract (buiten productie): de proefmodus. */
 export async function startPsd2(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
   const bank = String(formData.get("bank") ?? "").trim();
   if (!bank) redirect("/app/koppelingen?fout=" + encodeURIComponent("Kies een bank."));
+  const eb = await leesKoppeling<{ appId?: string }>(o.id, "enablebanking");
+  const ebIngesteld = Boolean(process.env.ENABLE_BANKING_APP_ID && process.env.ENABLE_BANKING_PRIVATE_KEY) || Boolean(eb?.appId);
+  if (!ebIngesteld && proefmodus()) redirect(`/app/koppelingen/proef?state=${encodeURIComponent(maakState({ o: o.id, s: "enablebanking", b: bank }))}`);
   const basis = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   let url: string;
   try {
     url = await startAutorisatie(o.id, bank, `${basis}/api/koppelingen/enablebanking/callback`);
   } catch (e) {
-    redirect("/app/koppelingen?fout=" + encodeURIComponent(e instanceof Error ? e.message : String(e)));
+    redirect("/app/koppelingen?fout=" + encodeURIComponent(ebIngesteld ? (e instanceof Error ? e.message : String(e)) : "De bankkoppeling is nog niet beschikbaar. Upload zolang een afschrift bij Bank."));
   }
   redirect(url);
+}
+
+async function isProefKoppeling(ondernemingId: string, soort: KoppelingSoort) {
+  return Boolean((await leesKoppeling<{ proef?: string }>(ondernemingId, soort))?.proef);
+}
+
+/** "Koppel Mollie" en verder: door naar het inlogscherm van de partij. Geen sleutels overtypen. */
+export async function startKoppeling(formData: FormData): Promise<void> {
+  const o = await schrijfOnderneming();
+  const soort = String(formData.get("soort") ?? "");
+  const terug = (q: string) => redirect(`/app/koppelingen?${q}`);
+  if (!isOAuthSoort(soort)) terug(`fout=${encodeURIComponent("Onbekende koppeling.")}`);
+  const s = soort as Parameters<typeof ingesteld>[0];
+  const a = AANBIEDERS[s];
+  let adres: string | undefined;
+  if (a.vraagtAdres) {
+    adres = normaalAdres(s, String(formData.get("adres") ?? "")) ?? undefined;
+    if (!adres) terug(`fout=${encodeURIComponent(`Vul het ${a.vraagtAdres.label.toLowerCase()} in, bijvoorbeeld ${a.vraagtAdres.voorbeeld}.`)}`);
+  }
+  const state = maakState({ o: o.id, s, a: adres });
+  // WooCommerce stuurt de sleutels naar ons terug; dat kan alleen naar een https-adres, lokaal dus via de proefmodus.
+  const wooLokaal = s === "woocommerce" && !terugUrl(s).startsWith("https://");
+  if (ingesteld(s) && !(wooLokaal && proefmodus())) redirect(a.autoriseer({ state, terug: terugUrl(s), adres }));
+  if (proefmodus()) redirect(`/app/koppelingen/proef?state=${encodeURIComponent(state)}`);
+  terug(`fout=${encodeURIComponent(`Koppelen met ${a.naam} kan binnenkort met één klik. Upload zolang je overzicht bij Bank, dan boeken we het ook.`)}`);
+}
+
+/** Voorbeeldafschrift voor de proefmodus van de bank: een maand aan gewone zzp-regels. */
+function proefBankRegels(iban: string): BankRegel[] {
+  const nu = new Date();
+  const dag = (n: number) => new Date(nu.getFullYear(), nu.getMonth(), nu.getDate() - n);
+  const rijen: [number, number, string, string, string?][] = [
+    [1, 1815, "Fysio Centrum Zuid", "Factuur 2026-0032", "NL91ABNA0846847140"],
+    [2, -14, "Google Ireland", "Google Workspace"],
+    [3, -42.5, "Albert Heijn", "Boodschappen"],
+    [5, -58.95, "KPN", "Zakelijk internet en mobiel"],
+    [7, -27.4, "NS Zakelijk", "Treinreizen"],
+    [9, 2722.5, "Bakkerij De Korst", "Factuur 2026-0031", "NL11RABO0163331561"],
+    [12, -65.99, "Adobe Systems", "Creative Cloud"],
+    [15, -9.95, "Bank", "Kosten zakelijke rekening"],
+    [18, -31.2, "Cafe Het Hoekje", "Lunch"],
+    [21, -129, "Coolblue", "Toetsenbord"],
+  ];
+  return rijen.map(([d, b, t, oms, ti]) => maakRegel(dag(d), b, t, oms, ti, iban, "proef")).filter((r): r is BankRegel => Boolean(r));
+}
+
+/** Proefmodus: de klant zegt "Toestaan" op het voorbeeld-inlogscherm. Werkt met voorbeeldgegevens, nooit in productie. */
+export async function proefToestaan(formData: FormData): Promise<void> {
+  const o = await schrijfOnderneming();
+  const st = leesState(String(formData.get("state") ?? ""));
+  if (!proefmodus() || !st || st.o !== o.id) redirect(`/app/koppelingen?fout=${encodeURIComponent("Deze proefkoppeling is verlopen. Probeer het opnieuw.")}`);
+  let melding: string;
+  if (st.s === "enablebanking") {
+    const bank = st.b ?? "Bank";
+    const code = bank.replace(/[^A-Za-z]/g, "").toUpperCase().padEnd(4, "X").slice(0, 4);
+    const iban = `NL00${code}0${String(Math.abs([...o.id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)) % 1e9).padStart(9, "0")}`;
+    await bewaarKoppeling(o.id, "enablebanking", { proef: "1" }, `${bank} (proef)`);
+    const rek = await db.bankrekening.upsert({
+      where: { ondernemingId_iban: { ondernemingId: o.id, iban } },
+      update: { psd2Verloopt: new Date(Date.now() + 89 * 864e5) },
+      create: { ondernemingId: o.id, iban, naam: `${bank} Zakelijk`, bank, bron: "psd2", psd2AccountId: `proef-${code}`, psd2Verloopt: new Date(Date.now() + 89 * 864e5), saldo: 4210.37 },
+    });
+    const uit = await importeerRegels(o.id, proefBankRegels(iban), { bron: "psd2", bank, bankrekeningId: rek.id });
+    melding = `${bank} is gekoppeld (proef). ${uit.nieuw} voorbeeldregels opgehaald${uit.aiFout ? "." : ` en ${uit.beoordeeld} door de bot geboekt.`}`;
+  } else {
+    const soort = st.s as KoppelingSoort;
+    await bewaarKoppeling(o.id, soort, { proef: "1", ...(st.a ? { shop: st.a, url: st.a } : {}) }, st.a);
+    const r = await syncEenBron(o.id, soort);
+    const naam = isOAuthSoort(soort) ? AANBIEDERS[soort].naam : soort;
+    melding = soort === "moneybird" ? `${naam} is gekoppeld (proef). Bij Overstappen neem je je gegevens over.` : `${naam} is gekoppeld (proef). ${r.nieuw} voorbeelduitbetalingen opgehaald.`;
+  }
+  ververs();
+  redirect(`/app/koppelingen?m=${encodeURIComponent(melding)}`);
 }
 
 export async function syncNu(formData: FormData): Promise<Resultaat> {
@@ -171,6 +248,7 @@ export async function importeerVanPakket(formData: FormData): Promise<Resultaat>
     const tekst = async () => (bestand instanceof File && bestand.size > 0 ? Buffer.from(await bestand.arrayBuffer()).toString("utf8") : "");
     let melding = "";
     if (pakket === "moneybird") {
+      if (await isProefKoppeling(o.id, "moneybird")) return { ok: true, melding: "Proefmodus: met een echte Moneybird-koppeling nemen we nu je klanten, facturen en bankregels over." };
       const r = await importeerMoneybird(o.id);
       if (r.fouten.length) return { ok: false, fout: r.fouten.join(" | ") };
       melding = `Moneybird: ${r.klanten} klanten, ${r.facturen} facturen, ${r.transacties} bankregels, ${r.inkoop} inkoopfacturen.`;

@@ -1,15 +1,17 @@
-import { bewaarKanaalRegels, haalJson, kanaalConfig, voerKanaalUit, type KanaalRegel, type KanaalUitkomst } from "./basis";
+import { mollieToegang } from "@/lib/koppelen";
+import { bewaarKanaalRegels, haalJson, voerKanaalUit, type KanaalRegel, type KanaalUitkomst } from "./basis";
 
 /**
  * Mollie: uitbetalingen (settlements) als omzet, de ingehouden kosten als betaalprovider (btw 21).
- * Config: { apiKey: "live_..." }. Settlements vereisen een Organization access token of live-sleutel met settlements-recht.
+ * Toegang: OAuth via "Koppel Mollie" (accessToken, ververst zichzelf) of een oude API-sleutel (apiKey).
  */
 type Settlement = { id: string; reference: string; settledAt?: string; createdAt: string; amount: { value: string }; status: string; periods?: Record<string, Record<string, { costs?: { amountNet: { value: string }; amountVat?: { value: string }; amountGross: { value: string }; description: string }[]; revenue?: { amountGross: { value: string }; description: string }[] }>> };
 
 export async function haalTransacties(ondernemingId: string, vanaf: Date): Promise<KanaalUitkomst> {
   return voerKanaalUit(ondernemingId, "mollie", async () => {
-    const cfg = await kanaalConfig<{ apiKey: string }>(ondernemingId, "mollie", ["apiKey"], "Mollie");
-    const headers = { Authorization: `Bearer ${cfg.apiKey}` };
+    const toegang = await mollieToegang(ondernemingId);
+    if (!toegang) throw new Error("Mollie is niet gekoppeld. Klik bij Koppelingen op Koppel Mollie.");
+    const headers = { Authorization: `Bearer ${toegang.token}` };
     const regels: KanaalRegel[] = [];
     let url: string | null = "https://api.mollie.com/v2/settlements?limit=50";
     while (url) {

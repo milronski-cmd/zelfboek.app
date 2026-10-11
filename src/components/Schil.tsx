@@ -61,20 +61,42 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
     return () => { document.removeEventListener("keydown", toets); document.removeEventListener("click", klik); };
   }, []);
 
+  // Weinig hoofdknoppen; de rest onder "Meer" (klapt vanzelf open als je daar bent).
   const items: Item[] = [
     { href: "/app", label: "Overzicht", icoon: "overzicht" },
-    { href: "/app/facturen", label: "Facturen", icoon: "factuur", kinderen: [{ href: "/app/terugkerend", label: "Terugkerend" }, { href: "/app/producten", label: "Producten" }] },
+    { href: "/app/bank", label: "Bank", icoon: "bank", teller: tellers.bank },
     { href: "/app/bonnen", label: "Bonnen", icoon: "bon" },
-    { href: "/app/offertes", label: "Offertes", icoon: "offerte" },
-    { href: "/app/bank", label: "Bank", icoon: "bank", teller: tellers.bank, kinderen: [{ href: "/app/bank/rekeningen", label: "Rekeningen" }, { href: "/app/koppelingen", label: "Koppelingen" }] },
-    { href: "/app/uren", label: "Uren", icoon: "uren", kinderen: [{ href: "/app/kilometers", label: "Kilometers" }] },
-    { href: "/app/klanten", label: "Klanten", icoon: "klanten" },
+    { href: "/app/facturen", label: "Facturen", icoon: "factuur" },
     { href: "/app/btw", label: "Btw-aangifte", icoon: "btw" },
-    { label: "Rapporten", icoon: "ib", kinderen: [{ href: "/app/ib", label: "Inkomstenbelasting" }, { href: "/app/jaarrekening", label: "Jaarrekening" }, { href: "/app/exports", label: "Exporteren" }] },
-    { href: "/app/activa", label: "Investeringen", icoon: "activa" },
-    { href: "/app/meldingen", label: "Taken", icoon: "bel", teller: tellers.meldingen },
-    { href: "/app/assistent", label: "Vraag het de bot", icoon: "bot" },
-    { href: "/app/instellingen", label: "Instellingen", icoon: "instel", kinderen: [{ href: "/app/importeren", label: "Overstappen" }] },
+    { href: "/app/koppelingen", label: "Koppelingen", icoon: "koppel" },
+    {
+      label: "Meer", icoon: "meer", teller: tellers.meldingen,
+      kinderen: [
+        { href: "/app/offertes", label: "Offertes" },
+        { href: "/app/klanten", label: "Klanten" },
+        { href: "/app/producten", label: "Producten" },
+        { href: "/app/terugkerend", label: "Vaste facturen" },
+        { href: "/app/uren", label: "Uren" },
+        { href: "/app/kilometers", label: "Kilometers" },
+        { href: "/app/activa", label: "Grote aankopen" },
+        { href: "/app/ib", label: "Inkomstenbelasting" },
+        { href: "/app/jaarrekening", label: "Jaaroverzicht" },
+        { href: "/app/exports", label: "Downloaden" },
+        { href: "/app/meldingen", label: tellers.meldingen ? `Meldingen (${tellers.meldingen})` : "Meldingen" },
+        { href: "/app/assistent", label: "Vraag het de bot" },
+        { href: "/app/bank/rekeningen", label: "Rekeningen" },
+        { href: "/app/importeren", label: "Overstappen" },
+        { href: "/app/instellingen", label: "Instellingen" },
+      ],
+    },
+  ];
+
+  // Onderbalk op de telefoon: de vier dingen die je het vaakst doet, plus Meer (opent het menu).
+  const onder: { href: string; label: string; icoon: IcoonNaam; teller?: number }[] = [
+    { href: "/app", label: "Overzicht", icoon: "overzicht" },
+    { href: "/app/bank", label: "Bank", icoon: "bank", teller: tellers.bank },
+    { href: "/app/bonnen", label: "Bon", icoon: "camera" },
+    { href: "/app/facturen", label: "Facturen", icoon: "factuur" },
   ];
 
   // De meest specifieke route wint, zodat /app/bank/rekeningen bij Rekeningen hoort en niet bij Bank.
@@ -170,9 +192,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="topbalk sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-lijn bg-white px-4 md:px-6">
-          <button type="button" onClick={() => setMenuOpen(true)} aria-expanded={menuOpen} aria-controls="menu" className="iconknop md:hidden" aria-label="Menu">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-          </button>
+          <Link href="/app" className="shrink-0 md:hidden" aria-label="Naar het overzicht"><Beeldmerk size={28} /></Link>
 
           <form action="/app/zoeken" method="get" role="search" className="relative w-full max-w-md">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tekst-3" aria-hidden>
@@ -213,10 +233,28 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
+        <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:py-8">
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>
+
+      <nav aria-label="Snel naar" className="onderbalk fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-lijn bg-white md:hidden">
+        {onder.map((o) => {
+          const a = o.href === "/app" ? pad === "/app" : pad === o.href || pad.startsWith(`${o.href}/`);
+          return (
+            <Link key={o.href} href={o.href} aria-current={a ? "page" : undefined} className={`relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium ${a ? "text-primair-tekst" : "text-tekst-2"}`}>
+              <Icoon naam={o.icoon} size={22} />
+              {o.label}
+              {o.teller ? <span className="absolute right-[22%] top-1 min-w-[16px] rounded-full bg-rood px-1 text-center text-[10px] font-bold leading-[16px] text-white">{o.teller}</span> : null}
+            </Link>
+          );
+        })}
+        <button type="button" onClick={() => { setHandmatig((h) => ({ ...h, Meer: true })); setMenuOpen(true); }} aria-expanded={menuOpen} aria-controls="menu" className="relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium text-tekst-2">
+          <Icoon naam="meer" size={22} />
+          Meer
+          {tellers.meldingen ? <span className="absolute right-[22%] top-1.5 h-2 w-2 rounded-full bg-rood" /> : null}
+        </button>
+      </nav>
     </div>
   );
 }

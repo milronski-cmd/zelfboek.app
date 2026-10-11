@@ -4,6 +4,7 @@
  * Weigert op productie en op een database die niet lokaal draait.
  */
 import { PrismaClient } from "@prisma/client";
+import { versleutel } from "../src/lib/crypto";
 
 const db = new PrismaClient();
 const url = process.env.DATABASE_URL ?? "";
@@ -70,6 +71,9 @@ async function main() {
   const ing = await db.bankrekening.create({ data: { ondernemingId: oid, naam: "ING Zakelijk", iban: "NL69INGB0001234567", bank: "ING", bron: "psd2", psd2AccountId: "demo-ing", psd2Verloopt: new Date(nu.getTime() + 80 * 864e5), laatsteSync: nu, saldo: 8432.17 } });
   const revolut = await db.bankrekening.create({ data: { ondernemingId: oid, naam: "Revolut Business", iban: "NL39REVO0012345678", bank: "Revolut", bron: "psd2", psd2AccountId: "demo-revolut", psd2Verloopt: new Date(nu.getTime() + 62 * 864e5), laatsteSync: nu, saldo: 2140.55 } });
   const rek = ing;
+  // De demobanken staan als gekoppeld in de proefmodus: "Nu ophalen" geeft dan geen foutmelding.
+  const proefCfg = versleutel(JSON.stringify({ proef: "1" }));
+  await db.koppeling.upsert({ where: { ondernemingId_soort: { ondernemingId: oid, soort: "enablebanking" } }, update: { configJson: proefCfg, status: "actief", laatsteFout: null, laatsteSync: nu }, create: { ondernemingId: oid, soort: "enablebanking", configJson: proefCfg, naam: "ING en Revolut (proef)", laatsteSync: nu } });
   // Buitenlandse software en de Duitse klant lopen via Revolut, de rest via ING.
   const IBANS: Record<string, string> = { "Bakkerij De Korst": "NL11RABO0163331561", "Fysio Centrum Zuid": "NL91ABNA0846847140", "Studio Lente": "NL27INGB0109741897", "Vereniging Dorpshuis": "NL45TRIO0212345678", "Weber GmbH": "DE89370400440532013000", "KPN": "NL10INGB0000000421", "Coolblue": "NL86INGB0002445588", "Belastingdienst": "NL86INGB0002445588" };
   const klanten = await Promise.all(KLANTEN.map((k) => db.klant.create({ data: { ondernemingId: oid, ...k } })));

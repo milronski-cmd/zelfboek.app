@@ -13,14 +13,47 @@ import { EersteStappen } from "@/components/EersteStappen";
 
 export const instant = false;
 
-/** Infobalk bovenaan: één regel die om een actie vraagt, met een pijl ernaartoe. */
-function Infobalk({ tekst, href }: { tekst: string; href: string }) {
+type Actie = { tekst: string; href: string; knop: string };
+
+/** Eén duidelijke volgende stap met een grote knop; wat daarna komt staat klein eronder. */
+function VolgendeStap({ acties }: { acties: Actie[] }) {
+  const [eerst, ...rest] = acties;
+  if (!eerst) {
+    return (
+      <section className="kaart mb-6 flex flex-wrap items-center gap-4 px-5 py-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-groen-licht text-groen-tekst" aria-hidden>
+          <svg width="20" height="20" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </span>
+        <div className="min-w-0 flex-1 basis-[220px]">
+          <p className="text-[15px] font-semibold">Alles is bijgewerkt</p>
+          <p className="text-[13px] text-tekst-2">Er wacht niets op je. De bot boekt elke nacht je nieuwe bankregels.</p>
+        </div>
+        <Link href="/app/facturen/nieuw" className="knop-licht">Factuur maken</Link>
+      </section>
+    );
+  }
   return (
-    <Link href={href} className="kaart flex items-center gap-3 px-4 py-3 text-sm hover:bg-[#fafbfc]">
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primair text-[11px] font-bold text-white" aria-hidden>i</span>
-      <span className="min-w-0 flex-1">{tekst}</span>
-      <Chevron />
-    </Link>
+    <section className="kaart mb-6 overflow-hidden">
+      <div className="flex flex-wrap items-center gap-4 px-5 py-4">
+        <div className="min-w-0 flex-1 basis-[240px]">
+          <p className="text-[12px] font-semibold uppercase tracking-[.05em] text-primair-tekst">Volgende stap</p>
+          <p className="mt-0.5 text-[16px] font-semibold leading-snug">{eerst.tekst}</p>
+        </div>
+        <Link href={eerst.href} className="knop knop-groot w-full justify-center sm:w-auto">{eerst.knop}</Link>
+      </div>
+      {rest.length > 0 && (
+        <ul className="divide-y divide-lijn border-t border-lijn">
+          {rest.slice(0, 3).map((a) => (
+            <li key={a.href + a.tekst}>
+              <Link href={a.href} className="flex items-center gap-3 px-5 py-2.5 text-sm text-tekst-2 hover:bg-[#fafbfc]">
+                <span className="min-w-0 flex-1">{a.tekst}</span>
+                <Chevron />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -104,14 +137,16 @@ export default async function Overzicht() {
     { klaar: aantalFacturen > 0, titel: "Stuur je eerste factuur", tekst: "Met iDEAL-link. De bot volgt de betaling en herinnert zelf.", href: "/app/facturen/nieuw", knop: "Factuur maken" },
   ];
 
-  // Infobalken: alleen wat om een actie vraagt.
-  const balken: { tekst: string; href: string }[] = [];
-  if (twijfelTotaal > 0) balken.push({ tekst: `${twijfelTotaal} ${twijfelTotaal === 1 ? "bankregel wacht" : "bankregels wachten"} op je antwoord: zakelijk of privé?`, href: "/app/bank?filter=twijfel" });
-  if (onbeoordeeld > 0) balken.push({ tekst: `${onbeoordeeld} nieuwe ${onbeoordeeld === 1 ? "bankregel staat" : "bankregels staan"} klaar om te boeken`, href: "/app/bank?filter=open" });
-  if (bonnenLos > 0) balken.push({ tekst: `Er ${bonnenLos === 1 ? "staat 1 bon" : `staan ${bonnenLos} bonnen`} klaar om aan een bankregel te koppelen`, href: "/app/bonnen?status=uitgelezen" });
-  if (teLaat.length > 0) balken.push({ tekst: `${teLaat.length} ${teLaat.length === 1 ? "factuur is" : "facturen zijn"} over de vervaldatum, de bot herinnert vanzelf`, href: "/app/facturen?filter=telaat" });
-  if (dagenTotDeadline <= 30) balken.push({ tekst: `Btw-aangifte ${tijdvakNaam} uiterlijk ${datumNl(deadline)} indienen en betalen (over ${dagenTotDeadline} dagen)`, href: "/app/btw" });
-  for (const t of taken) balken.push({ tekst: t.titel, href: "/app/meldingen" });
+  // Wat om een actie vraagt, belangrijkste eerst. De eerste wordt de grote "volgende stap".
+  const balken: Actie[] = [];
+  if (twijfelTotaal > 0) balken.push({ tekst: `${twijfelTotaal} ${twijfelTotaal === 1 ? "betaling wacht" : "betalingen wachten"} op je antwoord: zakelijk of privé?`, href: "/app/bank?filter=twijfel", knop: "Beantwoorden" });
+  if (dagenTotDeadline <= 14) balken.push({ tekst: `Btw-aangifte ${tijdvakNaam}: uiterlijk ${datumNl(deadline)} doen en betalen (nog ${dagenTotDeadline} dagen)`, href: "/app/btw", knop: "Naar de aangifte" });
+  if (onbeoordeeld > 0) balken.push({ tekst: `${onbeoordeeld} nieuwe ${onbeoordeeld === 1 ? "betaling staat" : "betalingen staan"} klaar om te boeken`, href: "/app/bank?filter=open", knop: "Laten boeken" });
+  if (bonnenLos > 0) balken.push({ tekst: `${bonnenLos === 1 ? "1 bon hoort" : `${bonnenLos} bonnen horen`} nog bij een betaling`, href: "/app/bonnen?status=uitgelezen", knop: "Bonnen bekijken" });
+  if (teLaat.length > 0) balken.push({ tekst: `${teLaat.length} ${teLaat.length === 1 ? "factuur is" : "facturen zijn"} te laat betaald. De bot stuurt zelf herinneringen.`, href: "/app/facturen?filter=telaat", knop: "Bekijken" });
+  if (dagenTotDeadline > 14 && dagenTotDeadline <= 30) balken.push({ tekst: `Btw-aangifte ${tijdvakNaam}: uiterlijk ${datumNl(deadline)} (nog ${dagenTotDeadline} dagen)`, href: "/app/btw", knop: "Naar de aangifte" });
+  for (const t of taken) balken.push({ tekst: t.titel, href: "/app/meldingen", knop: "Bekijken" });
+  const nieuwAccount = stappen.some((s) => !s.klaar);
 
   // Recent verwerkt: bankregels en facturen door elkaar, nieuwste eerst.
   type Recent = { id: string; datum: Date; titel: string; sub: string; pil: "groen" | "geel" | "rood" | "grijs"; status: string; bedrag: number; href: string; bank?: string | null; iban?: string | null; factuur?: boolean };
@@ -156,13 +191,8 @@ export default async function Overzicht() {
   return (
     <>
       <Kop titel={`${groet} ${naam}!`} />
-      <EersteStappen stappen={stappen} />
-
-      {balken.length > 0 && (
-        <div className="mb-6 space-y-2">
-          {balken.slice(0, 2).map((b) => <Infobalk key={b.href + b.tekst} tekst={b.tekst} href={b.href} />)}
-        </div>
-      )}
+      {/* Nieuw account: de checklist is de volgende stap. Daarna: één ding tegelijk. */}
+      {nieuwAccount ? <EersteStappen stappen={stappen} /> : <VolgendeStap acties={balken} />}
 
       <AiBalk />
 

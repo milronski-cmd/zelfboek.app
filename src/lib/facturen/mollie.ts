@@ -1,13 +1,13 @@
 import { db } from "@/lib/db";
-import { leesKoppeling } from "@/lib/koppelingen";
+import { mollieToegang } from "@/lib/koppelen";
 
 /**
  * Betaallink via de Mollie Payments API. Metadata { factuurId } zodat de webhook (module A) de factuur kan afboeken.
  * Geeft null terug als er geen Mollie-koppeling is.
  */
 export async function maakBetaallink(factuurId: string, ondernemingId: string): Promise<string | null> {
-  const cfg = await leesKoppeling<{ apiKey: string }>(ondernemingId, "mollie");
-  if (!cfg?.apiKey) return null;
+  const toegang = await mollieToegang(ondernemingId);
+  if (!toegang) return null;
   const f = await db.factuur.findFirstOrThrow({ where: { id: factuurId, ondernemingId }, include: { onderneming: true } });
   if (f.betaalLinkUrl) return f.betaalLinkUrl;
   const openstaand = Math.max(0, f.totaal - f.betaaldBedrag);
@@ -15,7 +15,7 @@ export async function maakBetaallink(factuurId: string, ondernemingId: string): 
   const basis = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const res = await fetch("https://api.mollie.com/v2/payments", {
     method: "POST",
-    headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${toegang.token}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       amount: { currency: f.valuta, value: openstaand.toFixed(2) },
       description: `Factuur ${f.nummer} ${f.onderneming.naam}`.slice(0, 255),
@@ -23,6 +23,8 @@ export async function maakBetaallink(factuurId: string, ondernemingId: string): 
       webhookUrl: `${basis}/api/webhooks/mollie?o=${encodeURIComponent(ondernemingId)}`,
       locale: "nl_NL",
       metadata: { factuurId: f.id, ondernemingId },
+      // Via OAuth (Koppel Mollie) hoort bij elke betaling het websiteprofiel van de klant.
+      ...(toegang.oauth && toegang.profileId ? { profileId: toegang.profileId } : {}),
     }),
   });
   if (!res.ok) {
