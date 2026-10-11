@@ -51,7 +51,7 @@ export default async function Kilometers() {
         <div className="mt-6"><Leeg tekst="Nog geen ritten dit jaar. Vul hierboven je eerste rit in." /></div>
       ) : (
         <div className="kaart mt-6 overflow-x-auto">
-          <table className="tabel">
+          <table className="tabel tabel-stapel">
             <thead>
               <tr><th>Datum</th><th>Rit</th><th>Waarvoor</th><th>Vervoer</th><th className="num">Km</th><th className="num">Aftrek</th><th></th></tr>
             </thead>

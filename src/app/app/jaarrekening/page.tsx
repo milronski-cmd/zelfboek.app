@@ -25,7 +25,7 @@ export default async function JaarrekeningPagina({ searchParams }: { searchParam
 
   return (
     <>
-      <Kop titel={`Jaarrekening ${jaar}`} sub="Winst-en-verliesrekening en balans, rechtstreeks uit je boekhouding.">
+      <Kop titel={`Jaaroverzicht ${jaar}`} sub="Wat je verdiende en wat je bezit (jaarrekening), rechtstreeks uit je boekhouding.">
         <Link href={`/app/jaarrekening?j=${jaar - 1}`} className={knopLicht}>{jaar - 1}</Link>
         <Link href={`/app/jaarrekening?j=${jaar + 1}`} className={knopLicht}>{jaar + 1}</Link>
         <a href={`/api/exports/jaarrekening-pdf?jaar=${jaar}`} className={knop}>Download als PDF</a>

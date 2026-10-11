@@ -30,7 +30,7 @@ export default async function Activa() {
 
   return (
     <>
-      <Kop titel="Investeringen" sub={`Aankopen vanaf € ${INVESTERINGSGRENS} zonder btw schrijf je over meerdere jaren af. De bot boekt de afschrijving elke maand zelf.`}>
+      <Kop titel="Grote aankopen" sub={`Aankopen vanaf € ${INVESTERINGSGRENS} zonder btw schrijf je over meerdere jaren af. De bot boekt de afschrijving elke maand zelf.`}>
         <form action={afschrijvingenBijwerken}><button className={knopLicht}>Afschrijvingen bijwerken</button></form>
       </Kop>
 

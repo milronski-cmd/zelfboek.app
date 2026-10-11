@@ -159,7 +159,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
         </div>
       ) : (
         <div className="kaart mt-4 overflow-x-auto">
-          <table className="tabel">
+          <table className="tabel tabel-stapel">
             <thead>
               <tr>
                 <th>Datum</th>

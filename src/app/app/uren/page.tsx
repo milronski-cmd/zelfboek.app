@@ -88,7 +88,7 @@ export default async function Uren({ searchParams }: { searchParams: Promise<{ j
         <div className="mt-6"><Leeg tekst="Nog geen uren dit jaar. Vul hierboven je eerste regel in, ook een halve dag administratie telt mee." /></div>
       ) : (
         <div className="kaart mt-6 overflow-x-auto">
-          <table className="tabel">
+          <table className="tabel tabel-stapel">
             <thead>
               <tr><th>Datum</th><th>Klant</th><th>Omschrijving</th><th>Soort</th><th className="num">Uren</th><th></th></tr>
             </thead>

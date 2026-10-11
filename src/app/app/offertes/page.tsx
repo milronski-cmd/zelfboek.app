@@ -21,7 +21,7 @@ export default async function Offertes() {
         <Leeg tekst="Je hebt nog geen offertes. Maak er een, de klant krijgt een link om online te accepteren." actie={<Link href="/app/offertes/nieuw" className={knop}>Nieuwe offerte</Link>} />
       ) : (
         <div className="kaart overflow-x-auto">
-          <table className="tabel">
+          <table className="tabel tabel-stapel">
             <thead>
               <tr><th>Nummer</th><th>Klant</th><th>Datum</th><th>Geldig tot</th><th className="num">Totaal</th><th>Status</th></tr>
             </thead>

@@ -69,7 +69,7 @@ export default async function Facturen({ searchParams }: { searchParams: Promise
         </div>
       ) : (
         <div className="kaart mt-4 overflow-x-auto">
-          <table className="tabel">
+          <table className="tabel tabel-stapel">
             <thead>
               <tr><th>Nummer</th><th>Klant</th><th>Datum</th><th>Vervalt</th><th className="num">Totaal</th><th>Status</th><th></th></tr>
             </thead>
@@ -85,7 +85,7 @@ export default async function Facturen({ searchParams }: { searchParams: Promise
                     </td>
                     <td>{f.klant.naam}</td>
                     <td className="text-tekst-2">{datumNl(f.datum)}</td>
-                    <td className={teLaatDagen > 0 ? "text-rood-tekst" : "text-tekst-2"}>
+                    <td data-label="vervalt" className={teLaatDagen > 0 ? "text-rood-tekst" : "text-tekst-2"}>
                       {datumNl(f.vervaldatum)}
                       {teLaatDagen > 0 && <span className="block text-[13px]">{teLaatDagen} {teLaatDagen === 1 ? "dag" : "dagen"} te laat</span>}
                     </td>

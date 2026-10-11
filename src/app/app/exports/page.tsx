@@ -36,7 +36,7 @@ export default async function Exports({ searchParams }: { searchParams: Promise<
 
   return (
     <>
-      <Kop titel="Exporteren" sub={`Boekjaar ${jaar}. Je gegevens zijn van jou en altijd te downloaden in open formaten.`}>
+      <Kop titel="Downloaden" sub={`Boekjaar ${jaar}. Je gegevens zijn van jou en altijd te downloaden in open formaten.`}>
         <a href={`/app/exports?j=${jaar - 1}`} className={knopLicht}>{jaar - 1}</a>
         <a href={`/app/exports?j=${jaar + 1}`} className={knopLicht}>{jaar + 1}</a>
       </Kop>

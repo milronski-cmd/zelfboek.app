@@ -25,7 +25,7 @@ export default async function Terugkerend({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <Kop titel="Terugkerende facturen" sub="Abonnementen en vaste maandbedragen. De bot maakt en verstuurt ze op de afgesproken dag.">
+      <Kop titel="Vaste facturen" sub="Abonnementen en vaste maandbedragen. De bot maakt en verstuurt ze op de afgesproken dag.">
         {!toonFormulier && <Link href="/app/terugkerend?nieuw=1" className={knop}>Nieuwe terugkerende factuur</Link>}
       </Kop>
 

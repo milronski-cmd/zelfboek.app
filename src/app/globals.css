@@ -274,3 +274,15 @@ label.lbl { display: block; font-size: 13px; font-weight: 500; color: var(--teks
 /* Onderbalk op de telefoon: vier vaste knoppen plus Meer, boven de iPhone-thuisbalk. */
 .onderbalk { padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -1px 8px rgba(26, 31, 54, 0.04); }
 @media print { .onderbalk { display: none; } }
+
+/* Tabellen op de telefoon: elke rij wordt een kaartje onder elkaar, geen zijwaarts scrollen. */
+@media (max-width: 639px) {
+  .tabel-stapel thead { display: none; }
+  .tabel-stapel, .tabel-stapel tbody { display: block; }
+  .tabel-stapel tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; padding: 12px 16px; border-bottom: 1px solid var(--lijn); }
+  .tabel-stapel tr:last-child { border-bottom: 0; }
+  .tabel-stapel td { display: block; padding: 0; border: 0; }
+  .tabel-stapel td:empty { display: none; }
+  .tabel-stapel td.num { text-align: left; }
+  .tabel-stapel td[data-label]::before { content: attr(data-label) " "; color: var(--tekst-3); }
+}

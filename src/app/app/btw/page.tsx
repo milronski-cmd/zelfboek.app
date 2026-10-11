@@ -99,32 +99,28 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
 
       {/* De rubrieken: dit neem je over bij de Belastingdienst. */}
       <div className="kaart overflow-hidden">
-        <table className="tabel">
-          <thead>
-            <tr><th className="w-12">Rubriek</th><th></th><th className="num">Bedrag waarover btw</th><th className="num">Btw</th></tr>
-          </thead>
-          <tbody>
-            {rubrieken.map((r) => {
-              const leeg = a[r.omzet] === 0 && (!r.btw || a[r.btw] === 0);
-              return (
-                <tr key={r.code} className={leeg ? "text-tekst-3" : ""}>
-                  <td className="tabular font-medium">{r.code}</td>
-                  <td>{r.naam}</td>
-                  <td className="num">{euro(a[r.omzet])}</td>
-                  <td className="num">{r.btw ? euro(a[r.btw]) : ""}</td>
-                </tr>
-              );
-            })}
-            <tr className="bg-papier"><td className="tabular font-medium">5a</td><td>Verschuldigde omzetbelasting</td><td></td><td className="num font-medium">{euro(a["5a_verschuldigd"])}</td></tr>
-            <tr><td className="tabular font-medium">5b</td><td>Voorbelasting</td><td></td><td className="num">{euro(a["5b_voorbelasting"])}</td></tr>
-            <tr className="bg-papier font-semibold">
-              <td className="tabular font-medium">5c</td>
-              <td className="font-semibold">{a["5c_te_betalen"] >= 0 ? "Te betalen" : "Terug te vragen"}</td>
-              <td></td>
-              <td className="num cijfer text-[20px]">{euro(Math.abs(a["5c_te_betalen"]))}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="hidden grid-cols-[3rem_1fr_10rem_8rem] gap-x-4 border-b border-lijn px-4 py-2 text-[12px] font-semibold uppercase tracking-[.04em] text-tekst-3 sm:grid">
+          <span>Vakje</span><span></span><span className="text-right">Bedrag waarover btw</span><span className="text-right">Btw</span>
+        </div>
+        <ul className="divide-y divide-lijn">
+          {rubrieken.map((r) => {
+            const leeg = a[r.omzet] === 0 && (!r.btw || a[r.btw] === 0);
+            return (
+              <li key={r.code} className={`grid grid-cols-[2.5rem_1fr] gap-x-3 px-4 py-2.5 text-sm sm:grid-cols-[3rem_1fr_10rem_8rem] sm:gap-x-4 ${leeg ? "text-tekst-3" : ""}`}>
+                <span className="tabular font-medium">{r.code}</span>
+                <span>
+                  {r.naam}
+                  <span className="mt-0.5 block text-[13px] sm:hidden">{euro(a[r.omzet])}{r.btw ? ` · btw ${euro(a[r.btw])}` : ""}</span>
+                </span>
+                <span className="cijfer hidden text-right sm:block">{euro(a[r.omzet])}</span>
+                <span className="cijfer hidden text-right sm:block">{r.btw ? euro(a[r.btw]) : ""}</span>
+              </li>
+            );
+          })}
+          <li className="flex justify-between gap-3 bg-papier px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5a</b>Verschuldigde omzetbelasting</span><span className="cijfer font-medium">{euro(a["5a_verschuldigd"])}</span></li>
+          <li className="flex justify-between gap-3 px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5b</b>Voorbelasting</span><span className="cijfer">{euro(a["5b_voorbelasting"])}</span></li>
+          <li className="flex items-center justify-between gap-3 bg-papier px-4 py-3 font-semibold"><span><b className="tabular mr-3">5c</b>{a["5c_te_betalen"] >= 0 ? "Te betalen" : "Terug te vragen"}</span><span className="cijfer text-[20px]">{euro(Math.abs(a["5c_te_betalen"]))}</span></li>
+        </ul>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">

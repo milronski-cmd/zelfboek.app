@@ -51,7 +51,7 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
           <Leeg tekst={sp.status ? "Geen bonnen met deze status." : "Nog geen bonnen. Maak een foto van je eerste bon, de bot doet de rest."} actie={sp.status ? <Link href="/app/bonnen" className="knop-licht knop-klein">Alles tonen</Link> : undefined} />
         ) : (
           <div className="kaart overflow-x-auto">
-            <table className="tabel">
+            <table className="tabel tabel-stapel">
               <thead>
                 <tr><th>Datum</th><th>Leverancier</th><th className="num">Totaal</th><th className="num">Btw</th><th>Categorie</th><th>Status</th></tr>
               </thead>

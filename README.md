@@ -10,6 +10,12 @@ Dit is de webapp (inloggen, boekhouding, API's, webhooks, cron), bedoeld voor `a
 - Inloggen met e-mailcode, geen wachtwoord. Meerdere ondernemingen per gebruiker, teamleden met rol.
 - Abonnement via Stripe Checkout met proefperiode, klantportaal, webhook voor actief/achterstallig/gestopt.
 
+**Koppelen met één knop (geen sleutels voor de klant)**
+- Elke koppeling is één knop "Koppelen": de klant logt in bij de partij zelf en komt terug met "Gekoppeld". Code: `src/lib/koppelen.ts` (OAuth per partij, ondertekende state), terugkeer op `/api/koppelingen/<partij>/terug`.
+- Bank via Enable Banking (bankkeuze, 90 dagen toestemming); Mollie Connect, Stripe Connect, Shopify (winkelnaam invullen, dan inloggen), WooCommerce (eigen goedkeurscherm in de webshop, geen platform-account nodig; sleutels komen binnen op `/api/koppelingen/woocommerce/sleutels`, werkt alleen met https), Moneybird.
+- Zonder OAuth bij de partij: bol.com (twee codes uit het partnerplatform, vier stappen in gewone woorden), e-Boekhouden (één code), PayPal en Jortt (export uploaden).
+- Proefmodus: zolang wij als platform een partij nog niet hebben aangesloten, werkt de knop buiten productie met voorbeeldgegevens (`/app/koppelingen/proef`). In productie aan te zetten met `SALDOPLAN_PROEFMODUS=1`; anders staat er "Binnenkort" met de upload-route.
+
 **Bank en verkoopkanalen**
 - PSD2-koppeling via Enable Banking (dagelijkse sync, saldo, toestemming verlengen).
 - Import van CSV (ING, Rabobank, ABN AMRO, bunq, Knab, SNS/ASN/RegioBank, Triodos, Revolut, N26, generiek), MT940 en CAMT.053. Autodetectie op inhoud.
@@ -59,7 +65,7 @@ npm run dev
 
 Open http://localhost:3000. Zonder SMTP-instellingen komt de inlogcode in `uploads/outbox.log` en in de melding op het scherm (alleen buiten productie).
 
-Demo-gegevens in je lokale database (één onderneming met een jaar aan bankregels, facturen, bonnen en klanten): `npm run demo [e-mailadres]`. Werkt alleen op een database op localhost en wist eerst de gegevens van die onderneming.
+Lokaal werkt elke koppelknop in de proefmodus met voorbeeldgegevens. Demo-gegevens in je lokale database (één onderneming met een jaar aan bankregels, facturen, bonnen en klanten): `npm run demo [e-mailadres]`. Werkt alleen op een database op localhost en wist eerst de gegevens van die onderneming.
 
 Tests: `npx tsx test/parsers.ts`, `test/importeer.ts`, `test/facturen.ts`, `test/fiscaal.ts`, `test/exports-db.ts`, `test/d-moduleD.ts`.
 
@@ -78,8 +84,12 @@ Next.js 16 (App Router, server actions, proxy), Prisma 6 op SQLite (voor product
 | AI | API-sleutel van console.anthropic.com |
 | E-mail | SMTP-gegevens (Resend, Postmark, Mailgun) en een verzenddomein |
 | Abonnement | Stripe-account, product van € 50 per maand, webhook naar `/api/stripe/webhook` |
-| Bankkoppeling | Contract met Enable Banking (applicatie-id en private key); zonder contract werkt CSV, MT940 en CAMT |
-| Betaallinks | Mollie-account per klant (die vult zelf zijn sleutel in bij Koppelingen) |
+| Bankkoppeling | Contract met Enable Banking (applicatie-id en private key in `ENABLE_BANKING_APP_ID` en `ENABLE_BANKING_PRIVATE_KEY`); zonder contract werkt CSV, MT940 en CAMT |
+| Mollie | App registreren in het Mollie-dashboard (Ontwikkelaars, Apps): `MOLLIE_CLIENT_ID`, `MOLLIE_CLIENT_SECRET`, terugkeer-URL `https://app.saldoplan.nl/api/koppelingen/mollie/terug` |
+| Stripe | Stripe Connect aanzetten in het eigen Stripe-account: `STRIPE_CONNECT_CLIENT_ID` (ca_...) plus `STRIPE_SECRET_KEY`, terugkeer-URL `.../api/koppelingen/stripe/terug` |
+| Shopify | Shopify Partner-account, app aanmaken: `SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET`, terugkeer-URL `.../api/koppelingen/shopify/terug`; voor Shopify Payments-uitbetalingen moet Shopify de scope goedkeuren |
+| Moneybird | App registreren via moneybird.com/user/applications: `MONEYBIRD_CLIENT_ID`, `MONEYBIRD_CLIENT_SECRET`, terugkeer-URL `.../api/koppelingen/moneybird/terug` |
+| WooCommerce | Niets: de webshop van de klant toont zelf het goedkeurscherm |
 | Indienen | Wij zetten de SBR-XBRL klaar; indienen via Digipoort vereist een PKIoverheid-certificaat of een hub-partij. De klant kan de rubrieken ook zelf overnemen in Mijn Belastingdienst Zakelijk |
 | Hosting | Vercel of eigen server met Postgres, `uploads/` naar S3-achtige opslag verplaatsen |
 | Juridisch | Nooit "accountant" noemen. Zodra je zelf indient of adviseert: beroepsaansprakelijkheidsverzekering en Wwft-procedures (BFT) |
