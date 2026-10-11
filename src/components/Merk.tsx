@@ -1,20 +1,25 @@
 import { MERK } from "@/lib/merk";
 
-/** Beeldmerk: afgerond vierkant in de merkkleur met een wit vinkje. Op een donkere ondergrond wit met blauw vinkje. */
+/** Beeldmerk: de blauwe cirkel met witte S uit het Saldoplan-logo. Op een donkere ondergrond wit met blauwe S. */
 export function Beeldmerk({ size = 28, donker = false }: { size?: number; donker?: boolean }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <rect x="2" y="2" width="28" height="28" rx="8" fill={donker ? "#ffffff" : "var(--primair)"} />
-      <path d="M9.5 16.5l4.5 4.5L22.5 11.5" fill="none" stroke={donker ? "var(--primair)" : "#ffffff"} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="16" cy="16" r="15" fill={donker ? "#ffffff" : "#1db1df"} />
+      <text x="16" y="16" dy=".36em" textAnchor="middle" fontSize="21" fontWeight="700" fontFamily="'Segoe UI', 'Open Sans', Arial, sans-serif" fill={donker ? "#1db1df" : "#ffffff"}>S</text>
     </svg>
   );
 }
 
-export function Woordmerk({ donker = false, size = 20 }: { donker?: boolean; size?: number }) {
+/** Woordmerk: het Saldoplan-logo (public/logos/saldoplan.png). Op een donkere ondergrond het beeldmerk met witte naam. */
+export function Woordmerk({ donker = false, size = 18 }: { donker?: boolean; size?: number }) {
+  if (!donker) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src="/logos/saldoplan.png" alt={MERK} width={720} height={218} style={{ height: Math.round(size * 1.55), width: "auto" }} />;
+  }
   return (
     <span className="inline-flex items-center gap-2">
       <Beeldmerk size={size + 8} donker={donker} />
-      <span className="font-semibold tracking-[-0.02em]" style={{ fontSize: size, color: donker ? "#fff" : "var(--tekst)" }}>{MERK}</span>
+      <span className="font-semibold tracking-[-0.02em]" style={{ fontSize: size, color: "#fff" }}>{MERK}</span>
     </span>
   );
 }

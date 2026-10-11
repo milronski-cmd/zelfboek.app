@@ -43,7 +43,7 @@ export default async function Facturen({ searchParams }: { searchParams: Promise
   return (
     <>
       <Kop titel="Facturen" sub="Versturen, herinneren en afletteren gebeurt vanzelf. Jij maakt alleen de factuur.">
-        <Link href="/app/terugkerend" className={knopLicht}>Terugkerende facturen</Link>
+        <Link href="/app/terugkerend" className={knopLicht}>Vaste facturen</Link>
         <Link href="/app/facturen/nieuw" className={knop}>Nieuwe factuur</Link>
       </Kop>
 
