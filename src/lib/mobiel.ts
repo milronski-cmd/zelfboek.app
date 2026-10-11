@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { unstable_rethrow } from "next/navigation";
 import { db } from "@/lib/db";
 import { hash } from "@/lib/crypto";
 
@@ -52,6 +53,7 @@ export function route<T extends unknown[]>(fn: (...args: T) => Promise<Response>
     try {
       return await fn(...args);
     } catch (e) {
+      unstable_rethrow(e); // interne Next-signalen (zoals "dit is een dynamische route") niet als fout behandelen
       if (e instanceof ApiFout) return fout(e.status, e.message);
       console.error("[api/mobiel]", e);
       return fout(500, "Er ging iets mis. Probeer het later opnieuw.");

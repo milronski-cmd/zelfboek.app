@@ -63,6 +63,8 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
   const psd2 = per.get("enablebanking");
   const bonAdres = `bonnen+${o.id}@${process.env.INBOUND_DOMEIN ?? "saldoplan.nl"}`;
   const kanProef = proefmodus();
+  // Bank: zonder Enable Banking-contract (en buiten de proefmodus) is er nog geen knop, wel de upload-route.
+  const bankKlaar = kanProef || Boolean(process.env.ENABLE_BANKING_APP_ID && process.env.ENABLE_BANKING_PRIVATE_KEY) || Boolean((await leesKoppeling<{ appId?: string }>(o.id, "enablebanking"))?.appId);
 
   const statusPil = (soort: string) => {
     const k = per.get(soort);
@@ -94,7 +96,7 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
     const k = per.get(soort);
     const kan = ingesteld(soort) || kanProef;
     if (k) return <AppTegel key={soort} icoon={<AppIcoon id={soort} />} naam={a.naam} uitleg={kort} status={statusPil(soort)} knop={{ tekst: "Beheren", licht: true }}><p className="mb-3 text-sm text-tekst-2">{uitleg}</p>{beheer(soort, soort !== "moneybird")}</AppTegel>;
-    if (!kan) return <AppTegel key={soort} icoon={<AppIcoon id={soort} />} naam={a.naam} uitleg={kort} status={<Pil kleur="grijs">Binnenkort</Pil>} actie={<Link href="/app/bank" className="knop-licht knop-klein">Overzicht uploaden</Link>} />;
+    if (!kan) return <AppTegel key={soort} icoon={<AppIcoon id={soort} />} naam={a.naam} uitleg={kort} status={<Pil kleur="grijs">Binnenkort</Pil>} actie={soort === "moneybird" ? <Link href="/app/importeren" className="knop-licht knop-klein">Via Excel</Link> : <Link href="/app/bank" className="knop-licht knop-klein">Overzicht uploaden</Link>} />;
     if (a.vraagtAdres) {
       return (
         <AppTegel key={soort} icoon={<AppIcoon id={soort} />} naam={a.naam} uitleg={kort} status={null} knop={{ tekst: "Koppelen" }}>
@@ -142,9 +144,9 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
               icoon={<AppIcoon id={b.id} />}
               naam={b.naam}
               uitleg={gekoppeld ? `${rekeningen.length === 1 ? "1 rekening" : `${rekeningen.length} rekeningen`}, elke nacht bijgewerkt.` : "Bij- en afschrijvingen elke nacht vanzelf."}
-              status={gekoppeld ? <Pil kleur="groen">{proef.has("enablebanking") ? "Gekoppeld (proef)" : "Gekoppeld"}</Pil> : null}
+              status={gekoppeld ? <Pil kleur="groen">{proef.has("enablebanking") ? "Gekoppeld (proef)" : "Gekoppeld"}</Pil> : bankKlaar ? null : <Pil kleur="grijs">Binnenkort</Pil>}
               knop={gekoppeld ? { tekst: "Beheren", licht: true } : undefined}
-              actie={gekoppeld ? undefined : <form action={startPsd2}><input type="hidden" name="bank" value={b.naam} /><button className="knop knop-klein">Koppelen</button></form>}
+              actie={gekoppeld ? undefined : bankKlaar ? <form action={startPsd2}><input type="hidden" name="bank" value={b.naam} /><button className="knop knop-klein">Koppelen</button></form> : <Link href="/app/bank" className="knop-licht knop-klein">Afschrift uploaden</Link>}
             >
               <ul className="space-y-2">
                 {rekeningen.map((r) => (
