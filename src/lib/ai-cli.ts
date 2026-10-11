@@ -11,7 +11,7 @@ import { z } from "zod";
  */
 
 export function cliBeschikbaar(): boolean {
-  return process.env.ZELFBOEK_AI_VIA_CLI !== "0" && process.platform !== "linux" && !process.env.VERCEL;
+  return (process.env.SALDOPLAN_AI_VIA_CLI ?? process.env.ZELFBOEK_AI_VIA_CLI) !== "0" && process.platform !== "linux" && !process.env.VERCEL;
 }
 
 function run(args: string[], stdin: string, timeoutMs: number): Promise<string> {
@@ -41,7 +41,7 @@ export async function viaClaudeCli<T>(opties: {
   const args = ["-p", "--output-format", "json", "--json-schema", jsonSchema, "--model", opties.model, "--no-session-persistence", "--system-prompt", opties.systeem];
   try {
     if (opties.bestand) {
-      map = await mkdtemp(path.join(os.tmpdir(), "zelfboek-bon-"));
+      map = await mkdtemp(path.join(os.tmpdir(), "saldoplan-bon-"));
       const ext = opties.bestand.mimeType === "application/pdf" ? "pdf" : opties.bestand.mimeType.split("/")[1] || "jpg";
       const pad = path.join(map, `bon.${ext}`);
       await writeFile(pad, opties.bestand.data);

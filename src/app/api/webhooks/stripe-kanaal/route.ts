@@ -5,7 +5,7 @@ import { leesKoppeling } from "@/lib/koppelingen";
 import { haalTransacties } from "@/lib/kanalen/stripe";
 
 /**
- * Stripe-webhook voor het verkoopkanaal (niet het abonnement van Zelfboek zelf).
+ * Stripe-webhook voor het verkoopkanaal (niet het abonnement van Saldoplan zelf).
  * Bij payout.paid halen we de uitbetaling direct op. Handtekening: STRIPE_KANAAL_WEBHOOK_SECRET
  * of het veld webhookSecret in de Stripe-koppeling. URL: /api/webhooks/stripe-kanaal?o=<ondernemingId>
  */

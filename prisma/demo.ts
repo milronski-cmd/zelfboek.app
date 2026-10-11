@@ -63,7 +63,7 @@ async function main() {
 
   await db.onderneming.update({
     where: { id: oid },
-    data: { naam: "Studio Noord", branche: "webdesign en huisstijl", kvk: "87654321", btwId: "NL003456789B01", btwNummer: "123456789B01", iban: "NL69INGB0001234567", adres: "Oude Kijk in 't Jatstraat 12", postcode: "9712 EH", plaats: "Groningen", email: "hallo@studionoord.nl", startdatum: new Date(2023, 2, 1) },
+    data: { naam: "Studio Noord", branche: "webdesign en huisstijl", kvk: "87654321", btwId: "NL003456789B01", btwNummer: "123456789B01", iban: "NL69INGB0001234567", adres: "Oude Kijk in 't Jatstraat 12", postcode: "9712 EH", plaats: "Groningen", email: "hallo@studionoord.nl", startdatum: new Date(2023, 2, 1), abonnement: "proef", proefTot: new Date(Date.now() + 30 * 864e5) },
   });
 
   const nu = new Date();

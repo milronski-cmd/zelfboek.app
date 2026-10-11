@@ -1,8 +1,8 @@
-# Zelfboek — webapp
+# Saldoplan — webapp
 
 Volledig AI-boekhoudpakket voor zzp'ers (eenmanszaak zonder personeel). Eén prijs: € 50 per maand.
 
-Dit is de webapp (inloggen, boekhouding, API's, webhooks, cron), bedoeld voor `app.zelfboek.nl`. De marketingsite (homepage, privacy, voorwaarden) staat in de aparte repo **zelfboek-website** op `zelfboek.nl`. De root `/` van deze app stuurt door naar `/app` (en zonder sessie naar `/login`). `NEXT_PUBLIC_WEBSITE_URL` bepaalt waar "Startpagina" en het woordmerk op de loginpagina naartoe linken.
+Dit is de webapp (inloggen, boekhouding, API's, webhooks, cron), bedoeld voor `app.saldoplan.nl`. De marketingsite (homepage, privacy, voorwaarden) staat in de aparte repo **saldoplan-website** op `saldoplan.nl`. De root `/` van deze app stuurt door naar `/app` (en zonder sessie naar `/login`). `NEXT_PUBLIC_WEBSITE_URL` bepaalt waar "Startpagina" en het woordmerk op de loginpagina naartoe linken.
 
 ## Functies
 

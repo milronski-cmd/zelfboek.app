@@ -54,7 +54,7 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
   const per = new Map(koppelingen.map((k) => [k.soort, k]));
   const psd2 = per.get("enablebanking");
   const basisUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const bonAdres = `bonnen+${o.id}@${process.env.INBOUND_DOMEIN ?? "zelfboek.nl"}`;
+  const bonAdres = `bonnen+${o.id}@${process.env.INBOUND_DOMEIN ?? "saldoplan.nl"}`;
 
   const statusPil = (soort: string) => {
     const k = per.get(soort);

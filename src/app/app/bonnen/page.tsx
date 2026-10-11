@@ -36,7 +36,7 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
       <Kop titel="Bonnen" sub="Maak een foto of sleep een PDF. De bot leest het bedrag en hangt de bon aan de bankregel." />
       <BonUpload actie={uploadBonnen} />
       <p className="mt-3 text-sm text-tekst-2">
-        Of mail je bonnen naar <span className="rounded bg-white px-2 py-0.5 font-medium text-tekst ring-1 ring-lijn">bonnen+{o.id}@{process.env.INBOUND_DOMEIN ?? "zelfboek.nl"}</span>. Stuur de bon als bijlage door, de bot doet de rest.
+        Of mail je bonnen naar <span className="rounded bg-white px-2 py-0.5 font-medium text-tekst ring-1 ring-lijn">bonnen+{o.id}@{process.env.INBOUND_DOMEIN ?? "saldoplan.nl"}</span>. Stuur de bon als bijlage door, de bot doet de rest.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
