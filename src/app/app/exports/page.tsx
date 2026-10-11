@@ -27,8 +27,8 @@ export default async function Exports({ searchParams }: { searchParams: Promise<
     {
       kop: `Btw, ${tijdvakNaam}`,
       items: [
-        { titel: "SBR-bestand voor Digipoort", tekst: "De aangifte als XBRL volgens de Nederlandse Taxonomie. In te dienen via Digipoort met een PKIoverheid-certificaat of via een hub-leverancier.", href: `/api/exports/sbr?jaar=${jaar}&periode=${periode}`, knop: "Download SBR" },
         { titel: "Btw-overzicht", tekst: "Alle rubrieken op één A4, om over te nemen bij de Belastingdienst.", href: `/api/exports/btw-pdf?jaar=${jaar}&periode=${periode}`, knop: "Download PDF" },
+        { titel: "Aangiftebestand (SBR)", tekst: "Alleen nodig als je boekhouder of een aangifteprogramma de aangifte voor je indient.", href: `/api/exports/sbr?jaar=${jaar}&periode=${periode}`, knop: "Download SBR" },
         { titel: "ICP-opgaaf", tekst: "Per EU-klant met btw-nummer de omzet, in het uploadformaat van de Belastingdienst.", href: `/api/exports/icp?jaar=${jaar}&periode=${periode}`, knop: "Download CSV" },
       ],
     },

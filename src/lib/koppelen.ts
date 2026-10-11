@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { appGeheim } from "./crypto";
-import { bewaarKoppeling, leesKoppeling, type KoppelingSoort } from "./koppelingen";
+import { bewaarKoppeling, leesKoppeling } from "./koppelingen";
 import { MERK } from "./merk";
 
 /**

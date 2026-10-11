@@ -14,6 +14,7 @@ import { importeerEboekhouden } from "./import/eboekhouden";
 import { importeerJorttCsv } from "./import/jortt";
 import { importeerExcel } from "./import/excel";
 import { maakHash, maakRegel, type BankRegel } from "./bank/csv";
+import { verwerkAntwoord } from "./vragenmail";
 import { AANBIEDERS, ingesteld, isOAuthSoort, leesState, maakState, normaalAdres, proefmodus, terugUrl } from "./koppelen";
 
 export type Resultaat = { ok: true; melding: string } | { ok: false; fout: string };
@@ -82,6 +83,16 @@ export async function wijzigTransactie(formData: FormData): Promise<void> {
   ververs();
 }
 
+/** Twijfelvraag beantwoorden met één tik: zakelijk (boeking van de bot blijft) of privé. */
+export async function beantwoordVraag(formData: FormData): Promise<void> {
+  const o = await schrijfOnderneming();
+  const id = String(formData.get("id") ?? "");
+  const keuze = formData.get("keuze") === "prive" ? "prive" : "zakelijk";
+  if (!(await db.transactie.findFirst({ where: { id, ondernemingId: o.id }, select: { id: true } }))) return;
+  await verwerkAntwoord(id, keuze);
+  ververs();
+}
+
 export async function bevestigAlles(): Promise<void> {
   const o = await schrijfOnderneming();
   await db.transactie.updateMany({ where: { ondernemingId: o.id, zakelijk: { not: null }, bevestigd: false }, data: { bevestigd: true } });
@@ -118,8 +129,12 @@ export async function koppelingOpslaan(formData: FormData): Promise<Resultaat> {
     }
     if (Object.keys(config).length === 0) return { ok: false, fout: "Vul minstens één veld in." };
     await bewaarKoppeling(o.id, soort, config);
+    // Meteen proberen, zodat je direct weet of het werkt.
+    if (soort === "moneybird" || soort === "eboekhouden") { ververs(); return { ok: true, melding: "Gekoppeld. Neem je gegevens over bij Overstappen." }; }
+    const r = await syncEenBron(o.id, soort);
     ververs();
-    return { ok: true, melding: "Koppeling opgeslagen. Klik op 'Nu synchroniseren' om te testen." };
+    if (r.fouten.length) return { ok: false, fout: `Opgeslagen, maar ophalen lukte nog niet: ${r.fouten[0]} Controleer de codes en probeer het opnieuw.` };
+    return { ok: true, melding: `Gekoppeld. ${r.nieuw} regels opgehaald; daarna elke nacht vanzelf.` };
   } catch (e) { return fout(e); }
 }
 

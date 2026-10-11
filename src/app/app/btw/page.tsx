@@ -79,10 +79,23 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
       )}
       {(twijfel > 0 || onbeoordeeld > 0) && (
         <p className="mb-5 rounded-lg bg-mosterd-licht px-4 py-3 text-sm text-mosterd-tekst">
-          Nog niet definitief: {onbeoordeeld > 0 && `${onbeoordeeld} bankregels zijn nog niet beoordeeld. `}{twijfel > 0 && `${twijfel} regels staan op twijfel. `}
-          <Link href="/app/bank?filter=twijfel" className="underline">Beantwoord de vragen</Link>
+          Nog niet definitief: {onbeoordeeld > 0 && `${onbeoordeeld === 1 ? "1 betaling is" : `${onbeoordeeld} betalingen zijn`} nog niet geboekt. `}{twijfel > 0 && `De bot heeft ${twijfel === 1 ? "1 vraag" : `${twijfel} vragen`} voor je. `}
+          <Link href="/app/bank" className="underline">Naar de bank</Link>
         </p>
       )}
+
+      {/* In gewone woorden: wat je betaalt en hoe je de aangifte doet. */}
+      <section className="kaart mb-6 p-5">
+        <p className="text-sm text-tekst-2">{a["5c_te_betalen"] >= 0 ? "Je betaalt over deze periode" : "Je krijgt over deze periode terug"}</p>
+        <p className="cijfer mt-0.5 text-[30px] font-semibold leading-tight">{euro(Math.abs(a["5c_te_betalen"]))}</p>
+        {!afgehandeld ? (
+          <ol className="mt-4 space-y-2 text-sm">
+            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primair-licht text-[12px] font-semibold text-primair-tekst">1</span><span className="pt-0.5">Log in op <b>Mijn Belastingdienst Zakelijk</b> en open de aangifte omzetbelasting.</span></li>
+            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primair-licht text-[12px] font-semibold text-primair-tekst">2</span><span className="pt-0.5">Neem de bedragen hieronder over, per vakje (1a, 1b, en zo verder). Alleen hele euro&apos;s: de centen laat je weg.</span></li>
+            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primair-licht text-[12px] font-semibold text-primair-tekst">3</span><span className="pt-0.5">Verstuur hem en klik hieronder op <b>Ik heb ingediend</b>. Betaal vóór {datumNl(deadline)}.</span></li>
+          </ol>
+        ) : <p className="mt-2 text-sm text-groen-tekst">Deze aangifte staat als {status === "betaald" ? "betaald" : "ingediend"}. Je hoeft niets meer te doen.</p>}
+      </section>
 
       {/* De rubrieken: dit neem je over bij de Belastingdienst. */}
       <div className="kaart overflow-hidden">
@@ -116,7 +129,7 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <a href={`/api/exports/btw-pdf?${q}`} className={knopLicht}>PDF-overzicht</a>
-        <a href={`/api/exports/sbr?${q}`} className={knopLicht}>SBR-bestand voor Digipoort</a>
+        <a href={`/api/exports/sbr?${q}`} className="knop-tekst">Bestand voor je boekhouder (SBR)</a>
         {icp.regels.length > 0 && <a href={`/api/exports/icp?${q}`} className={knopLicht}>ICP-opgaaf als CSV</a>}
         <span className="ml-auto flex items-center gap-2 text-sm">
           <Pil kleur={statusPil[status] ?? "grijs"}>{statusTekst[status] ?? status}</Pil>

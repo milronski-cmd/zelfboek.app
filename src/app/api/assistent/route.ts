@@ -1,3 +1,4 @@
+import { BOT_ONBEREIKBAAR } from "@/lib/ai";
 import { huidigeSessie } from "@/lib/auth";
 import { huidigeOnderneming } from "@/lib/db";
 import { chatBeurt } from "@/lib/assistent/chat";
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
         await chatBeurt({ ondernemingId: o.id, gesprekId: body.gesprekId, bericht, emit: zend });
       } catch (e) {
         const m = e instanceof Error ? e.message : String(e);
-        zend({ type: "fout", tekst: /api key|authentication/i.test(m) ? "Geen geldige ANTHROPIC_API_KEY ingesteld." : m });
+        zend({ type: "fout", tekst: /api key|authentication/i.test(m) ? BOT_ONBEREIKBAAR : m });
       } finally {
         controller.close();
       }

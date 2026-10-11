@@ -1,5 +1,7 @@
 "use client";
 
+import { isoDatum } from "@/lib/btw";
+
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Kaart, Melding, knop, knopLicht, veld } from "./ui";
@@ -148,13 +150,13 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
                   <option value="week">Elke week</option><option value="maand">Elke maand</option><option value="kwartaal">Elk kwartaal</option><option value="jaar">Elk jaar</option>
                 </select>
               </div>
-              <div><label className="lbl" htmlFor="volgendeOp">Eerstvolgende factuur</label><input id="volgendeOp" name="volgendeOp" type="date" defaultValue={bestaand?.volgendeOp ?? new Date().toISOString().slice(0, 10)} className={veld} /></div>
+              <div><label className="lbl" htmlFor="volgendeOp">Eerstvolgende factuur</label><input id="volgendeOp" name="volgendeOp" type="date" defaultValue={bestaand?.volgendeOp ?? isoDatum()} className={veld} /></div>
               <div><label className="lbl" htmlFor="eindigtOp">Stopt op (mag leeg)</label><input id="eindigtOp" name="eindigtOp" type="date" defaultValue={bestaand?.eindigtOp ?? ""} className={veld} /></div>
               <label className="flex items-center gap-2 text-sm sm:col-span-3"><input type="checkbox" name="autoVerzenden" defaultChecked={bestaand?.autoVerzenden ?? true} /> Automatisch per e-mail versturen</label>
             </>
           ) : (
             <>
-              <div><label className="lbl" htmlFor="datum">Datum</label><input id="datum" name="datum" type="date" defaultValue={bestaand?.datum ?? new Date().toISOString().slice(0, 10)} className={veld} /></div>
+              <div><label className="lbl" htmlFor="datum">Datum</label><input id="datum" name="datum" type="date" defaultValue={bestaand?.datum ?? isoDatum()} className={veld} /></div>
               <div><label className="lbl" htmlFor="termijn">{soort === "offerte" ? "Geldig in dagen" : "Betaaltermijn in dagen"}</label><input id="termijn" name="termijn" type="number" defaultValue={soort === "offerte" ? 30 : klant?.betaaltermijn ?? standaardTermijn} className={veld} /></div>
               {soort === "factuur" && <div><label className="lbl" htmlFor="referentie">Kenmerk van de klant</label><input id="referentie" name="referentie" defaultValue={bestaand?.referentie ?? ""} className={veld} /></div>}
             </>

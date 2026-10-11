@@ -114,3 +114,15 @@ export async function ondernemingVerwijderen(fd: FormData): Promise<Resultaat> {
   if (!ander) await logUit();
   redirect(ander ? "/app" : "/login");
 }
+
+/** Eerste keer: je naam en de naam van je bedrijf, daarna meteen naar het overzicht. */
+export async function welkomOpslaan(fd: FormData): Promise<void> {
+  const o = await schrijfOnderneming();
+  const s = await vereisGebruiker();
+  const naam = v(fd, "naam");
+  const bedrijf = v(fd, "bedrijf");
+  if (naam) await db.gebruiker.update({ where: { id: s.gebruikerId }, data: { naam } });
+  if (bedrijf) await db.onderneming.update({ where: { id: o.id }, data: { naam: bedrijf } });
+  revalidatePath("/app");
+  redirect("/app");
+}

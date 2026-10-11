@@ -54,7 +54,7 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
         ))}
       </nav>
       {sp.stripe === "gelukt" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: true, melding: "Je abonnement is gestart." }} /></div>}
-      {sp.stripe === "niet-ingesteld" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: false, fout: "Betalen is nog niet ingesteld op deze server (STRIPE_SECRET_KEY en STRIPE_PRICE_ID ontbreken)." }} /></div>}
+      {sp.stripe === "niet-ingesteld" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: false, fout: process.env.NODE_ENV === "production" ? "Afrekenen voor je abonnement staat nog niet aan. We laten het je weten zodra het kan; je proefperiode loopt gewoon door." : "Afrekenen staat nog niet aan op deze server (STRIPE_SECRET_KEY en STRIPE_PRICE_ID ontbreken)." }} /></div>}
 
       {tab === "bedrijf" && (
         <form action={bedrijfOpslaan} className={kaart}>
@@ -148,9 +148,9 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
         <div className={kaart}>
           <div>
             <h2 className="text-sm font-semibold">E-mail versturen</h2>
-            <p className="mt-1 text-sm text-tekst-2">Facturen, herinneringen, inlogcodes en het weekoverzicht gaan via SMTP.</p>
-            <p className="mt-2 text-sm">{smtpIngesteld ? <><Pil kleur="groen">ingesteld</Pil> <span className="text-tekst-2">via {process.env.SMTP_HOST}</span></> : <><Pil kleur="geel">niet ingesteld</Pil> <span className="text-tekst-2">mail wordt lokaal bewaard in plaats van verstuurd</span></>}</p>
-            <p className="mt-2 text-[13px] text-tekst-3">Werkt met Resend, Postmark, Mailgun, Brevo of je eigen mailserver. Zet op de server: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE en MAIL_VAN.</p>
+            <p className="mt-1 text-sm text-tekst-2">Facturen, herinneringen, inlogcodes en het weekoverzicht gaan per e-mail naar je klanten en naar jou.</p>
+            <p className="mt-2 text-sm">{smtpIngesteld ? <><Pil kleur="groen">ingesteld</Pil> <span className="text-tekst-2">e-mail wordt verstuurd</span></> : <><Pil kleur="geel">niet ingesteld</Pil> <span className="text-tekst-2">mail wordt lokaal bewaard in plaats van verstuurd</span></>}</p>
+            {process.env.NODE_ENV !== "production" && <p className="mt-2 text-[13px] text-tekst-3">Voor de beheerder: zet op de server SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE en MAIL_VAN (Resend, Postmark, Mailgun of Brevo).</p>}
           </div>
           <div className="border-t border-lijn pt-5">
             <FormulierMetMelding actie={async () => { "use server"; return smtpTest(); }} knopTekst={`Stuur een testmail naar ${s.gebruiker.email}`} />

@@ -131,8 +131,8 @@ export default async function Overzicht() {
   }
 
   const stappen = [
-    { klaar: Boolean(o.kvk && o.iban), titel: "Vul je bedrijfsgegevens in", tekst: "KvK, btw-nummer en IBAN. Komen op je facturen en in je aangifte.", href: "/app/instellingen", knop: "Invullen" },
-    { klaar: aantalTransacties > 0 || aantalKoppelingen > 0, titel: "Koppel je bank of upload een afschrift", tekst: "Vanaf dan boekt de bot elke nacht je nieuwe regels.", href: "/app/koppelingen", knop: "Bank koppelen" },
+    { klaar: aantalTransacties > 0 || aantalKoppelingen > 0, titel: "Koppel je bank", tekst: "Log in bij je bank. Daarna boekt de bot elke nacht je betalingen.", href: "/app/koppelingen", knop: "Bank koppelen" },
+    { klaar: Boolean(o.kvk && o.iban), titel: "Vul je bedrijfsgegevens in", tekst: "KvK-nummer, btw-nummer en rekeningnummer. Die komen op je facturen.", href: "/app/instellingen", knop: "Invullen" },
     { klaar: aantalBonnen > 0, titel: "Maak een foto van je eerste bon", tekst: "De bot leest het bedrag en hangt de bon aan de juiste bankregel.", href: "/app/bonnen", knop: "Bon uploaden" },
     { klaar: aantalFacturen > 0, titel: "Stuur je eerste factuur", tekst: "Met iDEAL-link. De bot volgt de betaling en herinnert zelf.", href: "/app/facturen/nieuw", knop: "Factuur maken" },
   ];

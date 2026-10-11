@@ -33,8 +33,8 @@ export function korCheck(i: {
   // maar de voorbelasting is niet meer terug te vragen.
   const voordeel = rond(Math.max(0, i.btwSaldoJaar + i.voorbelasting) * particulier - i.voorbelasting);
   const toelichting: string[] = [
-    `Omzet tot nu toe € ${i.omzetJaar.toFixed(0)}, verwacht over het hele jaar € ${verwacht.toFixed(0)} (grens € ${KOR_GRENS}).`,
-    `Je hebt dit jaar € ${i.voorbelasting.toFixed(0)} voorbelasting teruggevraagd. Met KOR vervalt dat.`,
+    `Omzet tot nu toe € ${Math.round(i.omzetJaar).toLocaleString("nl-NL")}, verwacht over het hele jaar € ${Math.round(verwacht).toLocaleString("nl-NL")} (grens € ${KOR_GRENS.toLocaleString("nl-NL")}).`,
+    `Je hebt dit jaar € ${Math.round(i.voorbelasting).toLocaleString("nl-NL")} voorbelasting teruggevraagd. Met KOR vervalt dat.`,
     particulier >= 0.5
       ? "Lever je vooral aan particulieren, dan kun je bij KOR dezelfde prijs vragen en de btw zelf houden."
       : "Lever je vooral aan ondernemers, dan maakt KOR je niet goedkoper: zij trekken de btw toch af.",
@@ -47,7 +47,7 @@ export function korCheck(i: {
   } else if (!inAanmerking) {
     advies = "Je komt niet in aanmerking voor de KOR: verwachte omzet boven € 20.000.";
   } else if (voordeel > 250) {
-    advies = `De KOR zou je naar schatting € ${voordeel.toFixed(0)} per jaar schelen. Aanmelden kan via Mijn Belastingdienst Zakelijk, minstens 4 weken voor het nieuwe tijdvak. Je zit er dan 3 jaar aan vast.`;
+    advies = `De KOR zou je naar schatting € ${Math.round(voordeel).toLocaleString("nl-NL")} per jaar schelen. Aanmelden kan via Mijn Belastingdienst Zakelijk, minstens 4 weken voor het nieuwe tijdvak. Je zit er dan 3 jaar aan vast.`;
   } else {
     advies = "De KOR levert je weinig op of kost je geld door de verloren voorbelasting. Niet aanmelden.";
   }

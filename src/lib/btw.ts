@@ -127,4 +127,6 @@ export const euro = (n: number) =>
 export const datumNl = (d: Date) =>
   new Intl.DateTimeFormat("nl-NL", { day: "2-digit", month: "2-digit", year: "numeric" }).format(d);
 
-export const isoDatum = (d: Date) => d.toISOString().slice(0, 10);
+/** Datum als JJJJ-MM-DD in Nederlandse tijd (voor datumvelden; toISOString geeft 's nachts nog gisteren). */
+export const isoDatum = (d: Date = new Date()) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Amsterdam" });
+

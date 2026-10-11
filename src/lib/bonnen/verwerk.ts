@@ -1,5 +1,6 @@
+import { euro } from "@/lib/btw";
 import { db } from "@/lib/db";
-import { leesBon, type BonUitlezing } from "@/lib/ai";
+import { leesBon, type BonUitlezing, BOT_ONBEREIKBAAR } from "@/lib/ai";
 
 /** Bestandstypes die we als bon accepteren. */
 export const BON_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp", "image/gif"];
@@ -45,7 +46,7 @@ export async function verwerkUitlezing(bonId: string, ondernemingId: string, u: 
 
 export function bonFoutTekst(e: unknown) {
   const m = e instanceof Error ? e.message : String(e);
-  if (/api key|apiKey|ANTHROPIC_API_KEY|authentication|401/i.test(m)) return "Geen geldige ANTHROPIC_API_KEY ingesteld.";
+  if (/api key|apiKey|ANTHROPIC_API_KEY|authentication|401/i.test(m)) return BOT_ONBEREIKBAAR;
   return m;
 }
 
@@ -60,7 +61,7 @@ export async function bonUploaden(ondernemingId: string, bestand: { naam: string
   try {
     const u = await leesBon(bestand.data, bestand.type);
     const gekoppeld = await verwerkUitlezing(bon.id, ondernemingId, u);
-    return { bonId: bon.id, ok: true as const, gekoppeld, uitlezing: u, melding: `${u.leverancier} ${u.totaal.toFixed(2)} ${u.valuta || "EUR"}: ${gekoppeld ? "gekoppeld aan bankregel" : "uitgelezen, nog geen bankregel"}` };
+    return { bonId: bon.id, ok: true as const, gekoppeld, uitlezing: u, melding: `${u.leverancier} ${(!u.valuta || u.valuta === "EUR") ? euro(u.totaal) : `${u.totaal.toFixed(2).replace(".", ",")} ${u.valuta}`}: ${gekoppeld ? "gelezen en aan de betaling gehangen" : "gelezen; de betaling zien we nog niet bij de bank"}` };
   } catch (e) {
     const fout = bonFoutTekst(e);
     await db.bon.update({ where: { id: bon.id }, data: { status: "fout", uitleg: fout } });

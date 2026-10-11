@@ -86,9 +86,9 @@ export async function jaarrekening(ondernemingId: string, jaar: number): Promise
   const priveOpnamen = rond(-(prive._sum.bedrag ?? 0));
   const marge = wv.omzet > 0 ? wv.winst / wv.omzet : 0;
   const kengetallen = [
-    { label: "Brutomarge", waarde: `${(marge * 100).toFixed(1)}%`, uitleg: "Winst gedeeld door omzet." },
-    { label: "Privéopnamen", waarde: `€ ${priveOpnamen.toFixed(0)}`, uitleg: "Wat je dit jaar als privé hebt aangemerkt." },
-    { label: "Liquiditeit", waarde: `€ ${rond(bankTotaal).toFixed(0)}`, uitleg: "Banksaldo einde jaar." },
+    { label: "Brutomarge", waarde: `${(marge * 100).toFixed(1).replace(".", ",")}%`, uitleg: "Winst gedeeld door omzet." },
+    { label: "Privéopnamen", waarde: `€ ${Math.round(priveOpnamen).toLocaleString("nl-NL")}`, uitleg: "Wat je dit jaar als privé hebt aangemerkt." },
+    { label: "Liquiditeit", waarde: `€ ${Math.round(bankTotaal).toLocaleString("nl-NL")}`, uitleg: "Banksaldo einde jaar." },
     { label: "Solvabiliteit", waarde: totaalActiva > 0 ? `${((eigenVermogen / totaalActiva) * 100).toFixed(0)}%` : "–", uitleg: "Eigen vermogen gedeeld door balanstotaal." },
   ];
 

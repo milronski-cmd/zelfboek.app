@@ -29,7 +29,7 @@ export default async function Importeren() {
               {heeft("moneybird") ? (
                 <ResultaatFormulier actie={importeerVanPakket} verborgen={{ pakket: "moneybird" }} knopTekst="Importeren uit Moneybird" bezigTekst="Ophalen en boeken" />
               ) : (
-                <p className="text-sm">Koppel eerst je Moneybird-token bij <Link href="/app/koppelingen" className="text-primair-tekst underline">Koppelingen</Link>.</p>
+                <p className="text-sm">Koppel eerst Moneybird (één klik) bij <Link href="/app/koppelingen" className="text-primair-tekst underline">Koppelingen</Link>.</p>
               )}
             </div>
           </div>
@@ -42,7 +42,7 @@ export default async function Importeren() {
               {heeft("eboekhouden") ? (
                 <ResultaatFormulier actie={importeerVanPakket} verborgen={{ pakket: "eboekhouden" }} knopTekst="Importeren uit e-Boekhouden" bezigTekst="Ophalen en boeken" />
               ) : (
-                <p className="text-sm">Koppel eerst je e-Boekhouden-token bij <Link href="/app/koppelingen" className="text-primair-tekst underline">Koppelingen</Link>.</p>
+                <p className="text-sm">Koppel eerst e-Boekhouden bij <Link href="/app/koppelingen" className="text-primair-tekst underline">Koppelingen</Link>.</p>
               )}
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { beoordeelTransacties } from "@/lib/ai";
+import { beoordeelTransacties, BOT_ONBEREIKBAAR } from "@/lib/ai";
 import { btwUitInclusief } from "@/lib/btw";
 import { parseBankCsv, type BankRegel, type ParseResultaat } from "./csv";
 import { parseMt940 } from "./mt940";
@@ -130,7 +130,7 @@ export async function beoordeelOpenstaand(ondernemingId: string, max = 400): Pro
     }
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);
-    return { beoordeeld: klaar, fout: /api key|authentication|401/i.test(m) ? "Geen geldige ANTHROPIC_API_KEY ingesteld." : m };
+    return { beoordeeld: klaar, fout: /api key|authentication|401/i.test(m) ? BOT_ONBEREIKBAAR : m };
   }
   return { beoordeeld: klaar };
 }

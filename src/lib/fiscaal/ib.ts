@@ -102,9 +102,9 @@ export function berekenIb(i: IbInvoer): IbResultaat {
   const kia = kiaBerekening(i.investeringen);
   if (kia > 0) {
     winst -= kia;
-    regels.push({ label: "Kleinschaligheidsinvesteringsaftrek (KIA)", bedrag: -kia, uitleg: `Investeringen van € ${i.investeringen.toFixed(0)} ex btw. 28% tussen € 2.900 en € 71.683.` });
+    regels.push({ label: "Kleinschaligheidsinvesteringsaftrek (KIA)", bedrag: -kia, uitleg: `Investeringen van € ${Math.round(i.investeringen).toLocaleString("nl-NL")} ex btw. 28% tussen € 2.900 en € 71.683.` });
   } else if (i.investeringen > 0) {
-    regels.push({ label: "KIA", bedrag: 0, uitleg: `Investeringen (€ ${i.investeringen.toFixed(0)}) blijven onder de drempel van € 2.900.` });
+    regels.push({ label: "KIA", bedrag: 0, uitleg: `Investeringen (€ ${Math.round(i.investeringen).toLocaleString("nl-NL")}) blijven onder de drempel van € 2.900.` });
   }
 
   const winstUitOnderneming = rond(winst);

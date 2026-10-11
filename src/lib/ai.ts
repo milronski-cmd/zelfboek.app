@@ -5,6 +5,9 @@ import { BTW_CODES, CATEGORIEEN, CATEGORIE_INFO } from "./categorieen";
 import { cliBeschikbaar, viaClaudeCli } from "./ai-cli";
 
 /** Geen API-sleutel maar wel de Claude Code-CLI op deze pc: dan via het abonnement (alleen lokaal). */
+/** Wat de klant ziet als de AI niet bereikbaar is (geen sleutel, storing). Geen techniek in beeld. */
+export const BOT_ONBEREIKBAAR = "De bot is nu even niet bereikbaar. Probeer het over een paar minuten opnieuw; er gaat niets verloren.";
+
 const viaCli = () => !process.env.ANTHROPIC_API_KEY && cliBeschikbaar();
 
 export { BTW_CODES, CATEGORIEEN };
@@ -14,7 +17,7 @@ export const MODEL_SNEL = "claude-haiku-5-5";
 
 let client: Anthropic | null = null;
 export function ai() {
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("Geen geldige ANTHROPIC_API_KEY ingesteld.");
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("api key ontbreekt op de server");
   if (!client) client = new Anthropic({ maxRetries: 3 });
   return client;
 }

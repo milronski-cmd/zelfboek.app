@@ -60,7 +60,7 @@ export default async function JaarrekeningPagina({ searchParams }: { searchParam
         </Kaart>
 
         <Kaart titel={`Balans op 31 december ${jaar}`}>
-          <div className="grid gap-x-6 sm:grid-cols-2">
+          <div className="grid">
             <table className="tabel">
               <tbody>
                 <tr><td colSpan={2} className="pb-1 text-[13px] text-tekst-2">Bezittingen</td></tr>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { datumNl, euro, rond } from "@/lib/btw";
+import { datumNl, euro, rond, isoDatum } from "@/lib/btw";
 import { parseRegels } from "@/lib/facturen/bereken";
 import { statusPil, statusTekst, OPEN_STATUS } from "@/lib/facturen/status";
 import { factuurAfletteren, factuurBetaald, factuurBetaallink, factuurCrediteren, factuurHerinnering, factuurStatus, factuurVerwijderen, factuurVerzenden } from "@/lib/acties-facturen";
@@ -144,7 +144,7 @@ export default async function FactuurDetail({ params }: { params: Promise<{ id: 
                   <label className="lbl">Ontvangen bedrag</label>
                   <input name="bedrag" placeholder={`Leeg is ${euro(open)}`} className={veld} />
                   <label className="lbl">Datum</label>
-                  <input name="datum" type="date" defaultValue={nu.toISOString().slice(0, 10)} className={veld} />
+                  <input name="datum" type="date" defaultValue={isoDatum(nu)} className={veld} />
                   <button className="knop w-full justify-center">Markeer als betaald</button>
                 </form>
                 <div className="flex flex-col items-start gap-2 border-t border-lijn pt-4">

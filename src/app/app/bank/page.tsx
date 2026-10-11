@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
 import { BTW_CODES, BTW_LABEL, CATEGORIEEN, CATEGORIE_INFO } from "@/lib/categorieen";
 import { datumNl, euro } from "@/lib/btw";
-import { beoordeelOpenstaandFormulier, bevestigAlles, importeerBestand, verwijderTransactie, wijzigTransactie } from "@/lib/acties-bank";
+import { beantwoordVraag, beoordeelOpenstaandFormulier, bevestigAlles, importeerBestand, verwijderTransactie, wijzigTransactie } from "@/lib/acties-bank";
 import { UploadFormulier } from "@/components/UploadFormulier";
 import { BankIcoon } from "@/components/BankIcoon";
 import { Kop, Leeg, Pil, knopLicht, knopTekst } from "@/components/ui";
@@ -31,12 +31,13 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
   }
   if (sp.rekening) Object.assign(where, { bankrekeningId: sp.rekening });
 
-  const [regels, totaal, open, twijfel, rekeningen] = await Promise.all([
+  const [regels, totaal, open, twijfel, rekeningen, vragen] = await Promise.all([
     db.transactie.findMany({ where, orderBy: { datum: "desc" }, skip: (pagina - 1) * PER_PAGINA, take: PER_PAGINA, include: { bon: { select: { id: true } }, bankrekening: { select: { naam: true } } } }),
     db.transactie.count({ where }),
     db.transactie.count({ where: { ondernemingId: o.id, zakelijk: null } }),
     db.transactie.count({ where: { ondernemingId: o.id, bevestigd: false, zakelijk: { not: null } } }),
     db.bankrekening.findMany({ where: { ondernemingId: o.id }, orderBy: { naam: "asc" } }),
+    db.transactie.findMany({ where: { ondernemingId: o.id, bevestigd: false, zakelijk: { not: null } }, orderBy: { datum: "desc" }, take: 5 }),
   ]);
   const paginas = Math.max(1, Math.ceil(totaal / PER_PAGINA));
   const nu = new Date();
@@ -56,10 +57,36 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
   return (
     <>
       <Kop titel="Bank" sub="Elke regel wordt geboekt met een uitleg. Bij twijfel beslis jij.">
-        {open > 0 && <form action={beoordeelOpenstaandFormulier}><button className={knopLicht}>{open} regels laten boeken</button></form>}
-        {twijfel > 0 && <form action={bevestigAlles}><button className={knopLicht}>Alle {twijfel} twijfelregels bevestigen</button></form>}
+        {open > 0 && <form action={beoordeelOpenstaandFormulier}><button className={knopLicht}>{open === 1 ? "1 betaling" : `${open} betalingen`} laten boeken</button></form>}
+        {twijfel > 0 && <form action={bevestigAlles}><button className={knopLicht}>Alles goedkeuren zoals de bot voorstelt</button></form>}
         <Link href="/app/bank/rekeningen" className={knopLicht}>Rekeningen</Link>
       </Kop>
+
+      {vragen.length > 0 && (
+        <section className="kaart mb-6 overflow-hidden border-mosterd/50">
+          <header className="border-b border-lijn bg-mosterd-licht px-5 py-3">
+            <h2 className="text-[15px] font-semibold">De bot twijfelt over {twijfel === 1 ? "1 betaling" : `${twijfel} betalingen`}</h2>
+            <p className="text-[13px] text-tekst-2">Was het voor je werk of privé? Eén tik is genoeg.</p>
+          </header>
+          <ul className="divide-y divide-lijn">
+            {vragen.map((t) => (
+              <li key={t.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-3">
+                <div className="min-w-0 flex-1 basis-[220px]">
+                  <p className="text-sm font-medium">{t.tegenpartij || "Onbekend"} <span className="cijfer ml-1 font-semibold">{euro(t.bedrag)}</span></p>
+                  <p className="text-[13px] text-tekst-2">{datumNl(t.datum)}{t.omschrijving ? ` · ${t.omschrijving}` : ""}</p>
+                  {t.uitleg && <p className="mt-0.5 text-[13px] text-tekst-3">{t.uitleg}</p>}
+                </div>
+                <form action={beantwoordVraag} className="flex w-full gap-2 sm:w-auto">
+                  <input type="hidden" name="id" value={t.id} />
+                  <button name="keuze" value="zakelijk" className="knop flex-1 justify-center sm:flex-none">Zakelijk</button>
+                  <button name="keuze" value="prive" className="knop-licht flex-1 justify-center sm:flex-none">Privé</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+          {twijfel > vragen.length && <p className="border-t border-lijn px-5 py-2.5 text-[13px] text-tekst-2"><Link href={link({ filter: "twijfel", p: undefined })} className="text-primair-tekst underline">Alle {twijfel} vragen bekijken</Link></p>}
+        </section>
+      )}
 
       {rekeningen.length > 0 && (
         <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -85,16 +112,28 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
         </div>
       )}
 
-      <UploadFormulier
-        actie={importeerBestand}
-        accept=".csv,.txt,.sta,.940,.mt940,.swi,.xml,text/csv,text/plain,application/xml,text/xml"
-        label="Bankbestand (CSV van elke Nederlandse bank, MT940 of CAMT.053)"
-        knopTekst="Importeren en boeken"
-        bezigTekst="De bot boekt de regels"
-      />
-      <p className="mt-2 text-sm text-tekst-2">
-        Liever niets uploaden? <Link href="/app/koppelingen" className="text-primair-tekst underline">Koppel je bank</Link>, dan halen we elke nacht de nieuwe regels op.
-      </p>
+      {(() => {
+        const upload = (
+          <>
+            <UploadFormulier
+              actie={importeerBestand}
+              accept=".csv,.txt,.sta,.940,.mt940,.swi,.xml,text/csv,text/plain,application/xml,text/xml"
+              label="Afschrift van je bank (download het bij je bank als CSV, MT940 of CAMT)"
+              knopTekst="Uploaden en boeken"
+              bezigTekst="De bot boekt de regels"
+            />
+            <p className="mt-2 text-sm text-tekst-2">
+              Liever niets uploaden? <Link href="/app/koppelingen" className="text-primair-tekst underline">Koppel je bank</Link>, dan halen we elke nacht de nieuwe regels op.
+            </p>
+          </>
+        );
+        return rekeningen.length === 0 ? upload : (
+          <details className="kaart px-5 py-3">
+            <summary className="cursor-pointer text-sm font-medium text-tekst-2 hover:text-tekst">Afschrift uploaden</summary>
+            <div className="mt-3">{upload}</div>
+          </details>
+        );
+      })()}
 
       <div className="mt-8 flex flex-wrap items-center gap-2">
         {filters.map((f) => {
@@ -150,7 +189,10 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
                       {t.priveDeel > 0 && <div className="text-[13px] font-normal text-mosterd-tekst">{Math.round(t.priveDeel * 100)}% privé</div>}
                     </td>
                     <td>
-                      <form action={wijzigTransactie} className="space-y-1.5">
+                      <p className="text-[13px]">{t.zakelijk === false ? "Privé" : t.categorie && t.categorie in CATEGORIE_INFO ? CATEGORIE_INFO[t.categorie as keyof typeof CATEGORIE_INFO].label : "Nog niet geboekt"}{t.zakelijk !== false && t.btwCode ? <span className="text-tekst-3"> · {BTW_LABEL[t.btwCode as keyof typeof BTW_LABEL] ?? t.btwCode}</span> : null}</p>
+                      <details className="mt-1">
+                      <summary className="cursor-pointer text-[13px] text-primair-tekst">Wijzigen</summary>
+                      <form action={wijzigTransactie} className="mt-1.5 space-y-1.5">
                         <input type="hidden" name="id" value={t.id} />
                         <div className="flex flex-wrap items-center gap-1.5">
                           <select name="zakelijk" defaultValue={t.zakelijk === false ? "nee" : "ja"} aria-label="Zakelijk of privé" className="veld veld-klein w-auto">
@@ -177,6 +219,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
                           </div>
                         </details>
                       </form>
+                      </details>
                     </td>
                     <td className="whitespace-nowrap text-[13px]">
                       {t.zakelijk === null ? <Pil kleur="grijs">wacht op de bot</Pil>
