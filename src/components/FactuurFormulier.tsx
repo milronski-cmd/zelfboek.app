@@ -139,8 +139,12 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
         </div>
       </Kaart>
 
-      <Kaart titel="Afspraken">
-        <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
+      {/* Bij een factuur of offerte staat dit al goed; wie wil kan het openklappen. */}
+      <details open={soort === "terugkerend" || Boolean(bestaand?.opmerking || bestaand?.referentie)} className="kaart group">
+        <summary className="cursor-pointer select-none px-5 py-3 text-[15px] font-semibold">
+          {soort === "terugkerend" ? "Afspraken" : "Datum, betaaltermijn en opmerking"} <span className="ml-1 text-[13px] font-normal text-tekst-3 group-open:hidden">staan al goed, klik om te wijzigen</span>
+        </summary>
+        <div className="grid gap-4 border-t border-lijn px-5 py-4 sm:grid-cols-3">
           {soort === "terugkerend" ? (
             <>
               <div className="sm:col-span-3"><label className="lbl" htmlFor="omschrijving">Naam voor jezelf</label><input id="omschrijving" name="omschrijving" defaultValue={bestaand?.omschrijving ?? ""} className={veld} /></div>
@@ -163,7 +167,7 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
           )}
           <div className="sm:col-span-3"><label className="lbl" htmlFor="opmerking">Opmerking op het document</label><textarea id="opmerking" name="opmerking" rows={2} defaultValue={bestaand?.opmerking ?? ""} className={veld} /></div>
         </div>
-      </Kaart>
+      </details>
 
       <div className="flex flex-wrap items-center gap-3">
         {soort !== "terugkerend" ? (
