@@ -50,6 +50,11 @@ export async function klantOpslaan(fd: FormData): Promise<Resultaat> {
     // Taal van facturen en herinneringen; niet gekozen = volgt het land (DE → Duits, ander buitenland → Engels).
     taal: ["nl", "en", "de"].includes(s(fd, "taal")) ? s(fd, "taal") : taalVoorLand(s(fd, "land") || "NL"),
   };
+  // Klant opzoeken via KvK-nummer: lege adresvelden vullen we uit het Handelsregister (alleen met KvK-sleutel).
+  if (data.kvk && !data.adres) {
+    const kvk = await (await import("./kvk")).uitKvk(data.kvk);
+    if (kvk) Object.assign(data, { adres: kvk.adres ?? null, postcode: data.postcode ?? kvk.postcode ?? null, plaats: data.plaats ?? kvk.plaats ?? null });
+  }
   try {
     const k = id
       ? await db.klant.update({ where: { id, ondernemingId: o.id }, data })

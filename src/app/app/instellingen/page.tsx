@@ -1,3 +1,4 @@
+import { kvkAan } from "@/lib/kvk";
 import { cookies } from "next/headers";
 import { AccountInstellingen } from "@/components/AccountInstellingen";
 import { Bestandskiezer } from "@/components/Bestandskiezer";
@@ -5,7 +6,7 @@ import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
 import { abonnementStatus, vereisGebruiker } from "@/lib/auth";
 import { datumNl } from "@/lib/btw";
-import { bedrijfOpslaan, facturenOpslaan, fiscaalOpslaan, lidToevoegen, lidVerwijderen, ondernemingVerwijderen, smtpTest } from "@/lib/acties-instellingen";
+import { bedrijfOpslaan, bedrijfUitKvk, facturenOpslaan, fiscaalOpslaan, lidToevoegen, lidVerwijderen, ondernemingVerwijderen, smtpTest } from "@/lib/acties-instellingen";
 import { FormulierMetMelding } from "@/components/FormulierMetMelding";
 import { Kop, Melding, Pil, knop, knopLicht, veld } from "@/components/ui";
 
@@ -61,6 +62,9 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
       {tab === "account" && <p className="mb-4 max-w-2xl text-[13px] text-tekst-2"><Link href="/gegevens" className="underline">Zo bewaren we je gegevens</Link> · <Link href="/status" className="underline">Status van Saldoplan</Link></p>}
       {tab === "account" && <AccountInstellingen gebruikerId={s.gebruikerId} thema={(await cookies()).get("sp_thema")?.value ?? "auto"} koppel={sp.tweestap === "koppel"} />}
 
+      {tab === "bedrijf" && kvkAan() && o.kvk && (
+        <div className="mb-4 max-w-2xl"><FormulierMetMelding actie={bedrijfUitKvk} knopTekst="Gegevens ophalen bij de KvK" className="flex flex-wrap items-center gap-3" /></div>
+      )}
       {tab === "bedrijf" && (
         <form action={bedrijfOpslaan} className={kaart}>
           <div className="grid gap-4 sm:grid-cols-2">

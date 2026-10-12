@@ -137,7 +137,13 @@ export async function welkomOpslaan(fd: FormData): Promise<void> {
   if (naam) await db.gebruiker.update({ where: { id: s.gebruikerId }, data: { naam } });
   const logo = await logoUitFormulier(fd);
   const kleur = v(fd, "huisstijlKleur");
-  await db.onderneming.update({ where: { id: o.id }, data: { ...(bedrijf ? { naam: bedrijf } : {}), ...(kvk && kvk.length === 8 ? { kvk } : {}), ...(typeof logo === "string" ? {} : logo), ...(kleur && /^#[0-9a-fA-F]{6}$/.test(kleur) ? { huisstijlKleur: kleur } : {}) } });
+  // Met een KvK-sleutel vullen we adres, branche en startdatum zelf in uit het Handelsregister.
+  const k = kvk ? await (await import("./kvk")).uitKvk(kvk) : null;
+  await db.onderneming.update({ where: { id: o.id }, data: {
+    ...(bedrijf ? { naam: bedrijf } : k?.naam ? { naam: k.naam } : {}), ...(kvk && kvk.length === 8 ? { kvk } : {}),
+    ...(k ? { adres: o.adres ?? k.adres, postcode: o.postcode ?? k.postcode, plaats: o.plaats ?? k.plaats, branche: o.branche ?? k.branche, startdatum: o.startdatum ?? k.startdatum, ...(k.rechtsvorm === "eenmanszaak" ? { rechtsvorm: "eenmanszaak" } : {}) } : {}),
+    ...(typeof logo === "string" ? {} : logo), ...(kleur && /^#[0-9a-fA-F]{6}$/.test(kleur) ? { huisstijlKleur: kleur } : {}),
+  } });
   revalidatePath("/app");
   redirect("/welkom?stap=2");
 }
@@ -189,4 +195,16 @@ export async function passkeyVerwijderen(fd: FormData): Promise<void> {
   const s = await vereisGebruiker();
   await db.passkey.deleteMany({ where: { id: String(fd.get("id") ?? ""), gebruikerId: s.gebruikerId } });
   revalidatePath("/app/instellingen");
+}
+
+/** Instellingen > Bedrijf: gegevens ophalen uit het Handelsregister (alleen met KvK-sleutel). */
+export async function bedrijfUitKvk(): Promise<Resultaat> {
+  const o = await schrijfOnderneming();
+  if (!o.kvk) return { ok: false, fout: "Vul eerst je KvK-nummer in en sla op." };
+  const k = await (await import("./kvk")).uitKvk(o.kvk);
+  if (!k) return { ok: false, fout: "Geen gegevens gevonden bij de KvK voor dit nummer." };
+  await db.onderneming.update({ where: { id: o.id }, data: { naam: k.naam ?? o.naam, adres: k.adres ?? o.adres, postcode: k.postcode ?? o.postcode, plaats: k.plaats ?? o.plaats, branche: k.branche ?? o.branche, startdatum: o.startdatum ?? k.startdatum } });
+  await logNu(o.id, "Bedrijfsgegevens opgehaald bij de KvK");
+  revalidatePath("/app/instellingen");
+  return { ok: true, melding: "Gegevens bijgewerkt uit het Handelsregister." };
 }
