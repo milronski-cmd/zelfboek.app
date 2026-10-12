@@ -6,6 +6,7 @@ import { parseBankCsv, type BankRegel, type ParseResultaat } from "./csv";
 import { parseMt940 } from "./mt940";
 import { parseCamt053 } from "./camt053";
 import { letterAutomatischAf } from "@/lib/facturen/betaling";
+import { aiTegoed, AI_OP } from "@/lib/limiet";
 
 /** Herkent het bestandstype aan de inhoud en parseert. */
 export function parseBankbestand(tekst: string, bestandsnaam = ""): ParseResultaat {
@@ -144,6 +145,7 @@ export async function beoordeelOpenstaand(ondernemingId: string, max = 400): Pro
   try {
     for (let i = 0; i < open.length; i += 40) {
       const portie = open.slice(i, i + 40);
+      if (!(await aiTegoed(ondernemingId, Boolean(o.demoTot)))) throw new Error(AI_OP);
       const uitkomst = await beoordeelTransacties(
         portie.map((t) => ({
           id: t.id,

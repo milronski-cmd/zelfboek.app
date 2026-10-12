@@ -9,6 +9,7 @@ import { Kop, Melding, Pil, knopLicht } from "@/components/ui";
 import { Bestandskiezer } from "@/components/Bestandskiezer";
 import { ResultaatFormulier } from "./Formulier";
 import { AppTegel } from "./AppTegel";
+import { bonAdres as maakBonAdres, whatsappKoppelTekst } from "@/lib/bonnen/adres";
 
 export const instant = false;
 
@@ -70,7 +71,7 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
   const proef = new Set<string>();
   for (const k of koppelingen) if ((await leesKoppeling<{ proef?: string }>(o.id, k.soort as never))?.proef) proef.add(k.soort);
   const psd2 = per.get("enablebanking");
-  const bonAdres = `bonnen+${o.id}@${process.env.INBOUND_DOMEIN ?? "saldoplan.nl"}`;
+  const bonAdres = maakBonAdres(o.id);
   const kanProef = proefmodus() || Boolean(o.demoTot);
   // Bank: zonder Enable Banking-contract (en buiten de proefmodus) is er nog geen knop, wel de upload-route.
   const bankKlaar = kanProef || Boolean(process.env.ENABLE_BANKING_APP_ID && process.env.ENABLE_BANKING_PRIVATE_KEY) || Boolean((await leesKoppeling<{ appId?: string }>(o.id, "enablebanking"))?.appId);
@@ -247,9 +248,9 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
         {klikTegel("gmail", "Bonnen uit je Gmail.", "Saldoplan kijkt elke nacht naar nieuwe mails met een factuur of bon als bijlage, en leest die uit. Je andere mail blijft privé.")}
         {klikTegel("outlook", "Bonnen uit je Outlook.", "Saldoplan kijkt elke nacht naar nieuwe mails met een factuur of bon als bijlage, en leest die uit. Je andere mail blijft privé.")}
         <AppTegel icoon={<Vak><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z" /></svg></Vak>} naam="WhatsApp" uitleg="Stuur een foto van je bon via WhatsApp." status={process.env.WHATSAPP_NUMMER ? <Pil kleur="groen">Klaar</Pil> : <Pil kleur="grijs">Binnenkort</Pil>} knop={process.env.WHATSAPP_NUMMER ? { tekst: "Nummer tonen", licht: true } : undefined}>
-          <p className="text-sm text-tekst-2">Sla dit nummer op en stuur er een foto van je bon naartoe. Saldoplan herkent je aan het telefoonnummer bij je bedrijfsgegevens.</p>
+          <p className="text-sm text-tekst-2">{o.whatsappNummer ? "Je nummer is gekoppeld. Stuur een foto of PDF van je bon naar dit nummer:" : "Tik op de knop op je telefoon: WhatsApp opent met een kort bericht. Verstuur het, dan is je nummer gekoppeld. Daarna stuur je bonnen naar dit nummer."}</p>
           <p className="mt-3 rounded-md border border-lijn bg-papier px-3 py-2 font-mono text-[13px]">{process.env.WHATSAPP_NUMMER}</p>
-          {!o.telefoon && <p className="mt-2 text-[13px] text-mosterd-tekst">Vul eerst je mobiele nummer in bij Instellingen &gt; Bedrijf.</p>}
+          {!o.whatsappNummer && process.env.WHATSAPP_NUMMER && <a className="knop mt-3" href={`https://wa.me/${process.env.WHATSAPP_NUMMER.replace(/\D/g, "")}?text=${encodeURIComponent(whatsappKoppelTekst(o.id))}`}>Koppel mijn nummer</a>}
         </AppTegel>
       </div>
       <div className="kaart max-w-xl p-4">

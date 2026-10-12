@@ -7,6 +7,7 @@ import { db, schrijfOnderneming } from "./db";
 import { rond } from "./btw";
 import { KM_VERGOEDING, INVESTERINGSGRENS } from "./fiscaal/constanten-2026";
 import { boekAfschrijvingen } from "./fiscaal/afschrijving";
+import { foutTekst } from "@/lib/fout";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const n = (fd: FormData, k: string) => Number(s(fd, k).replace(",", ".")) || 0;
@@ -267,7 +268,7 @@ export async function urenUitAgenda(fd: FormData): Promise<AgendaResultaat> {
     }
     const perWeek = totaal / Math.max(1, (Date.now() - new Date(jaar, 0, 1).getTime()) / (7 * 864e5));
     return { ok: true, melding: `In je agenda staan dit jaar ${afspraken.length} afspraken, samen ${Math.round(totaal)} uur (${perWeek.toFixed(1).replace(".", ",")} uur per week). ${perWeek * 52 >= 1225 ? "In dat tempo haal je het urencriterium." : "In dat tempo haal je de 1.225 uur niet; tel ook administratie en acquisitie mee."}` };
-  } catch (e) { return { ok: false, fout: e instanceof Error ? e.message : String(e) }; }
+  } catch (e) { return { ok: false, fout: foutTekst(e) }; }
 }
 
 /** Ritten uit je agenda: afspraken met een plaats worden ritten; km uit een eerdere rit naar dezelfde plaats. */
@@ -292,7 +293,7 @@ export async function rittenUitAgenda(fd: FormData): Promise<AgendaResultaat> {
     await logNu(o.id, "Ritten uit agenda overgenomen", `${nieuw} ritten`);
     revalidatePath("/app/kilometers");
     return { ok: true, melding: `${nieuw} ritten toegevoegd (heen en terug, met de afstand van een eerdere rit naar dezelfde plaats).${zonderKm ? ` ${zonderKm} afspraken met een nieuwe plaats: vul die één keer zelf in, daarna gaat het vanzelf.` : ""}` };
-  } catch (e) { return { ok: false, fout: e instanceof Error ? e.message : String(e) }; }
+  } catch (e) { return { ok: false, fout: foutTekst(e) }; }
 }
 
 /** Jaar afsluiten met één knop: afschrijvingen bijwerken en vastleggen dat het jaar is gecontroleerd. */
@@ -326,7 +327,7 @@ export async function btwIndienen(fd: FormData): Promise<void> {
     await logNu(o.id, "Btw-aangifte ingediend via Saldoplan", `kenmerk ${kenmerk}`);
     melding = "m=" + encodeURIComponent("Je btw-aangifte is ingediend. Betaal nu het bedrag hieronder.");
   } catch (e) {
-    melding = "fout=" + encodeURIComponent(e instanceof Error ? e.message : String(e));
+    melding = "fout=" + encodeURIComponent(foutTekst(e));
   }
   revalidatePath("/app/btw");
   redirect(`/app/btw?j=${jaar}&p=${periode}&${melding}`);

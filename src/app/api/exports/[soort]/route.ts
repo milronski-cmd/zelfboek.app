@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { foutTekst } from "@/lib/fout";
 import { db } from "@/lib/db";
 import { huidigeSessie } from "@/lib/auth";
 import { btwAangifte, btwDeadline, kwartaalVan, periodeBereik } from "@/lib/btw";
@@ -30,7 +31,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ soort: s
 
   const bestand = (inhoud: Buffer | string, bestandsnaam: string, type: string) =>
     new NextResponse(typeof inhoud === "string" ? inhoud : new Uint8Array(inhoud), {
-      headers: { "Content-Type": type, "Content-Disposition": `attachment; filename="${bestandsnaam}"` },
+      headers: { "Content-Type": type, "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(bestandsnaam)}` },
     });
 
   try {
@@ -59,6 +60,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ soort: s
         return NextResponse.json({ fout: "Onbekende export" }, { status: 404 });
     }
   } catch (e) {
-    return NextResponse.json({ fout: e instanceof Error ? e.message : "Export mislukt" }, { status: 500 });
+    return NextResponse.json({ fout: foutTekst(e) }, { status: 500 });
   }
 }

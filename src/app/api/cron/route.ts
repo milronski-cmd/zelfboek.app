@@ -17,11 +17,11 @@ async function stap(naam: string, fn: () => Promise<unknown>, lijst: Stap[]) {
   }
 }
 
-/** Dagelijkse taken. Beveiligd met CRON_SECRET (header Authorization: Bearer … of ?secret=). */
+/** Dagelijkse taken. Beveiligd met CRON_SECRET in de header Authorization: Bearer … (Vercel Cron stuurt die zelf mee). */
 export async function GET(req: Request) {
   const geheim = process.env.CRON_SECRET;
   const url = new URL(req.url);
-  const gegeven = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? url.searchParams.get("secret") ?? "";
+  const gegeven = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   if (!geheimKlopt(gegeven, geheim)) return NextResponse.json({ fout: "Niet toegestaan" }, { status: 401 });
 
   const log = await db.cronLog.create({ data: { taak: "dagelijks" } });

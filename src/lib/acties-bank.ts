@@ -18,10 +18,11 @@ import { maakHash, maakRegel, type BankRegel } from "./bank/csv";
 import { verwerkAntwoord } from "./vragenmail";
 import { sluitDubbeleTaken, winkelSleutel } from "./vragen";
 import { AANBIEDERS, ingesteld, isOAuthSoort, leesState, maakState, normaalAdres, proefmodus, terugUrl } from "./koppelen";
+import { foutTekst } from "@/lib/fout";
 
 export type Resultaat = { ok: true; melding: string } | { ok: false; fout: string };
 
-const fout = (e: unknown): Resultaat => ({ ok: false, fout: e instanceof Error ? e.message : String(e) });
+const fout = (e: unknown): Resultaat => ({ ok: false, fout: foutTekst(e) });
 const ververs = () => { revalidatePath("/app"); revalidatePath("/app/bank"); revalidatePath("/app/koppelingen"); revalidatePath("/app/importeren"); };
 
 /** CSV, MT940 of CAMT.053 van de bank inlezen (autodetectie op inhoud) en direct door de AI laten boeken. */
@@ -67,7 +68,7 @@ export async function wijzigTransactie(formData: FormData): Promise<void> {
   const priveDeel = Math.min(1, Math.max(0, Number(formData.get("priveDeel") ?? 0) / 100 || 0));
   const splitsBedrag = Number(String(formData.get("splitsBedrag") ?? "").replace(",", ".")) || 0;
   // Opmerking voor jezelf of je boekhouder; alleen bijwerken als het veld in het formulier zat.
-  if (formData.has("opmerking")) await db.transactie.update({ where: { id }, data: { opmerking: String(formData.get("opmerking") ?? "").trim().slice(0, 500) || null } });
+  if (formData.has("opmerking")) await db.transactie.update({ where: { id: t.id }, data: { opmerking: String(formData.get("opmerking") ?? "").trim().slice(0, 500) || null } });
 
   if (splitsBedrag > 0 && splitsBedrag < Math.abs(t.bedrag)) {
     // Splitsen: deze regel wordt het zakelijke deel, een nieuwe regel het privédeel.
@@ -138,22 +139,24 @@ export async function hernoemRekening(formData: FormData): Promise<void> {
 
 // ─────────────── Koppelingen ───────────────
 
-const SOORTEN: KoppelingSoort[] = ["enablebanking", "mollie", "stripe", "shopify", "bol", "woocommerce", "paypal", "moneybird", "eboekhouden", "jortt"];
+/** Koppelingen die (nog) met een code werken in plaats van één knop, met precies de velden die erbij horen. */
+const MET_CODE: Partial<Record<KoppelingSoort, string[]>> = { bol: ["clientId", "clientSecret"], eboekhouden: ["token"] };
 
-/** Sleutels van een koppeling opslaan (versleuteld). Velden komen uit het formulier, alle niet-lege waarden. */
+/** Sleutels van een koppeling opslaan (versleuteld). Alleen de bekende velden van die koppeling. */
 export async function koppelingOpslaan(formData: FormData): Promise<Resultaat> {
   try {
     const o = await schrijfOnderneming();
   await logNu(o.id, "Koppeling toegevoegd");
     const soort = String(formData.get("soort")) as KoppelingSoort;
-    if (!SOORTEN.includes(soort)) return { ok: false, fout: "Onbekende koppeling." };
+    const velden = MET_CODE[soort];
+    if (!velden) return { ok: false, fout: "Onbekende koppeling." };
+    if (o.demoTot) return { ok: false, fout: "In de demo kun je niets echts koppelen. Maak een gratis account aan." };
     const config: Record<string, string> = {};
-    for (const [k, v] of formData.entries()) {
-      if (k === "soort" || typeof v !== "string") continue;
-      const w = v.trim();
-      if (w) config[k] = k === "privateKey" ? w.replace(/\\n/g, "\n") : w;
+    for (const k of velden) {
+      const w = String(formData.get(k) ?? "").trim().slice(0, 500);
+      if (w) config[k] = w;
     }
-    if (Object.keys(config).length === 0) return { ok: false, fout: "Vul minstens één veld in." };
+    if (Object.keys(config).length < velden.length) return { ok: false, fout: "Vul alle velden in." };
     await bewaarKoppeling(o.id, soort, config);
     // Meteen proberen, zodat je direct weet of het werkt.
     if (soort === "moneybird" || soort === "eboekhouden") { ververs(); return { ok: true, melding: "Gekoppeld. Neem je gegevens over bij Overstappen." }; }
@@ -186,7 +189,7 @@ export async function startPsd2(formData: FormData): Promise<void> {
   try {
     url = await startAutorisatie(o.id, bank, `${basis}/api/koppelingen/enablebanking/callback`);
   } catch (e) {
-    redirect("/app/koppelingen?fout=" + encodeURIComponent(ebIngesteld ? (e instanceof Error ? e.message : String(e)) : "De bankkoppeling is nog niet beschikbaar. Upload zolang een afschrift bij Bank."));
+    redirect("/app/koppelingen?fout=" + encodeURIComponent(ebIngesteld ? (foutTekst(e)) : "De bankkoppeling is nog niet beschikbaar. Upload zolang een afschrift bij Bank."));
   }
   redirect(url);
 }

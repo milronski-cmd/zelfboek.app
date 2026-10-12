@@ -2,7 +2,7 @@ import QRCode from "qrcode";
 import { db } from "@/lib/db";
 import { ontsleutel } from "@/lib/crypto";
 import { otpauthUrl } from "@/lib/tweestap";
-import { passkeyVerwijderen, tweestapAan, tweestapStart, tweestapUit } from "@/lib/acties-instellingen";
+import { overalUitloggen, passkeyVerwijderen, tweestapAan, tweestapStart, tweestapUit } from "@/lib/acties-instellingen";
 import { datumKort } from "@/lib/btw";
 import { FormulierMetMelding } from "./FormulierMetMelding";
 import { PasskeyToevoegen } from "./Passkey";
@@ -33,7 +33,7 @@ export async function AccountInstellingen({ gebruikerId, thema, koppel }: { gebr
             ))}
           </ul>
         )}
-        <PasskeyToevoegen />
+        <PasskeyToevoegen vraagCode={g.totpAan} />
       </section>
 
       <section className={kaart}>
@@ -44,7 +44,9 @@ export async function AccountInstellingen({ gebruikerId, thema, koppel }: { gebr
         {g.totpAan ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-groen-tekst">Staat aan.</span>
-            <form action={tweestapUit}><button className="knop-licht">Uitzetten</button></form>
+            <FormulierMetMelding actie={tweestapUit} knopTekst="Uitzetten" className="flex flex-wrap items-end gap-2">
+              <div><label className="lbl" htmlFor="totp-uit">Code uit de app</label><input id="totp-uit" name="code" inputMode="numeric" maxLength={7} autoComplete="one-time-code" required className="veld w-36" /></div>
+            </FormulierMetMelding>
           </div>
         ) : geheim && qr ? (
           <div className="space-y-3">
@@ -63,6 +65,14 @@ export async function AccountInstellingen({ gebruikerId, thema, koppel }: { gebr
         ) : (
           <form action={tweestapStart}><button className="knop-licht">Tweestap aanzetten</button></form>
         )}
+      </section>
+
+      <section className={kaart}>
+        <div>
+          <h2 className="text-sm font-semibold">Overal uitloggen</h2>
+          <p className="mt-0.5 text-[13px] text-tekst-2">Telefoon kwijt of ingelogd op een computer van een ander? Dan log je hier overal uit, behalve op dit apparaat.</p>
+        </div>
+        <FormulierMetMelding actie={overalUitloggen} knopTekst="Overal uitloggen" />
       </section>
     </div>
   );

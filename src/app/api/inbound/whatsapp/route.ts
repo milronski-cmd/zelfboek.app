@@ -3,10 +3,11 @@ import { createHmac } from "crypto";
 import { db } from "@/lib/db";
 import { geheimKlopt } from "@/lib/crypto";
 import { bonUploaden, BON_TYPES } from "@/lib/bonnen/verwerk";
+import { ondernemingUitKoppelTekst } from "@/lib/bonnen/adres";
 
 /**
  * Bonnen via WhatsApp (WhatsApp Business Platform, Cloud API). De ondernemer stuurt een foto of PDF naar ons nummer;
- * we herkennen hem aan het telefoonnummer bij zijn bedrijfsgegevens en sturen kort terug wat we lazen.
+ * we herkennen hem aan het nummer dat hij eenmalig koppelde (bericht "Koppel <code>" vanuit de app) en sturen kort terug wat we lazen.
  * Nodig (env): WHATSAPP_TOKEN, WHATSAPP_TELEFOON_ID, WHATSAPP_VERIFY_TOKEN, WHATSAPP_APP_SECRET, WHATSAPP_NUMMER (voor in de app).
  */
 const GRAPH = "https://graph.facebook.com/v21.0";
@@ -34,16 +35,23 @@ export async function POST(req: Request) {
   const verwacht = process.env.WHATSAPP_APP_SECRET ? `sha256=${createHmac("sha256", process.env.WHATSAPP_APP_SECRET).update(ruw).digest("hex")}` : null;
   if (!verwacht || !geheimKlopt(req.headers.get("x-hub-signature-256"), verwacht)) return NextResponse.json({ fout: "Niet toegestaan" }, { status: 401 });
 
-  type Bericht = { from: string; type: string; image?: { id: string; mime_type: string }; document?: { id: string; mime_type: string; filename?: string } };
+  type Bericht = { from: string; type: string; text?: { body?: string }; image?: { id: string; mime_type: string }; document?: { id: string; mime_type: string; filename?: string } };
   const body = JSON.parse(ruw) as { entry?: { changes?: { value?: { messages?: Bericht[] } }[] }[] };
   const berichten = body.entry?.flatMap((e) => e.changes?.flatMap((c) => c.value?.messages ?? []) ?? []) ?? [];
   for (const b of berichten) {
     const media = b.image ?? b.document;
+    const nummer = alleenCijfers(b.from);
+    // Koppelen: alleen wie in de app is ingelogd ziet de ondertekende code; het nummer is dan bewezen van de afzender.
+    const koppelId = b.text?.body ? ondernemingUitKoppelTekst(b.text.body) : null;
+    if (koppelId) {
+      await db.onderneming.updateMany({ where: { whatsappNummer: nummer }, data: { whatsappNummer: null } });
+      await db.onderneming.update({ where: { id: koppelId }, data: { whatsappNummer: nummer } }).catch(() => null);
+      await antwoord(b.from, "Gekoppeld. Stuur voortaan een foto of PDF van je bon naar dit nummer, dan boekt Saldoplan hem.");
+      continue;
+    }
     if (!media) { await antwoord(b.from, "Stuur een foto of PDF van je bon, dan boekt Saldoplan hem."); continue; }
-    // Onderneming op telefoonnummer (bedrijfsgegevens). Onbekend nummer: vriendelijk weigeren.
-    const kandidaten = await db.onderneming.findMany({ where: { telefoon: { not: null }, demoTot: null }, select: { id: true, telefoon: true } });
-    const o = kandidaten.find((x) => alleenCijfers(x.telefoon) === alleenCijfers(b.from));
-    if (!o) { await antwoord(b.from, "Dit nummer kennen we niet. Zet je mobiele nummer bij Instellingen > Bedrijf in Saldoplan en probeer het opnieuw."); continue; }
+    const o = await db.onderneming.findUnique({ where: { whatsappNummer: nummer }, select: { id: true, demoTot: true } });
+    if (!o || o.demoTot) { await antwoord(b.from, "Dit nummer is nog niet gekoppeld. Open Saldoplan, ga naar Koppelingen > WhatsApp en tik op Koppel mijn nummer."); continue; }
     if (!BON_TYPES.includes(media.mime_type)) { await antwoord(b.from, "Dit bestand kan Saldoplan niet lezen. Stuur een foto (JPG/PNG) of een PDF."); continue; }
     try {
       const info = await fetch(`${GRAPH}/${media.id}`, { headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` } }).then((r) => r.json() as Promise<{ url: string }>);

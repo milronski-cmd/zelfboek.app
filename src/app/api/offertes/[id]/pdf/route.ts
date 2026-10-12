@@ -9,6 +9,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!x) return NextResponse.json({ fout: "Niet gevonden" }, { status: 404 });
   const buf = await offertePdf(x);
   return new NextResponse(new Uint8Array(buf), {
-    headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${x.nummer}.pdf"` },
+    headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(`${x.nummer}.pdf`)}` },
   });
 }

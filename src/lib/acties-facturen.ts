@@ -14,12 +14,13 @@ import { letterAf, markeerBetaald } from "./facturen/betaling";
 import { stuurHerinnering } from "./facturen/herinneringen";
 import { maakBetaallink } from "./facturen/mollie";
 import { volgendeDatum } from "./facturen/terugkerend";
+import { foutTekst } from "@/lib/fout";
 
 export type Resultaat = { ok: true; melding: string; id?: string } | { ok: false; fout: string };
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const sOfNull = (fd: FormData, k: string) => s(fd, k) || null;
-const fout = (e: unknown): Resultaat => ({ ok: false, fout: e instanceof Error ? e.message : String(e) });
+const fout = (e: unknown): Resultaat => ({ ok: false, fout: foutTekst(e) });
 
 function ververs() {
   for (const p of ["/app", "/app/facturen", "/app/offertes", "/app/klanten", "/app/producten", "/app/terugkerend", "/app/uren"]) revalidatePath(p);
@@ -381,13 +382,15 @@ export async function offerteStatus(fd: FormData): Promise<void> {
 /** Publiek, via token: de klant accepteert of wijst af. */
 export async function offerteBesluit(token: string, besluit: "geaccepteerd" | "afgewezen", ondertekening?: { handtekening: string; naam: string }): Promise<Resultaat> {
   const of = await db.offerte.findUnique({ where: { acceptToken: token }, include: { klant: true } });
-  if (!of) return { ok: false, fout: "Offerte niet gevonden." };
+  if (!of || of.status === "concept") return { ok: false, fout: "Offerte niet gevonden." };
   if (["geaccepteerd", "afgewezen", "gefactureerd"].includes(of.status)) return { ok: false, fout: "Deze offerte is al afgehandeld." };
   if (of.geldigTot < new Date()) return { ok: false, fout: "Deze offerte is verlopen." };
   // Accepteren gaat met een getekende handtekening (PNG, max. ~300 kB) en de naam van wie tekent.
   const geldig = ondertekening && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(ondertekening.handtekening) && ondertekening.handtekening.length < 400_000 && ondertekening.naam.trim().length > 1;
   if (besluit === "geaccepteerd" && !geldig) return { ok: false, fout: "Zet je naam en handtekening om de offerte te accepteren." };
-  await db.offerte.update({ where: { id: of.id }, data: { status: besluit, besluitOp: new Date(), ...(besluit === "geaccepteerd" && ondertekening ? { handtekening: ondertekening.handtekening, getekendDoor: ondertekening.naam.trim().slice(0, 120), getekendOp: new Date() } : {}) } });
+  // Alleen als hij nog open staat (twee keer tegelijk klikken telt één keer).
+  const r = await db.offerte.updateMany({ where: { id: of.id, status: { notIn: ["concept", "geaccepteerd", "afgewezen", "gefactureerd"] } }, data: { status: besluit, besluitOp: new Date(), ...(besluit === "geaccepteerd" && ondertekening ? { handtekening: ondertekening.handtekening, getekendDoor: ondertekening.naam.trim().slice(0, 120), getekendOp: new Date() } : {}) } });
+  if (r.count === 0) return { ok: false, fout: "Deze offerte is al afgehandeld." };
   await db.melding.create({
     data: { ondernemingId: of.ondernemingId, soort: "systeem", titel: besluit === "geaccepteerd" ? `Offerte ${of.nummer} getekend` : `Offerte ${of.nummer} afgewezen`, tekst: besluit === "geaccepteerd" ? `${ondertekening?.naam ?? of.klant.naam} van ${of.klant.naam} heeft de offerte digitaal ondertekend. Maak er met één klik een factuur van.` : `${of.klant.naam} heeft de offerte afgewezen.`, link: `/app/offertes/${of.id}` },
   });

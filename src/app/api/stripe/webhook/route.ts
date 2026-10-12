@@ -24,8 +24,12 @@ async function beloonVerwijzer(stripe: Stripe, ondernemingId: string, code: stri
   if (!coupon) return;
   const al = await db.logboek.findFirst({ where: { ondernemingId, actie: "Verwijsbeloning gegeven" } });
   if (al) return;
-  const aanbrenger = await db.onderneming.findUnique({ where: { verwijscode: code } });
-  if (!aanbrenger?.stripeAbonnementId) return;
+  const aanbrenger = await db.onderneming.findUnique({ where: { verwijscode: code }, include: { leden: { include: { gebruiker: { select: { email: true } } } } } });
+  if (!aanbrenger?.stripeAbonnementId || aanbrenger.id === ondernemingId) return;
+  // Jezelf aanbrengen met een tweede account telt niet (zelfde e-mailadres of zelfde Stripe-klant).
+  const nieuw = await db.onderneming.findUnique({ where: { id: ondernemingId }, include: { leden: { include: { gebruiker: { select: { email: true } } } } } });
+  const mails = new Set(aanbrenger.leden.map((l) => l.gebruiker.email.toLowerCase()).concat(aanbrenger.email ? [aanbrenger.email.toLowerCase()] : []));
+  if (!nieuw || (nieuw.stripeKlantId && nieuw.stripeKlantId === aanbrenger.stripeKlantId) || nieuw.leden.some((l) => mails.has(l.gebruiker.email.toLowerCase())) || (nieuw.email && mails.has(nieuw.email.toLowerCase()))) return;
   await stripe.subscriptions.update(aanbrenger.stripeAbonnementId, { discounts: [{ coupon }] });
   await db.logboek.create({ data: { ondernemingId, wie: "Saldoplan", actie: "Verwijsbeloning gegeven", onderwerp: aanbrenger.naam } });
   await db.melding.create({ data: { ondernemingId: aanbrenger.id, soort: "systeem", titel: "Bedankt voor je verwijzing!", tekst: "Iemand die jij aanbracht is klant geworden. Je korting staat op je volgende factuur.", link: "/app/instellingen?tab=abonnement" } });

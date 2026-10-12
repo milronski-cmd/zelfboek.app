@@ -9,6 +9,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!f) return NextResponse.json({ fout: "Niet gevonden" }, { status: 404 });
   const xml = await factuurUbl(f);
   return new NextResponse(xml, {
-    headers: { "Content-Type": "application/xml; charset=utf-8", "Content-Disposition": `attachment; filename="${f.nummer}.xml"` },
+    headers: { "Content-Type": "application/xml; charset=utf-8", "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`${f.nummer}.xml`)}` },
   });
 }

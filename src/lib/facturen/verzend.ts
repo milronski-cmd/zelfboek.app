@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { esc, htmlMail, verstuurMail } from "@/lib/mail";
-import { datumIn, euroIn, taalVan, vul, WOORDEN } from "./taal";
+import { esc, htmlMail, htmlNaarTekst, tekstAlsHtml, verstuurMail } from "@/lib/mail";
+import { datumIn, euroIn, taalVan, vul, vulHtml, WOORDEN } from "./taal";
 import { factuurToken, factuurUrl } from "./link";
 import { factuurPdf, offertePdf } from "./pdf";
 import { factuurUbl } from "./ubl";
@@ -30,12 +30,12 @@ export async function verzendFactuur(factuurId: string, ondernemingId: string, o
   // In de taal van de klant; met een link om de factuur online te bekijken en een onzichtbaar beeldje voor "geopend".
   const taal = taalVan(vers.klant.taal);
   const w = WOORDEN[taal];
-  const v = { nummer: vers.nummer, naam: o.naam, bedrag: euroIn(taal, Math.abs(vers.totaal)), datum: datumIn(taal, vers.vervaldatum), iban: o.iban ?? "[IBAN]", klant: esc(vers.klant.contactpersoon ?? vers.klant.naam) };
+  const v = { nummer: vers.nummer, naam: o.naam, bedrag: euroIn(taal, Math.abs(vers.totaal)), datum: datumIn(taal, vers.vervaldatum), iban: o.iban ?? "[IBAN]", klant: vers.klant.contactpersoon ?? vers.klant.naam };
   const basis = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const onderwerp = vul(credit ? w.mailCreditOnderwerp : w.mailFactuurOnderwerp, v);
   const regels = [
-    vul(w.aanhef, v),
-    opties?.tekst ?? vul(credit ? w.mailCredit : w.mailFactuur, v),
+    vulHtml(w.aanhef, v),
+    opties?.tekst ? tekstAlsHtml(opties.tekst) : vulHtml(credit ? w.mailCredit : w.mailFactuur, v),
     `${w.mailBijlage} <a href="${factuurUrl(vers.id)}">${w.bekijkOnline}</a>`,
     `${w.groet}<br>${esc(o.naam)}<img src="${basis}/api/facturen/geopend/${factuurToken(vers.id)}.gif" width="1" height="1" alt="" style="display:block;border:0">`,
   ];
@@ -44,7 +44,7 @@ export async function verzendFactuur(factuurId: string, ondernemingId: string, o
     onderwerp,
     demo: Boolean(o.demoTot),
     antwoordAan: o.email ?? undefined,
-    tekst: regels.map((r) => r.replace(/<br>/g, "\n").replace(/<[^>]+>/g, "")).join("\n\n") + `\n\n${w.bekijkOnline}: ${factuurUrl(vers.id)}` + (betaalLink ? `\n${w.directBetalen}: ${betaalLink}` : ""),
+    tekst: regels.map(htmlNaarTekst).join("\n\n") + `\n\n${w.bekijkOnline}: ${factuurUrl(vers.id)}` + (betaalLink ? `\n${w.directBetalen}: ${betaalLink}` : ""),
     html: htmlMail(onderwerp, regels, betaalLink ? { tekst: w.directBetalen, url: betaalLink } : { tekst: w.bekijkOnline, url: factuurUrl(vers.id) }),
     bijlagen: [
       { filename: `${vers.nummer}.pdf`, content: pdf, contentType: "application/pdf" },
@@ -67,11 +67,11 @@ export async function verzendOfferte(offerteId: string, ondernemingId: string, o
   const o = of.onderneming;
   const taal = taalVan(of.klant.taal);
   const w = WOORDEN[taal];
-  const v = { nummer: of.nummer, naam: o.naam, bedrag: euroIn(taal, of.totaal), datum: datumIn(taal, of.geldigTot), klant: esc(of.klant.contactpersoon ?? of.klant.naam) };
+  const v = { nummer: of.nummer, naam: o.naam, bedrag: euroIn(taal, of.totaal), datum: datumIn(taal, of.geldigTot), klant: of.klant.contactpersoon ?? of.klant.naam };
   const onderwerp = vul(w.mailOfferteOnderwerp, v);
   const regels = [
-    vul(w.aanhef, v),
-    opties?.tekst ?? vul(w.mailOfferte, v),
+    vulHtml(w.aanhef, v),
+    opties?.tekst ? tekstAlsHtml(opties.tekst) : vulHtml(w.mailOfferte, v),
     `${w.groet}<br>${esc(o.naam)}`,
   ];
   await verstuurMail({
@@ -79,7 +79,7 @@ export async function verzendOfferte(offerteId: string, ondernemingId: string, o
     onderwerp,
     demo: Boolean(o.demoTot),
     antwoordAan: o.email ?? undefined,
-    tekst: regels.map((r) => r.replace(/<br>/g, "\n")).join("\n\n") + `\n\n${w.mailOfferteKnop}: ${link}`,
+    tekst: regels.map(htmlNaarTekst).join("\n\n") + `\n\n${w.mailOfferteKnop}: ${link}`,
     html: htmlMail(onderwerp, regels, { tekst: w.mailOfferteKnop, url: link }),
     bijlagen: [{ filename: `${of.nummer}.pdf`, content: pdf, contentType: "application/pdf" }],
   });

@@ -35,17 +35,19 @@ export function PasskeyLogin() {
 }
 
 /** In Instellingen: dit apparaat toevoegen voor inloggen zonder code. */
-export function PasskeyToevoegen() {
+export function PasskeyToevoegen({ vraagCode = false }: { vraagCode?: boolean }) {
   const [melding, setMelding] = useState("");
+  const [appCode, setAppCode] = useState("");
   const voegToe = async () => {
     setMelding("");
     try {
       if (!browserSupportsWebAuthn()) throw new Error("Deze browser ondersteunt dit niet.");
+      if (vraagCode && !/^\d{6}$/.test(appCode.replace(/\s/g, ""))) throw new Error("Vul eerst de code uit je authenticator-app in.");
       const opties = await post({ stap: "registreer-opties" });
       const antwoord = await startRegistration({ optionsJSON: opties });
       const ua = navigator.userAgent;
       const naam = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android-telefoon" : /Mac/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows-computer" : "Dit apparaat";
-      await post({ stap: "registreer", antwoord, naam });
+      await post({ stap: "registreer", antwoord, naam, appCode });
       window.location.reload();
     } catch (e) {
       setMelding(e instanceof Error && e.name !== "NotAllowedError" ? e.message : "Toevoegen is afgebroken.");
@@ -53,6 +55,9 @@ export function PasskeyToevoegen() {
   };
   return (
     <div>
+      {vraagCode && (
+        <div className="mb-2"><label className="lbl" htmlFor="pk-code">Code uit je authenticator-app</label><input id="pk-code" value={appCode} onChange={(e) => setAppCode(e.target.value)} inputMode="numeric" maxLength={7} autoComplete="one-time-code" className="veld w-36" /></div>
+      )}
       <button type="button" onClick={voegToe} className="knop">Dit apparaat toevoegen</button>
       {melding && <p className="mt-2 text-[13px] text-rood-tekst">{melding}</p>}
     </div>

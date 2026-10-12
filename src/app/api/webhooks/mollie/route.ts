@@ -32,7 +32,9 @@ export async function POST(req: Request) {
   const f = await db.factuur.findFirst({ where: { id: factuurId, ondernemingId: oId } });
   if (!f) return NextResponse.json({ ontvangen: true });
 
-  if (betaling.status === "paid" && f.status !== "betaald") {
+  // Elke betaling telt één keer, ook als Mollie (of iemand anders) hetzelfde bericht nog eens stuurt.
+  const eersteKeer = betaling.status === "paid" ? await db.verwerkt.create({ data: { id: `mollie:${paymentId}` } }).then(() => true).catch(() => false) : false;
+  if (betaling.status === "paid" && eersteKeer && f.status !== "betaald") {
     const bedrag = parseFloat(betaling.amount.value);
     // Deelbetalingen die al handmatig geboekt waren blijven staan: optellen, niet overschrijven.
     const totaalBetaald = rond(f.betaaldBedrag + bedrag);

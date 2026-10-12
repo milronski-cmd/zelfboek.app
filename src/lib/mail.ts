@@ -64,11 +64,19 @@ ${opties.tekst}
 export function htmlMail(titel: string, regels: string[], knop?: { tekst: string; url: string }) {
   return `<!doctype html><html lang="nl"><body style="font-family:system-ui,sans-serif;background:#fafaf9;padding:32px">
 <div style="max-width:560px;margin:auto;background:#fff;border:1px solid #e7e5e4;border-radius:16px;padding:32px">
-<h1 style="font-size:20px;margin:0 0 16px">${titel}</h1>
+<h1 style="font-size:20px;margin:0 0 16px">${esc(titel)}</h1>
 ${regels.map((r) => `<p style="color:#44403c;line-height:1.5">${r}</p>`).join("")}
-${knop ? `<p style="margin-top:24px"><a href="${knop.url}" style="background:#1c1917;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none">${knop.tekst}</a></p>` : ""}
+${knop ? `<p style="margin-top:24px"><a href="${esc(knop.url)}" style="background:#1c1917;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none">${esc(knop.tekst)}</a></p>` : ""}
 <p style="color:#a8a29e;font-size:12px;margin-top:32px">${MERK}</p></div></body></html>`;
 }
+
+/** Platte tekst uit onze eigen mail-HTML (voor de tekstversie van een mail). */
+export function htmlNaarTekst(html: string): string {
+  return html.replace(/<br\s*\/?>/g, "\n").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+}
+
+/** Vrije tekst van de gebruiker als HTML (alinea's en enters blijven, geen opmaak of links). */
+export const tekstAlsHtml = (t: string) => esc(t).replace(/\r?\n/g, "<br>");
 
 /** HTML-escapen van tekst die uit bankregels, AI-antwoorden of klantgegevens komt. */
 export function esc(tekst: string | null | undefined): string {

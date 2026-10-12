@@ -12,7 +12,7 @@ export default async function PubliekeOfferte({ params, searchParams }: { params
   const { token } = await params;
   const sp = await searchParams;
   const x = await db.offerte.findUnique({ where: { acceptToken: token }, include: { klant: true, onderneming: true } });
-  if (!x) {
+  if (!x || x.status === "concept") {
     return (
       <main className="flex flex-1 items-center justify-center p-10">
         <p className="max-w-sm text-center text-tekst-2">Deze offerte bestaat niet of de link klopt niet meer. Vraag de afzender om een nieuwe link.</p>
@@ -28,7 +28,9 @@ export default async function PubliekeOfferte({ params, searchParams }: { params
     const { redirect } = await import("next/navigation");
     const keuze = fd.get("keuze") === "ja" ? "geaccepteerd" : "afgewezen";
     const r = await offerteBesluit(token, keuze, { handtekening: String(fd.get("handtekening") ?? ""), naam: String(fd.get("getekendDoor") ?? "") });
-    redirect(`/offerte/${token}?${r.ok ? "m" : "fout"}=${encodeURIComponent(r.ok ? r.melding : r.fout)}`);
+    // Vaste codes in de link, geen vrije tekst (anders kan iemand eigen tekst op deze pagina zetten).
+    const code = r.ok ? `m=${keuze === "geaccepteerd" ? "ja" : "nee"}` : `fout=${r.fout.includes("handtekening") ? "teken" : r.fout.includes("verlopen") ? "verlopen" : r.fout.includes("afgehandeld") ? "klaar" : "fout"}`;
+    redirect(`/offerte/${token}?${code}`);
   }
 
   return (
@@ -49,8 +51,8 @@ export default async function PubliekeOfferte({ params, searchParams }: { params
         </div>
         {x.opmerking && <p className="mt-5 whitespace-pre-line border-t border-lijn pt-4 text-sm text-tekst-2">{x.opmerking}</p>}
 
-        {sp.m && <p className="mt-6 rounded-lg bg-groen-licht px-4 py-3 text-sm text-groen-tekst">{sp.m}</p>}
-        {sp.fout && <p className="mt-6 rounded-lg bg-rood-licht px-4 py-3 text-sm text-rood-tekst">{sp.fout}</p>}
+        {sp.m && <p className="mt-6 rounded-lg bg-groen-licht px-4 py-3 text-sm text-groen-tekst">{sp.m === "ja" ? "Bedankt, de offerte is geaccepteerd." : "De offerte is afgewezen."}</p>}
+        {sp.fout && <p className="mt-6 rounded-lg bg-rood-licht px-4 py-3 text-sm text-rood-tekst">{({ teken: "Zet je naam en handtekening om de offerte te accepteren.", verlopen: "Deze offerte is verlopen.", klaar: "Deze offerte is al afgehandeld." } as Record<string, string>)[sp.fout] ?? "Dat lukte niet. Probeer het opnieuw."}</p>}
 
         {afgehandeld ? (
           <div className="mt-8 text-sm text-tekst-2">

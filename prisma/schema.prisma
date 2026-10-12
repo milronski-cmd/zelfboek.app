@@ -17,6 +17,7 @@ model Gebruiker {
   laatstActief    DateTime?
   totpGeheim      String? // versleuteld; tweestapsverificatie met een app
   totpAan         Boolean        @default(false)
+  totpLaatsteStap Int? // laatst gebruikte tijdstap: dezelfde app-code werkt maar één keer
   passkeys        Passkey[]
   sessies         Sessie[]
   codes           LoginCode[]
@@ -92,6 +93,7 @@ model Onderneming {
   startdatum         DateTime?
   btwTijdvak         String    @default("kwartaal") // maand | kwartaal | jaar
   korDeelnemer       Boolean   @default(false)
+  whatsappNummer     String?   @unique // pas gezet na het koppelbericht vanaf dat nummer (zie inbound/whatsapp)
   btwStelsel         String    @default("factuur") // factuur (btw over de factuurdatum, standaard) | kas (over ontvangen betalingen)
   urencriterium      Boolean   @default(true)
   starter            Boolean   @default(false) // startersaftrek
@@ -533,4 +535,19 @@ model CronLog {
   klaar     DateTime?
   resultaat String?
   fout      String?
+}
+
+/// Tellers voor limieten (inlogpogingen per IP, AI-gebruik per onderneming, demo's per IP). Ouder dan 2 dagen wordt opgeruimd.
+model Poging {
+  id         String   @id @default(cuid())
+  sleutel    String
+  aangemaakt DateTime @default(now())
+
+  @@index([sleutel, aangemaakt])
+}
+
+/// Eenmalige berichten (webhook-betalingen, eenmalige links): een id dat hier staat is al verwerkt.
+model Verwerkt {
+  id         String   @id
+  aangemaakt DateTime @default(now())
 }

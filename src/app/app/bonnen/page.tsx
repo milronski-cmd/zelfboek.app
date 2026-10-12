@@ -5,6 +5,7 @@ import { BTW_CODES, BTW_LABEL, CATEGORIEEN, CATEGORIE_INFO, label } from "@/lib/
 import { bonKoppelen, bonOntkoppelen, bonOpnieuwLezen, bonVerwijderen, bonWijzigen, uploadBonnen } from "@/lib/acties-bonnen";
 import { BonUpload } from "@/components/BonUpload";
 import { Kop, Leeg, Pil, knop, knopLicht, veld } from "@/components/ui";
+import { bonAdres } from "@/lib/bonnen/adres";
 
 export const instant = false;
 
@@ -36,7 +37,7 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
       <Kop titel="Bonnen" sub="Maak een foto of sleep een PDF. Saldoplan leest het bedrag en hangt de bon aan de betaling." />
       <BonUpload actie={uploadBonnen} />
       <p className="mt-3 text-sm text-tekst-2">
-        Of mail je bonnen naar <span className="rounded bg-white px-2 py-0.5 font-medium text-tekst ring-1 ring-lijn">bonnen+{o.id}@{process.env.INBOUND_DOMEIN ?? "saldoplan.nl"}</span>. Stuur de bon als bijlage door, Saldoplan doet de rest.
+        Of mail je bonnen naar <span className="rounded bg-white px-2 py-0.5 font-medium text-tekst ring-1 ring-lijn">{bonAdres(o.id)}</span>. Stuur de bon als bijlage door, Saldoplan doet de rest.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">

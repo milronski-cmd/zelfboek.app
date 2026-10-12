@@ -29,7 +29,8 @@ export async function maakBetaallink(factuurId: string, ondernemingId: string): 
   });
   if (!res.ok) {
     const t = await res.text().catch(() => "");
-    throw new Error(`Mollie weigerde de betaallink (${res.status}): ${t.slice(0, 200)}`);
+    console.error("mollie betaallink", res.status, t.slice(0, 500));
+    throw new Error(res.status === 401 || res.status === 403 ? "Mollie weigerde de betaallink: koppel Mollie opnieuw bij Koppelingen." : `Mollie kon geen betaallink maken (${res.status}). De factuur is wel verstuurd; probeer de betaallink later opnieuw.`);
   }
   const data = (await res.json()) as { id: string; _links: { checkout?: { href: string } } };
   const url = data._links.checkout?.href ?? null;

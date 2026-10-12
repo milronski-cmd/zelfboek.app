@@ -1,7 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { ai, MODEL } from "@/lib/ai";
 import { db } from "@/lib/db";
-import { TOOLS, voerToolUit } from "./tools";
+import { SCHRIJF_TOOLS, TOOLS, voerToolUit } from "./tools";
 
 const MAX_BERICHTEN = 30;
 
@@ -21,6 +21,8 @@ export async function chatBeurt(opties: {
   gesprekId?: string | null;
   bericht: string;
   emit: (e: ChatEvent) => void;
+  /** Meelezers mogen vragen stellen, maar de bot mag voor hen niets wijzigen. */
+  magSchrijven?: boolean;
 }): Promise<string> {
   const o = await db.onderneming.findUniqueOrThrow({ where: { id: opties.ondernemingId } });
   let gesprek = opties.gesprekId
@@ -47,7 +49,7 @@ export async function chatBeurt(opties: {
       model: MODEL,
       max_tokens: 4000,
       system: [{ type: "text", text: systeem(o), cache_control: { type: "ephemeral" } }],
-      tools: TOOLS,
+      tools: opties.magSchrijven === false ? TOOLS.filter((t) => !SCHRIJF_TOOLS.has(t.name)) : TOOLS,
       messages,
     });
     stream.on("text", (t) => opties.emit({ type: "tekst", tekst: t }));
@@ -65,6 +67,7 @@ export async function chatBeurt(opties: {
       toolBlokken.map(async (b) => {
         opties.emit({ type: "tool", naam: b.name });
         try {
+          if (opties.magSchrijven === false && SCHRIJF_TOOLS.has(b.name)) throw new Error("Je hebt alleen leesrechten in deze onderneming.");
           const uit = await voerToolUit(b.name, b.input as Record<string, unknown>, { ondernemingId: o.id });
           return { type: "tool_result", tool_use_id: b.id, content: uit };
         } catch (e) {

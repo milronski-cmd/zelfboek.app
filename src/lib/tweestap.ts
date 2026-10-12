@@ -46,3 +46,12 @@ export const otpauthUrl = (email: string, geheim: string) =>
 
 /** Voor de test: de code van nu. */
 export const huidigeCode = (geheim: string, nu = Date.now()) => code(geheim, Math.floor(nu / 30_000));
+
+/** Welke tijdstap hoort bij deze code (of null)? Zo kan dezelfde code geen tweede keer gebruikt worden. */
+export function welkeStap(geheim: string, invoer: string, nu = Date.now()): number | null {
+  const c = invoer.replace(/\s/g, "");
+  if (!/^\d{6}$/.test(c)) return null;
+  const stap = Math.floor(nu / 30_000);
+  for (const d of [-1, 0, 1]) if (code(geheim, stap + d) === c) return stap + d;
+  return null;
+}

@@ -1,8 +1,8 @@
 import { db } from "@/lib/db";
-import { esc, htmlMail, verstuurMail } from "@/lib/mail";
+import { esc, htmlMail, htmlNaarTekst, verstuurMail } from "@/lib/mail";
 import { WETTELIJKE_HANDELSRENTE } from "@/lib/fiscaal/constanten-2026";
 import { euro, rond } from "@/lib/btw";
-import { datumIn, euroIn, taalVan, vul, WOORDEN } from "./taal";
+import { datumIn, euroIn, taalVan, vul, vulHtml, WOORDEN } from "./taal";
 import { factuurPdf } from "./pdf";
 
 /** Wettelijke incassokosten (WIK-staffel, art. 2 Besluit vergoeding voor buitengerechtelijke incassokosten). Minimum 40 euro. */
@@ -53,19 +53,19 @@ export async function stuurHerinnering(factuurId: string, ondernemingId: string,
   const w = WOORDEN[taal];
   const kosten = incassokosten(open);
   const rente = wettelijkeRente(open, dagen);
-  const v = { nummer: f.nummer, bedrag: euroIn(taal, open), datum: datumIn(taal, f.vervaldatum), iban: o.iban ?? "[IBAN]", naam: o.naam, dagen, kosten: euroIn(taal, kosten), rente: euroIn(taal, rente), totaal: euroIn(taal, rond(open + kosten + rente)), klant: esc(f.klant.contactpersoon ?? f.klant.naam) };
+  const v = { nummer: f.nummer, bedrag: euroIn(taal, open), datum: datumIn(taal, f.vervaldatum), iban: o.iban ?? "[IBAN]", naam: o.naam, dagen, kosten: euroIn(taal, kosten), rente: euroIn(taal, rente), totaal: euroIn(taal, rond(open + kosten + rente)), klant: f.klant.contactpersoon ?? f.klant.naam };
   const eigen = taal === "nl" ? [o.herinneringTekst1, o.herinneringTekst2, o.herinneringTekst3][trap - 1]?.trim() : null;
   const onderwerp = vul(trap === 1 ? w.h1Onderwerp : trap === 2 ? w.h2Onderwerp : w.h3Onderwerp, v);
   const kern = eigen
     ? eigen.split(/\n\s*\n/).map((alinea) => esc(vul(alinea, v)).replace(/\n/g, "<br>"))
-    : trap === 1 ? [vul(w.h1, v), w.h1Al] : trap === 2 ? [vul(w.h2, v), w.h2Gevolg] : [vul(w.h3, v), vul(w.h3Kosten, v), vul(w.h3Betalen, v)];
-  const regels = [vul(w.aanhef, v), ...kern, `${w.groet}<br>${esc(o.naam)}`];
+    : trap === 1 ? [vulHtml(w.h1, v), w.h1Al] : trap === 2 ? [vulHtml(w.h2, v), w.h2Gevolg] : [vulHtml(w.h3, v), vulHtml(w.h3Kosten, v), vulHtml(w.h3Betalen, v)];
+  const regels = [vulHtml(w.aanhef, v), ...kern, `${w.groet}<br>${esc(o.naam)}`];
   await verstuurMail({
     aan: f.klant.email,
     onderwerp,
     demo: Boolean(o.demoTot),
     antwoordAan: o.email ?? undefined,
-    tekst: regels.map((r) => r.replace(/<br>/g, "\n")).join("\n\n") + (f.betaalLinkUrl ? `\n\nDirect betalen: ${f.betaalLinkUrl}` : ""),
+    tekst: regels.map(htmlNaarTekst).join("\n\n") + (f.betaalLinkUrl ? `\n\nDirect betalen: ${f.betaalLinkUrl}` : ""),
     html: htmlMail(onderwerp, regels, f.betaalLinkUrl ? { tekst: w.directBetalen, url: f.betaalLinkUrl } : undefined),
     bijlagen: [{ filename: `${f.nummer}.pdf`, content: pdf, contentType: "application/pdf" }],
   });

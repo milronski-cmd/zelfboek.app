@@ -2,10 +2,10 @@ import { db } from "./db";
 import { maakSessie } from "./auth";
 import { vulDemo } from "./demo";
 import { willekeurigToken } from "./crypto";
+import { binnenLimiet, klantIp, UUR } from "./limiet";
 
 /** Hoeveel voorbeeldomgevingen er tegelijk mogen bestaan (tegen misbruik). */
 const MAX_DEMOS = 300;
-const UUR = 36e5;
 
 /**
  * "Probeer zonder aanmelden": een losse voorbeeldonderneming met een jaar aan gegevens, die na 24 uur verdwijnt.
@@ -13,6 +13,7 @@ const UUR = 36e5;
  */
 export async function startDemo(): Promise<{ ok: true } | { ok: false; fout: string }> {
   await ruimDemosOp();
+  if (!(await binnenLimiet(`demo-ip:${await klantIp()}`, 3, UUR))) return { ok: false, fout: "Je hebt net al een paar voorbeeldomgevingen gestart. Probeer het over een uur opnieuw, of maak gratis een account." };
   if ((await db.onderneming.count({ where: { demoTot: { gt: new Date() } } })) >= MAX_DEMOS) return { ok: false, fout: "Het is even erg druk. Probeer het over een paar minuten opnieuw, of maak gratis een account." };
   const gebruiker = await db.gebruiker.create({ data: { email: `demo-${willekeurigToken(9).toLowerCase()}@demo.saldoplan.nl`, naam: "Demo", laatstActief: new Date() } });
   const o = await db.onderneming.create({ data: { naam: "Studio Noord", demoTot: new Date(Date.now() + 24 * UUR), proefTot: new Date(Date.now() + 24 * UUR), leden: { create: { gebruikerId: gebruiker.id, rol: "eigenaar" } } } });

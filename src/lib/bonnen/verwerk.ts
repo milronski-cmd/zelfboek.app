@@ -1,6 +1,8 @@
 import { euro } from "@/lib/btw";
 import { db } from "@/lib/db";
 import { leesBon, type BonUitlezing, BOT_ONBEREIKBAAR } from "@/lib/ai";
+import { foutTekst } from "@/lib/fout";
+import { aiTegoed, AI_OP } from "@/lib/limiet";
 
 /** Bestandstypes die we als bon accepteren. */
 export const BON_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp", "image/gif"];
@@ -46,8 +48,22 @@ export async function verwerkUitlezing(bonId: string, ondernemingId: string, u: 
 
 export function bonFoutTekst(e: unknown) {
   const m = e instanceof Error ? e.message : String(e);
-  if (/api key|apiKey|ANTHROPIC_API_KEY|authentication|401/i.test(m)) return BOT_ONBEREIKBAAR;
-  return m;
+  if (/api key|apiKey|ANTHROPIC_API_KEY|authentication|401|overloaded|529|rate.?limit|429|timeout/i.test(m)) return BOT_ONBEREIKBAAR;
+  return foutTekst(e);
+}
+
+/** Klopt de inhoud met het opgegeven type? (De browser of afzender bepaalt het type; de eerste bytes liegen niet.) */
+export function klopType(data: Buffer, type: string): boolean {
+  const b = data.subarray(0, 12);
+  const begint = (...x: number[]) => x.every((v, i) => b[i] === v);
+  switch (type) {
+    case "application/pdf": return data.subarray(0, 1024).includes(Buffer.from("%PDF"));
+    case "image/jpeg": return begint(0xff, 0xd8, 0xff);
+    case "image/png": return begint(0x89, 0x50, 0x4e, 0x47);
+    case "image/gif": return begint(0x47, 0x49, 0x46, 0x38);
+    case "image/webp": return begint(0x52, 0x49, 0x46, 0x46) && b.subarray(8, 12).toString("latin1") === "WEBP";
+    default: return false;
+  }
 }
 
 /**
@@ -56,9 +72,11 @@ export function bonFoutTekst(e: unknown) {
  */
 export async function bonUploaden(ondernemingId: string, bestand: { naam: string; type: string; data: Buffer }, bron = "upload") {
   if (bestand.data.length > BON_MAX_BYTES) throw new Error(`${bestand.naam}: groter dan 20 MB`);
-  if (!BON_TYPES.includes(bestand.type)) throw new Error(`${bestand.naam}: alleen PDF, JPG, PNG, WEBP of GIF`);
+  if (!BON_TYPES.includes(bestand.type) || !klopType(bestand.data, bestand.type)) throw new Error(`${bestand.naam}: alleen PDF, JPG, PNG, WEBP of GIF`);
   const bon = await db.bon.create({ data: { ondernemingId, bestandsnaam: bestand.naam, mimeType: bestand.type, bestandsPad: "", inhoud: new Uint8Array(bestand.data), bron } });
   try {
+    const o = await db.onderneming.findUnique({ where: { id: ondernemingId }, select: { demoTot: true } });
+    if (!(await aiTegoed(ondernemingId, Boolean(o?.demoTot)))) throw new Error(AI_OP);
     const u = await leesBon(bestand.data, bestand.type);
     const gekoppeld = await verwerkUitlezing(bon.id, ondernemingId, u);
     return { bonId: bon.id, ok: true as const, gekoppeld, uitlezing: u, melding: `${u.leverancier} ${(!u.valuta || u.valuta === "EUR") ? euro(u.totaal) : `${u.totaal.toFixed(2).replace(".", ",")} ${u.valuta}`}: ${gekoppeld ? "gelezen en aan de betaling gehangen" : "gelezen; de betaling zien we nog niet bij de bank"}` };

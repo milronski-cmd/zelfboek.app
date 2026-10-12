@@ -127,3 +127,9 @@ export const WOORDEN: Record<Taal, Woorden> = {
 export function vul(tekst: string, w: Record<string, string | number>): string {
   return tekst.replace(/\{(\w+)\}/g, (_, k: string) => (k in w ? String(w[k]) : `{${k}}`));
 }
+
+/** Zelfde als vul, maar voor HTML: de ingevulde waarden (bedrijfsnaam, klantnaam) worden ge-escapet. */
+export function vulHtml(tekst: string, w: Record<string, string | number>): string {
+  const veilig = (x: string | number) => String(x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
+  return tekst.replace(/\{(\w+)\}/g, (_, k: string) => (k in w ? veilig(w[k]) : `{${k}}`));
+}

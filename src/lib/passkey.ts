@@ -9,6 +9,8 @@ import { MERK } from "./merk";
  * De uitdaging staat vijf minuten in een eigen cookie; de publieke sleutel in tabel Passkey.
  */
 const UITDAGING = "sp_uitdaging";
+/** Meldingen die we zelf geven en de gebruiker mag zien. */
+export const PASSKEY_MELDINGEN = new Set(["Het duurde te lang. Probeer het opnieuw.", "Je apparaat kon niet worden toegevoegd.", "Dit apparaat is niet bekend. Log in met je e-mail en voeg het toe bij Instellingen.", "Inloggen met je apparaat is niet gelukt."]);
 const basis = () => new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
 const rpID = () => basis().hostname;
 const origin = () => basis().origin;
@@ -30,7 +32,7 @@ export async function registratieOpties(gebruiker: { id: string; email: string; 
     rpName: MERK, rpID: rpID(), userName: gebruiker.email, userDisplayName: gebruiker.naam ?? gebruiker.email,
     userID: new TextEncoder().encode(gebruiker.id), attestationType: "none",
     excludeCredentials: bestaand.map((p) => ({ id: p.credentialId })),
-    authenticatorSelection: { residentKey: "required", userVerification: "preferred" },
+    authenticatorSelection: { residentKey: "required", userVerification: "required" },
   });
   await bewaarUitdaging(opties.challenge);
   return opties;
@@ -39,14 +41,14 @@ export async function registratieOpties(gebruiker: { id: string; email: string; 
 export async function registreer(gebruikerId: string, antwoord: RegistrationResponseJSON, naam?: string) {
   const challenge = await pakUitdaging();
   if (!challenge) throw new Error("Het duurde te lang. Probeer het opnieuw.");
-  const r = await verifyRegistrationResponse({ response: antwoord, expectedChallenge: challenge, expectedOrigin: origin(), expectedRPID: rpID() });
+  const r = await verifyRegistrationResponse({ response: antwoord, expectedChallenge: challenge, expectedOrigin: origin(), expectedRPID: rpID(), requireUserVerification: true });
   if (!r.verified || !r.registrationInfo) throw new Error("Je apparaat kon niet worden toegevoegd.");
   const c = r.registrationInfo.credential;
   await db.passkey.create({ data: { gebruikerId, credentialId: c.id, publicKey: b64(c.publicKey), teller: c.counter, naam: naam?.slice(0, 60) || null } });
 }
 
 export async function loginOpties() {
-  const opties = await generateAuthenticationOptions({ rpID: rpID(), userVerification: "preferred" });
+  const opties = await generateAuthenticationOptions({ rpID: rpID(), userVerification: "required" });
   await bewaarUitdaging(opties.challenge);
   return opties;
 }
@@ -60,6 +62,7 @@ export async function controleerLogin(antwoord: AuthenticationResponseJSON): Pro
   const r = await verifyAuthenticationResponse({
     response: antwoord, expectedChallenge: challenge, expectedOrigin: origin(), expectedRPID: rpID(),
     credential: { id: pk.credentialId, publicKey: new Uint8Array(Buffer.from(pk.publicKey, "base64url")), counter: pk.teller },
+    requireUserVerification: true, // Face ID, vingerafdruk of pincode, niet alleen aanraken
   });
   if (!r.verified) throw new Error("Inloggen met je apparaat is niet gelukt.");
   await db.passkey.update({ where: { id: pk.id }, data: { teller: r.authenticationInfo.newCounter, laatstGebruikt: new Date() } });

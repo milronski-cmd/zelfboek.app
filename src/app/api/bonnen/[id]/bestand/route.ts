@@ -12,7 +12,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     headers: {
       "Content-Type": bon.mimeType,
       "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(bon.bestandsnaam)}`,
-      "X-Content-Type-Options": "nosniff",
+      "X-Content-Type-Options": "nosniff", // alleen pdf en plaatjes (gecontroleerd bij uploaden), nooit html of svg
     },
   });
 }

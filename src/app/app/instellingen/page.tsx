@@ -61,6 +61,7 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
       </nav>
       {sp.stripe === "gelukt" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: true, melding: "Je abonnement is gestart." }} /></div>}
       {sp.stripe === "niet-ingesteld" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: false, fout: process.env.NODE_ENV === "production" ? "Afrekenen voor je abonnement staat nog niet aan. We laten het je weten zodra het kan; je proefperiode loopt gewoon door." : "Afrekenen staat nog niet aan op deze server (STRIPE_SECRET_KEY en STRIPE_PRICE_ID ontbreken)." }} /></div>}
+      {sp.stripe === "geen-eigenaar" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: false, fout: "Alleen de eigenaar van deze onderneming kan het abonnement regelen." }} /></div>}
 
       {tab === "account" && <p className="mb-4 max-w-2xl text-[13px] text-tekst-2"><Link href="/gegevens" className="underline">Zo bewaren we je gegevens</Link> · <Link href="/status" className="underline">Status van Saldoplan</Link></p>}
       {tab === "account" && <AccountInstellingen gebruikerId={s.gebruikerId} thema={(await cookies()).get("sp_thema")?.value ?? "auto"} koppel={sp.tweestap === "koppel"} />}
@@ -103,7 +104,7 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
             <Veld naam="huisstijlKleur" label="Huisstijlkleur" waarde={o.huisstijlKleur} hint="Hex-code, bijvoorbeeld #1e6b47." />
             <div>
               <label className="lbl" htmlFor="logo">Logo</label>
-              <Bestandskiezer id="logo" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" hint="PNG, JPG, WebP of SVG" />
+              <Bestandskiezer id="logo" name="logo" accept="image/png,image/jpeg,image/webp" hint="PNG, JPG of WebP" />
               <p className="mt-1 text-[13px] text-tekst-3">{o.logoPad ? "Er staat een logo. Upload een nieuw bestand om het te vervangen." : "PNG, JPG, WEBP of SVG, tot 2 MB."}</p>
             </div>
             <div className="sm:col-span-2">

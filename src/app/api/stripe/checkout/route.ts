@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { db, huidigeOnderneming } from "@/lib/db";
+import { db, eigenaarOnderneming } from "@/lib/db";
 import { huidigeSessie } from "@/lib/auth";
 
 export async function POST(req: Request) {
@@ -11,7 +11,9 @@ export async function POST(req: Request) {
   if (!sleutel || !prijs) return NextResponse.redirect(`${basis}/app/instellingen?tab=abonnement&stripe=niet-ingesteld`, 303);
 
   const stripe = new Stripe(sleutel);
-  const o = await huidigeOnderneming();
+  // Alleen de eigenaar beheert het abonnement (niet de boekhouder of een meelezer).
+  const o = await eigenaarOnderneming().catch(() => null);
+  if (!o) return NextResponse.redirect(`${basis}/app/instellingen?tab=abonnement&stripe=geen-eigenaar`, 303);
   const portaal = new URL(req.url).searchParams.get("portaal") === "1";
 
   let klantId = o.stripeKlantId;

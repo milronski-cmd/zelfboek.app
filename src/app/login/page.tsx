@@ -1,6 +1,7 @@
 import { MERK, WEBSITE_URL } from "@/lib/merk";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { heeftTweestap, huidigeSessie, logInMetCode, stuurLoginCode } from "@/lib/auth";
 import { PasskeyLogin } from "@/components/Passkey";
 import { VerwijsCookie } from "@/components/VerwijsCookie";
@@ -9,23 +10,32 @@ import { Woordmerk } from "@/components/Merk";
 
 export const instant = false;
 
+async function meld(ok: boolean, tekst: string) {
+  (await cookies()).set("sp_melding", JSON.stringify({ ok, tekst }), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/login", maxAge: 20 });
+}
+
 export default async function Login({ searchParams }: { searchParams: Promise<{ email?: string; m?: string; fout?: string; ref?: string }> }) {
   if (await huidigeSessie()) redirect("/app");
   const sp = await searchParams;
   const tweestap = sp.email ? await heeftTweestap(sp.email) : false;
+  // Meldingen komen uit een kortlevende cookie, niet uit de link: zo kan niemand eigen tekst op deze pagina zetten.
+  const jar = await cookies();
+  let flits: { ok: boolean; tekst: string } | null = null;
+  try { flits = JSON.parse(jar.get("sp_melding")?.value ?? "null"); } catch { flits = null; }
 
   async function stap1(fd: FormData) {
     "use server";
     const email = String(fd.get("email") ?? "");
     const r = await stuurLoginCode(email);
-    if (!r.ok) redirect(`/login?fout=${encodeURIComponent(r.melding)}`);
-    redirect(`/login?email=${encodeURIComponent(email)}&m=${encodeURIComponent(r.melding)}`);
+    await meld(r.ok, r.melding);
+    if (!r.ok) redirect("/login");
+    redirect(`/login?email=${encodeURIComponent(email)}`);
   }
   async function stap2(fd: FormData) {
     "use server";
     const email = String(fd.get("email") ?? "");
     const r = await logInMetCode(email, String(fd.get("code") ?? ""), String(fd.get("appCode") ?? "") || undefined);
-    if (!r.ok) redirect(`/login?email=${encodeURIComponent(email)}&fout=${encodeURIComponent(r.melding)}`);
+    if (!r.ok) { await meld(false, r.melding); redirect(`/login?email=${encodeURIComponent(email)}`); }
     redirect(r.nieuw ? "/welkom" : "/app");
   }
 
@@ -39,7 +49,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             <>
               <h1 className="text-[24px] font-semibold">Inloggen</h1>
               <p className="mt-1 text-sm text-tekst-2">Geen wachtwoord nodig. Je krijgt een code per e-mail.</p>
-              {sp.fout && <div className="mt-4"><Melding r={{ ok: false, fout: sp.fout }} /></div>}
+              {flits && !flits.ok && <div className="mt-4"><Melding r={{ ok: false, fout: flits.tekst }} /></div>}
               <form action={stap1} className="mt-5 space-y-3">
                 <div>
                   <label className="lbl" htmlFor="email">E-mailadres</label>
@@ -53,8 +63,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             <>
               <h1 className="text-[24px] font-semibold">Vul je code in</h1>
               <p className="mt-1 text-sm text-tekst-2">Verstuurd naar {sp.email}. De code is tien minuten geldig.</p>
-              {sp.m && <div className="mt-4"><Melding r={{ ok: true, melding: sp.m }} /></div>}
-              {sp.fout && <div className="mt-4"><Melding r={{ ok: false, fout: sp.fout }} /></div>}
+              {flits && <div className="mt-4"><Melding r={flits.ok ? { ok: true, melding: flits.tekst } : { ok: false, fout: flits.tekst }} /></div>}
               <form action={stap2} className="mt-5 space-y-3">
                 <input type="hidden" name="email" value={sp.email} />
                 <div>

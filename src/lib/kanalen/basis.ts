@@ -57,12 +57,47 @@ export async function voerKanaalUit(ondernemingId: string, soort: KoppelingSoort
   }
 }
 
+/**
+ * Mag de server dit adres ophalen? Alleen https naar een openbaar adres: geen localhost, intern netwerk of
+ * cloud-metadata (anders kan iemand via een "winkeladres" ons interne netwerk aftasten).
+ */
+export async function openbaarAdres(url: string): Promise<URL> {
+  let u: URL;
+  try { u = new URL(url); } catch { throw new Error("Ongeldig adres."); }
+  if (u.protocol !== "https:" || u.username || u.password) throw new Error("Alleen een gewoon https-adres kan.");
+  const host = u.hostname.replace(/^\[|\]$/g, "");
+  const { lookup } = await import("dns/promises");
+  const adressen = isIP(host) ? [{ address: host }] : await lookup(host, { all: true }).catch(() => { throw new Error(`Adres ${host} niet gevonden.`); });
+  if (!adressen.length || adressen.some((a) => privéAdres(a.address))) throw new Error("Dit adres is niet bereikbaar vanaf internet.");
+  return u;
+}
+
+function isIP(h: string) { return /^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.includes(":"); }
+
+export function privéAdres(ip: string): boolean {
+  const v4 = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
+  const d = v4.split(".").map(Number);
+  if (d.length === 4 && d.every((x) => x >= 0 && x <= 255)) {
+    const [a, b] = d;
+    return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 192 && b === 0) || (a === 198 && (b === 18 || b === 19)) || a >= 224;
+  }
+  const l = ip.toLowerCase();
+  return l === "::" || l === "::1" || l.startsWith("fc") || l.startsWith("fd") || l.startsWith("fe80") || l.startsWith("ff");
+}
+
+/** Bekende API's (vaste adressen in onze code); alle andere adressen komen van de gebruiker en worden gecontroleerd. */
+const VERTROUWD = /(^|\.)(mollie\.com|stripe\.com|bol\.com|paypal\.com|moneybird\.com|e-boekhouden\.nl|etsy\.com|sumup\.com|izettle\.com|zettle\.com|amazon\.com|amazon\.eu|lightspeedapp\.com|lightspeedhq\.com|googleapis\.com|microsoft\.com|jortt\.nl|enablebanking\.com)$/;
+
 export async function haalJson<T>(url: string, init?: RequestInit, dienst = "API"): Promise<T> {
-  const r = await fetch(url, init);
+  const host = new URL(url).hostname;
+  const vertrouwd = VERTROUWD.test(host);
+  if (!vertrouwd) await openbaarAdres(url);
+  const r = await fetch(url, { ...init, redirect: vertrouwd ? "follow" : "error", signal: init?.signal ?? AbortSignal.timeout(30_000) });
   if (!r.ok) {
-    const t = await r.text().catch(() => "");
+    const t = vertrouwd ? await r.text().catch(() => "") : "";
     if (r.status === 401 || r.status === 403) throw new Error(`${dienst}: sleutel ongeldig of onvoldoende rechten (${r.status}).`);
-    throw new Error(`${dienst} ${r.status}: ${t.slice(0, 160) || r.statusText}`);
+    if (r.status === 404 && !vertrouwd) throw new Error(`${dienst}: niets gevonden op dit adres (404). Klopt het adres van je winkel?`);
+    throw new Error(`${dienst} ${r.status}: ${t.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").slice(0, 160) || r.statusText}`);
   }
   return (await r.json()) as T;
 }

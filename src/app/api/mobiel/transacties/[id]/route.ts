@@ -5,8 +5,8 @@ import { fout, mobielContext, route, transactieJson } from "@/lib/mobiel";
 
 /** Eén bankregel bevestigen als zakelijk of privé. Body: { keuze: "zakelijk" | "prive" }. */
 export const POST = route(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
-  const { onderneming: o, magSchrijven } = await mobielContext(req);
-  if (!magSchrijven) return fout(403, "Je hebt alleen leesrechten in deze onderneming.");
+  const { onderneming: o, schrijfFout } = await mobielContext(req);
+  if (schrijfFout) return fout(403, schrijfFout);
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as { keuze?: string };
   if (body.keuze !== "zakelijk" && body.keuze !== "prive") return fout(400, "Keuze moet zakelijk of prive zijn.");

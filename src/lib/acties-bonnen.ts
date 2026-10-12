@@ -7,6 +7,7 @@ import { db, schrijfOnderneming } from "./db";
 import { leesBon } from "./ai";
 import { bonFoutTekst as foutTekst, bonUploaden, koppelBon as koppel, verwerkUitlezing } from "./bonnen/verwerk";
 import { btwUitInclusief } from "./btw";
+import { aiTegoed, AI_OP } from "./limiet";
 
 export type Resultaat = { ok: true; melding: string } | { ok: false; fout: string };
 
@@ -14,6 +15,7 @@ export type Resultaat = { ok: true; melding: string } | { ok: false; fout: strin
 export async function uploadBonnen(formData: FormData): Promise<Resultaat> {
   const bestanden = formData.getAll("bestand").filter((b): b is File => b instanceof File && b.size > 0);
   if (bestanden.length === 0) return { ok: false, fout: "Geen bestand gekozen." };
+  if (bestanden.length > 25) return { ok: false, fout: "Kies hooguit 25 bonnen tegelijk." };
   const o = await schrijfOnderneming();
   await logNu(o.id, "Bonnen geüpload");
   const meldingen: string[] = [];
@@ -25,7 +27,7 @@ export async function uploadBonnen(formData: FormData): Promise<Resultaat> {
       meldingen.push(r.melding);
     } catch (e) {
       fouten++;
-      meldingen.push(e instanceof Error ? e.message : String(e));
+      meldingen.push(foutTekst(e));
     }
   }
   revalidatePath("/app");
@@ -39,6 +41,7 @@ export async function bonOpnieuwLezen(formData: FormData): Promise<void> {
   if (!bon) return;
   try {
     const buffer = bon.inhoud ? Buffer.from(bon.inhoud) : await readFile(bon.bestandsPad);
+    if (!(await aiTegoed(o.id, Boolean(o.demoTot)))) throw new Error(AI_OP);
     const u = await leesBon(buffer, bon.mimeType);
     await verwerkUitlezing(bon.id, o.id, u);
   } catch (e) {

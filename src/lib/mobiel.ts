@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { db } from "@/lib/db";
 import { hash } from "@/lib/crypto";
+import { abonnementStatus } from "./auth";
 
 /**
  * Hulpfuncties voor de mobiele API (/api/mobiel). De app stuurt een bearer-token;
@@ -30,10 +31,16 @@ export async function sessieUitRequest(req: Request) {
 /** Sessie plus de actieve onderneming (met lidmaatschapscontrole). */
 export async function mobielContext(req: Request) {
   const s = await sessieUitRequest(req);
-  const lid = s.actieveOndernemingId
+  // Actieve onderneming, of (verwijderd als lid / geen keuze) de eerste waar je wel lid van bent.
+  const lid = (s.actieveOndernemingId
     ? await db.lidmaatschap.findUnique({ where: { gebruikerId_ondernemingId: { gebruikerId: s.gebruikerId, ondernemingId: s.actieveOndernemingId } }, include: { onderneming: true } })
-    : await db.lidmaatschap.findFirst({ where: { gebruikerId: s.gebruikerId }, include: { onderneming: true } });
-  if (lid) return { sessie: s, onderneming: lid.onderneming, rol: lid.rol, magSchrijven: ["eigenaar", "boekhouder"].includes(lid.rol) };
+    : null) ?? await db.lidmaatschap.findFirst({ where: { gebruikerId: s.gebruikerId }, include: { onderneming: true } });
+  if (lid) {
+    const rolOk = ["eigenaar", "boekhouder"].includes(lid.rol);
+    const abonnementOk = !process.env.STRIPE_SECRET_KEY || Boolean(lid.onderneming.demoTot) || abonnementStatus(lid.onderneming).toegang;
+    const schrijfFout = !rolOk ? "Je hebt alleen leesrechten in deze onderneming." : !abonnementOk ? "Je proefperiode is voorbij. Kies een abonnement in de webapp onder Instellingen, Abonnement." : null;
+    return { sessie: s, onderneming: lid.onderneming, rol: lid.rol, magSchrijven: !schrijfFout, schrijfFout };
+  }
   // Eerste keer: onderneming aanmaken, net als de webapp doet bij de eerste login.
   const o = await db.onderneming.create({
     data: {
@@ -44,7 +51,7 @@ export async function mobielContext(req: Request) {
     },
   });
   await db.sessie.update({ where: { id: s.id }, data: { actieveOndernemingId: o.id } });
-  return { sessie: s, onderneming: o, rol: "eigenaar", magSchrijven: true };
+  return { sessie: s, onderneming: o, rol: "eigenaar", magSchrijven: true, schrijfFout: null };
 }
 
 /** Wikkelt een route: ApiFout wordt een nette JSON-fout, al het andere een 500 zonder details naar buiten. */

@@ -1,4 +1,5 @@
 import { mollieToegang } from "@/lib/koppelen";
+import { db } from "@/lib/db";
 import { bewaarKanaalRegels, haalJson, voerKanaalUit, type KanaalRegel, type KanaalUitkomst } from "./basis";
 
 /**
@@ -13,6 +14,9 @@ export async function haalTransacties(ondernemingId: string, vanaf: Date): Promi
     if (!toegang) throw new Error("Mollie is niet gekoppeld. Klik bij Koppelingen op Koppel Mollie.");
     const headers = { Authorization: `Bearer ${toegang.token}` };
     const regels: KanaalRegel[] = [];
+    // Factuurstelsel: betalingen van onze eigen facturen (betaallink) telden al als omzet op de factuurdatum; niet nog eens.
+    const o = await db.onderneming.findUnique({ where: { id: ondernemingId }, select: { btwStelsel: true } });
+    const zonderFacturen = o?.btwStelsel !== "kas";
     let url: string | null = "https://api.mollie.com/v2/settlements?limit=50";
     while (url) {
       const r: { _embedded?: { settlements: Settlement[] }; _links?: { next?: { href: string } | null } } = await haalJson(url, { headers }, "Mollie");
@@ -23,7 +27,17 @@ export async function haalTransacties(ondernemingId: string, vanaf: Date): Promi
         let kosten = 0;
         for (const jaar of Object.values(s.periods ?? {})) for (const maand of Object.values(jaar)) for (const c of maand.costs ?? []) kosten += parseFloat(c.amountGross.value);
         const netto = parseFloat(s.amount.value);
-        regels.push({ datum: d, bedrag: netto + kosten, tegenpartij: "Mollie", omschrijving: `Uitbetaling ${s.reference}`, externId: s.id, categorie: "omzet", btwCode: "21" });
+        let viaFactuur = 0;
+        if (zonderFacturen) {
+          let pu: string | null = `https://api.mollie.com/v2/settlements/${s.id}/payments?limit=250`;
+          while (pu) {
+            const p: { _embedded?: { payments: { amount: { value: string }; metadata?: { factuurId?: string } | null }[] }; _links?: { next?: { href: string } | null } } = await haalJson(pu, { headers }, "Mollie");
+            for (const b of p._embedded?.payments ?? []) if (b.metadata?.factuurId) viaFactuur += parseFloat(b.amount.value);
+            pu = p._links?.next?.href ?? null;
+          }
+        }
+        const omzet = Math.round((netto + kosten - viaFactuur) * 100) / 100;
+        if (Math.abs(omzet) > 0.004) regels.push({ datum: d, bedrag: omzet, tegenpartij: "Mollie", omschrijving: `Uitbetaling ${s.reference}${viaFactuur ? ` (zonder ${viaFactuur.toFixed(2)} van betaalde facturen)` : ""}`, externId: s.id, categorie: "omzet", btwCode: "21" });
         if (kosten > 0) regels.push({ datum: d, bedrag: -kosten, tegenpartij: "Mollie", omschrijving: `Transactiekosten ${s.reference}`, externId: `${s.id}-kosten`, categorie: "betaalprovider", btwCode: "21" });
       }
       url = url ? (r._links?.next?.href ?? null) : null;

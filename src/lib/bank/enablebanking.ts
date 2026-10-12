@@ -57,7 +57,7 @@ export async function startAutorisatie(ondernemingId: string, bankNaam: string, 
     body: JSON.stringify({
       access: { valid_until: geldigTot },
       aspsp: { name: bankNaam, country: land },
-      state: ondernemingId,
+      state: (await import("../koppelen")).maakState({ o: ondernemingId, s: "enablebanking" }), // ondertekend: niet te vervalsen
       redirect_url: redirectUrl,
       psu_type: "business",
     }),

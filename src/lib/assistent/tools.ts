@@ -7,6 +7,9 @@ import { btwRegels } from "@/lib/btw-bron";
 
 type Ctx = { ondernemingId: string };
 
+/** Tools die iets wijzigen (niet voor meelezers). */
+export const SCHRIJF_TOOLS = new Set(["maak_taak", "wijzig_boeking"]);
+
 const strict = (naam: string, beschrijving: string, props: Record<string, unknown>, required: string[] = []): Anthropic.Tool => ({
   name: naam,
   description: beschrijving,

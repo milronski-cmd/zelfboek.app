@@ -1,7 +1,7 @@
 import { isDubbeleVraag, openVragen } from "@/lib/vragen";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { db, huidigeOnderneming } from "@/lib/db";
+import { db, huidigeOnderneming, schrijfOnderneming } from "@/lib/db";
 import { datumKort } from "@/lib/btw";
 import { Kaart, Kop, Pil, knop, knopLicht, veld } from "@/components/ui";
 
@@ -31,14 +31,14 @@ export default async function Meldingen() {
   }
   async function taakToggle(fd: FormData) {
     "use server";
-    const o = await huidigeOnderneming();
+    const o = await schrijfOnderneming();
     const t = await db.taak.findFirst({ where: { id: String(fd.get("id")), ondernemingId: o.id } });
     if (t) await db.taak.update({ where: { id: t.id }, data: { klaar: !t.klaar } });
     revalidatePath("/app");
   }
   async function taakNieuw(fd: FormData) {
     "use server";
-    const o = await huidigeOnderneming();
+    const o = await schrijfOnderneming();
     const titel = String(fd.get("titel") ?? "").trim();
     const dl = String(fd.get("deadline") ?? "");
     if (titel) await db.taak.create({ data: { ondernemingId: o.id, titel, deadline: dl ? new Date(dl) : null, bron: "gebruiker" } });

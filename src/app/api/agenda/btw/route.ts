@@ -11,7 +11,9 @@ import { MERK } from "@/lib/merk";
 export async function GET() {
   const sessie = await huidigeSessie();
   if (!sessie?.actieveOndernemingId) return new Response("Niet ingelogd", { status: 401 });
-  const o = await db.onderneming.findUnique({ where: { id: sessie.actieveOndernemingId } });
+  // Alleen als je (nog) lid bent van deze onderneming.
+  const lid = await db.lidmaatschap.findUnique({ where: { gebruikerId_ondernemingId: { gebruikerId: sessie.gebruikerId, ondernemingId: sessie.actieveOndernemingId } }, include: { onderneming: true } });
+  const o = lid?.onderneming;
   if (!o) return new Response("Niet gevonden", { status: 404 });
   const h = huidigTijdvak(o.btwTijdvak);
   const stappen = o.btwTijdvak === "maand" ? 12 : o.btwTijdvak === "jaar" ? 2 : 4;

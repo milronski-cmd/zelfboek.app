@@ -6,4 +6,4 @@ export const db = globalForPrisma.prisma ?? new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 
-export { huidigeOnderneming, schrijfOnderneming } from "./auth";
+export { eigenaarOnderneming, huidigeOnderneming, mijnRol, schrijfOnderneming } from "./auth";
