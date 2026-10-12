@@ -16,7 +16,7 @@ export type VraagKaart = {
 const DREMPEL = 90;
 
 /**
- * De vragen van de bot: één kaart per winkel. Tik op Zakelijk of Privé, of veeg op de telefoon
+ * De vragen van Saldoplan: één kaart per winkel. Tik op Zakelijk of Privé, of veeg op de telefoon
  * (naar rechts is zakelijk, naar links privé). "Altijd zo" laat de vraag voor die winkel niet terugkomen.
  */
 export function Vragen({ vragen, actie, compact = false }: { vragen: VraagKaart[]; actie: (fd: FormData) => Promise<void>; compact?: boolean }) {
@@ -34,7 +34,7 @@ export function Vragen({ vragen, actie, compact = false }: { vragen: VraagKaart[
   };
 
   if (zichtbaar.length === 0) {
-    return <p className="px-5 py-4 text-sm text-groen-tekst">Alles beantwoord. Dank je, de bot onthoudt het.</p>;
+    return <p className="px-5 py-4 text-sm text-groen-tekst">Alles beantwoord. Dank je, Saldoplan onthoudt het.</p>;
   }
   return (
     <ul className="divide-y divide-lijn">
@@ -86,9 +86,9 @@ function Kaart({ v, compact, antwoord }: { v: VraagKaart; compact: boolean; antw
           <p className="text-sm font-medium">{v.tegenpartij} <span className="cijfer ml-1 font-semibold">{v.bedragTekst}</span></p>
           <p className="text-[13px] text-tekst-2">{v.datumTekst}{v.omschrijving ? ` · ${v.omschrijving}` : ""}</p>
           {!compact || waarom ? (
-            <p className="mt-0.5 text-[13px] text-tekst-3">De bot denkt: <span className="text-tekst-2">{v.voorstel}</span>{v.uitleg ? `. ${v.uitleg}` : ""}</p>
+            <p className="mt-0.5 text-[13px] text-tekst-3">Saldoplan denkt: <span className="text-tekst-2">{v.voorstel}</span>{v.uitleg ? `. ${v.uitleg}` : ""}</p>
           ) : (
-            <button type="button" onClick={() => setWaarom(true)} className="mt-0.5 text-[13px] text-primair-tekst">Waarom vraagt de bot dit?</button>
+            <button type="button" onClick={() => setWaarom(true)} className="mt-0.5 text-[13px] text-primair-tekst">Waarom vraagt Saldoplan dit?</button>
           )}
         </div>
         <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:items-end">

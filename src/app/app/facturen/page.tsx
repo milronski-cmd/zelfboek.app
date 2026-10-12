@@ -42,7 +42,7 @@ export default async function Facturen({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <Kop titel="Facturen" sub="Versturen, herinneren en afletteren gebeurt vanzelf. Jij maakt alleen de factuur.">
+      <Kop titel="Facturen" sub="Versturen, herinneren en de betaling erbij zoeken gaat vanzelf. Jij maakt alleen de factuur.">
         <Link href="/app/terugkerend" className={knopLicht}>Vaste facturen</Link>
         <Link href="/app/facturen/nieuw" className={knop}>Nieuwe factuur</Link>
       </Kop>
@@ -63,7 +63,7 @@ export default async function Facturen({ searchParams }: { searchParams: Promise
       {facturen.length === 0 ? (
         <div className="mt-4">
           <Leeg
-            tekst={q || filter ? "Geen facturen in deze selectie." : "Je hebt nog geen facturen. Maak de eerste en de bot regelt het versturen en herinneren."}
+            tekst={q || filter ? "Geen facturen in deze selectie." : "Je hebt nog geen facturen. Maak de eerste en Saldoplan regelt het versturen en herinneren."}
             actie={!q && !filter ? <Link href="/app/facturen/nieuw" className={knop}>Nieuwe factuur</Link> : undefined}
           />
         </div>

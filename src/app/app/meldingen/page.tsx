@@ -7,9 +7,9 @@ import { Kaart, Kop, Pil, knop, knopLicht, veld } from "@/components/ui";
 
 export const instant = false;
 
-const soortTekst: Record<string, string> = { deadline: "deadline", herinnering: "herinnering", sync: "koppeling", ai: "van de bot", systeem: "systeem" };
+const soortTekst: Record<string, string> = { deadline: "deadline", herinnering: "herinnering", sync: "koppeling", ai: "van Saldoplan", systeem: "systeem" };
 const soortKleur: Record<string, "groen" | "geel" | "rood" | "grijs"> = { deadline: "geel", herinnering: "rood", sync: "grijs", ai: "groen", systeem: "grijs" };
-const bronTekst: Record<string, string> = { ai: "van de bot", gebruiker: "van jou", systeem: "automatisch" };
+const bronTekst: Record<string, string> = { ai: "van Saldoplan", gebruiker: "van jou", systeem: "automatisch" };
 
 export default async function Meldingen() {
   const o = await huidigeOnderneming();
@@ -47,7 +47,7 @@ export default async function Meldingen() {
 
   return (
     <>
-      <Kop titel="Meldingen en taken" sub="Deadlines, herinneringen en wat de bot van je wil weten.">
+      <Kop titel="Meldingen en taken" sub="Deadlines, herinneringen en wat Saldoplan van je wil weten.">
         {meldingen.some((m) => !m.gelezen) && <form action={gelezen}><button className={knopLicht}>Alles als gelezen markeren</button></form>}
       </Kop>
       <div className="grid items-start gap-6 lg:grid-cols-2">
@@ -83,7 +83,7 @@ export default async function Meldingen() {
             <button className={knop}>Toevoegen</button>
           </form>
           {taken.length === 0 ? (
-            <p className="px-5 py-8 text-center text-sm text-tekst-2">Geen taken. De bot zet hier vragen neer die hij niet zelf kan beantwoorden.</p>
+            <p className="px-5 py-8 text-center text-sm text-tekst-2">Geen taken. Saldoplan zet hier vragen neer die het niet zelf kan beantwoorden.</p>
           ) : (
             <ul className="divide-y divide-lijn">
               {taken.map((t) => {

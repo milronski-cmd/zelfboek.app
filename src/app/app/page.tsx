@@ -44,7 +44,7 @@ function VolgendeStap({ acties, klein = false }: { acties: Actie[]; klein?: bool
         </span>
         <div className="min-w-0 flex-1 basis-[220px]">
           <p className="text-[15px] font-semibold">Alles is bijgewerkt</p>
-          <p className="text-[13px] text-tekst-2">Er wacht niets op je. De bot boekt elke nacht je nieuwe bankregels.</p>
+          <p className="text-[13px] text-tekst-2">Er wacht niets op je. Saldoplan boekt elke nacht je nieuwe betalingen.</p>
         </div>
         <Link href="/app/facturen/nieuw" className="knop-licht">Factuur maken</Link>
       </section>
@@ -79,17 +79,17 @@ function Chevron() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-tekst-3" aria-hidden><path d="M9 6l6 6-6 6" /></svg>;
 }
 
-/** Grote vraagbalk voor de bot met een zachte gloed. Een vraag gaat naar de assistent, die meteen antwoordt. */
+/** Grote vraagbalk voor Saldoplan met een zachte gloed. Een vraag gaat naar de assistent, die meteen antwoordt. */
 function AiBalk() {
   const voorbeelden = ["Hoeveel btw moet ik dit kwartaal betalen?", "Welke facturen staan open?", "Wat was mijn grootste kostenpost vorige maand?"];
   return (
-    <section className="ai-balk" aria-label="Vraag het de bot">
+    <section className="ai-balk" aria-label="Vraag het Saldoplan">
       <div className="ai-balk-binnen">
         <form action="/app/assistent" method="get" className="flex items-center gap-3 px-4 py-3 sm:px-5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center text-primair" aria-hidden>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2z" /><path d="M19 14l.9 2.6L22.5 17.5l-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9L19 14z" opacity=".7" /><path d="M5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7L5 15z" opacity=".5" /></svg>
           </span>
-          <input name="q" required autoComplete="off" placeholder="Vraag het de bot over je boekhouding, bijvoorbeeld: hoe sta ik ervoor deze maand?" aria-label="Je vraag aan de bot" className="min-w-0 flex-1 bg-transparent text-[16px] text-tekst outline-none placeholder:text-tekst-3" />
+          <input name="q" required autoComplete="off" placeholder="Vraag het Saldoplan over je boekhouding, bijvoorbeeld: hoe sta ik ervoor deze maand?" aria-label="Je vraag aan Saldoplan" className="min-w-0 flex-1 bg-transparent text-[16px] text-tekst outline-none placeholder:text-tekst-3" />
           <button type="submit" className="knop knop-groot">Vraag</button>
         </form>
         <div className="flex flex-wrap items-center gap-2 border-t border-lijn px-4 py-2.5 sm:px-5">
@@ -136,7 +136,7 @@ function SaldoVooruit({ g }: { g: GeldVooruit }) {
             ["Privé-uitgaven per maand (gemiddeld)", euro(-g.priveGemiddeld)],
             ...g.vasteLasten.slice(0, 4).map((l): [string, string] => [`${l.naam}, volgende ${datum(l.volgende)}`, euro(-l.bedrag)]),
           ]}
-          slot={g.vasteLasten.length ? "Vaste lasten herkent Saldoplan zelf: dezelfde ontvanger elke maand, ongeveer hetzelfde bedrag. Nieuwe omzet telt pas mee als je hem factureert." : "Nog geen vaste lasten herkend; daarvoor zijn minstens drie maanden bankregels nodig."}
+          slot={g.vasteLasten.length ? "Vaste lasten herkent Saldoplan zelf: dezelfde ontvanger elke maand, ongeveer hetzelfde bedrag. Nieuwe omzet telt pas mee als je hem factureert." : "Nog geen vaste lasten herkend; daarvoor zijn minstens drie maanden betalingen nodig."}
         />
       </div>
       <div className="kaart px-5 py-4">
@@ -198,10 +198,10 @@ export default async function Overzicht() {
   }
 
   const stappen = [
-    { klaar: aantalTransacties > 0 || aantalKoppelingen > 0, titel: "Koppel je bank", tekst: "Log in bij je bank. Daarna boekt de bot elke nacht je betalingen.", href: "/app/koppelingen", knop: "Bank koppelen" },
+    { klaar: aantalTransacties > 0 || aantalKoppelingen > 0, titel: "Koppel je bank", tekst: "Log in bij je bank. Daarna boekt Saldoplan elke nacht je betalingen.", href: "/app/koppelingen", knop: "Bank koppelen" },
     { klaar: Boolean(o.kvk && o.iban), titel: "Vul je bedrijfsgegevens in", tekst: "KvK-nummer, btw-nummer en rekeningnummer. Die komen op je facturen.", href: "/app/instellingen", knop: "Invullen" },
-    { klaar: aantalBonnen > 0, titel: "Maak een foto van je eerste bon", tekst: "De bot leest het bedrag en hangt de bon aan de juiste bankregel.", href: "/app/bonnen", knop: "Bon uploaden" },
-    { klaar: aantalFacturen > 0, titel: "Stuur je eerste factuur", tekst: "Met iDEAL-link. De bot volgt de betaling en herinnert zelf.", href: "/app/facturen/nieuw", knop: "Factuur maken" },
+    { klaar: aantalBonnen > 0, titel: "Maak een foto van je eerste bon", tekst: "Saldoplan leest het bedrag en hangt de bon aan de juiste betaling.", href: "/app/bonnen", knop: "Bon uploaden" },
+    { klaar: aantalFacturen > 0, titel: "Stuur je eerste factuur", tekst: "Met iDEAL-link. Saldoplan volgt de betaling en herinnert zelf.", href: "/app/facturen/nieuw", knop: "Factuur maken" },
   ];
 
   // Wat om een actie vraagt, belangrijkste eerst. De eerste wordt de grote "volgende stap".
@@ -209,13 +209,13 @@ export default async function Overzicht() {
   if (dagenTotDeadline <= 14) balken.push({ tekst: `Btw-aangifte ${tijdvakNaam}: uiterlijk ${datumNl(deadline)} doen en betalen (nog ${dagenTotDeadline} dagen)`, href: "/app/btw", knop: "Naar de aangifte" });
   if (onbeoordeeld > 0) balken.push({ tekst: `${onbeoordeeld} nieuwe ${onbeoordeeld === 1 ? "betaling staat" : "betalingen staan"} klaar om te boeken`, href: "/app/bank?filter=open", knop: "Laten boeken" });
   if (bonnenLos > 0) balken.push({ tekst: `${bonnenLos === 1 ? "1 bon hoort" : `${bonnenLos} bonnen horen`} nog bij een betaling`, href: "/app/bonnen?status=uitgelezen", knop: "Bonnen bekijken" });
-  if (teLaat.length > 0) balken.push({ tekst: `${teLaat.length} ${teLaat.length === 1 ? "factuur is" : "facturen zijn"} te laat betaald. De bot stuurt zelf herinneringen.`, href: "/app/facturen?filter=telaat", knop: "Bekijken" });
+  if (teLaat.length > 0) balken.push({ tekst: `${teLaat.length} ${teLaat.length === 1 ? "factuur is" : "facturen zijn"} te laat betaald. Saldoplan stuurt zelf herinneringen.`, href: "/app/facturen?filter=telaat", knop: "Bekijken" });
   if (dagenTotDeadline > 14 && dagenTotDeadline <= 30) balken.push({ tekst: `Btw-aangifte ${tijdvakNaam}: uiterlijk ${datumNl(deadline)} (nog ${dagenTotDeadline} dagen)`, href: "/app/btw", knop: "Naar de aangifte" });
   // Een taak die hetzelfde vraagt als een open vraag tonen we niet nog eens.
   for (const t of taken.filter((t) => !isDubbeleVraag(t.titel, vragen)).slice(0, 2)) balken.push({ tekst: t.titel, href: "/app/meldingen", knop: "Bekijken" });
   const nieuwAccount = stappen.some((s) => !s.klaar);
 
-  // Recent verwerkt: bankregels en facturen door elkaar, nieuwste eerst.
+  // Recent verwerkt: betalingen en facturen door elkaar, nieuwste eerst.
   type Recent = { id: string; datum: Date; titel: string; sub: string; pil: "groen" | "geel" | "rood" | "grijs"; status: string; bedrag: number; href: string; bank?: string | null; iban?: string | null; factuur?: boolean };
   const recent: Recent[] = [
     ...recentBank.map((t): Recent => ({
@@ -265,7 +265,7 @@ export default async function Overzicht() {
             <header className="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-4">
               <div>
                 <p className="text-[12px] font-semibold uppercase tracking-[.05em] text-primair-tekst">Volgende stap</p>
-                <p className="mt-0.5 text-[16px] font-semibold leading-snug">De bot heeft {vragen.length === 1 ? "1 vraag" : `${vragen.length} vragen`} voor je: zakelijk of privé?</p>
+                <p className="mt-0.5 text-[16px] font-semibold leading-snug">Saldoplan heeft {vragen.length === 1 ? "1 vraag" : `${vragen.length} vragen`} voor je: zakelijk of privé?</p>
               </div>
               {vragen.length > 3 && <Link href="/app/bank" className="knop-tekst knop-klein">Alle {vragen.length} vragen</Link>}
             </header>
@@ -284,7 +284,7 @@ export default async function Overzicht() {
         {toonVoorbeeld && <span className="text-[13px] text-tekst-3"><Pil kleur="grijs">Voorbeeld</Pil> <span className="ml-1">Zo ziet het eruit zodra je bank gekoppeld is. Dit zijn geen echte boekingen.</span></span>}
       </div>
       {lijst.length === 0 ? (
-        <p className="kaart px-5 py-8 text-center text-sm text-tekst-2">Nog niets verwerkt. Zodra er bankregels of facturen zijn, zie je ze hier.</p>
+        <p className="kaart px-5 py-8 text-center text-sm text-tekst-2">Nog niets verwerkt. Zodra er betalingen of facturen zijn, zie je ze hier.</p>
       ) : (
         <ul className="kaart divide-y divide-lijn">
           {lijst.map((r) => (

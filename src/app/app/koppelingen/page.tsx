@@ -210,9 +210,9 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
       </div>
 
       <h2 className="mt-8 text-[15px] font-semibold">Overstappen van een ander pakket</h2>
-      <p className="mb-3 mt-0.5 text-[13px] text-tekst-2">We nemen je klanten, facturen en bankregels over. Wat al bestaat slaan we over.</p>
+      <p className="mb-3 mt-0.5 text-[13px] text-tekst-2">We nemen je klanten, facturen en betalingen over. Wat al bestaat slaan we over.</p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {klikTegel("moneybird", "Klanten, facturen en bankregels.", "Na het koppelen neem je bij Overstappen alles over met één knop.")}
+        {klikTegel("moneybird", "Klanten, facturen en betalingen.", "Na het koppelen neem je bij Overstappen alles over met één knop.")}
         <AppTegel icoon={<AppIcoon id="eboekhouden" />} naam="e-Boekhouden" uitleg="Relaties en boekingen." status={statusPil("eboekhouden")} knop={per.get("eboekhouden") ? { tekst: "Beheren", licht: true } : { tekst: "Koppelen" }}>
           {per.get("eboekhouden") ? beheer("eboekhouden", false) : (
             <>
@@ -233,7 +233,7 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
       </div>
 
       <h2 className="mt-8 text-[15px] font-semibold">Bonnen per e-mail</h2>
-      <p className="mb-3 mt-0.5 text-[13px] text-tekst-2">Stuur bonnen en inkoopfacturen als bijlage door naar je eigen adres. De bot leest ze uit en hangt ze aan de juiste betaling.</p>
+      <p className="mb-3 mt-0.5 text-[13px] text-tekst-2">Stuur bonnen en inkoopfacturen als bijlage door naar je eigen adres. Saldoplan leest ze uit en hangt ze aan de juiste betaling.</p>
       <div className="kaart max-w-xl p-4">
         <p className="break-all rounded-md border border-lijn bg-papier px-3 py-2 font-mono text-[13px]">{bonAdres}</p>
         <p className="mt-2 text-[13px] text-tekst-3">Tip: zet dit adres als contact in je telefoon, dan deel je een foto in twee tikken.</p>

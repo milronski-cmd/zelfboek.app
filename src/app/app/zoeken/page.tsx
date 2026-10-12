@@ -16,7 +16,7 @@ export default async function Zoeken({ searchParams }: { searchParams: Promise<{
     return (
       <>
         <Kop titel="Zoeken" sub="Typ bovenin een naam, factuurnummer, omschrijving of bedrag." />
-        <Leeg tekst="Zoek in bankregels, facturen, offertes, klanten en bonnen. Druk op / om meteen te typen." />
+        <Leeg tekst="Zoek in betalingen, facturen, offertes, klanten en bonnen. Druk op / om meteen te typen." />
       </>
     );
   }
@@ -73,7 +73,7 @@ export default async function Zoeken({ searchParams }: { searchParams: Promise<{
         )}
 
         {transacties.length > 0 && (
-          <Kaart titel={`Bankregels (${transacties.length})`} actie={<Link href={`/app/bank?q=${encodeURIComponent(term)}`} className="knop-tekst knop-klein">Zoek in bank</Link>}>
+          <Kaart titel={`Betalingen (${transacties.length})`} actie={<Link href={`/app/bank?q=${encodeURIComponent(term)}`} className="knop-tekst knop-klein">Zoek in bank</Link>}>
             <ul className="divide-y divide-lijn">
               {transacties.map((t) => (
                 <li key={t.id} className="flex items-center gap-4 px-5 py-3">

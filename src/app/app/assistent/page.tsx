@@ -15,7 +15,7 @@ export default async function Assistent({ searchParams }: { searchParams: Promis
   ]);
   return (
     <>
-      <Kop titel="Vraag het de bot" sub="Hij kijkt in je eigen cijfers en legt uit. Iets wijzigen doet hij pas na jouw ja.">
+      <Kop titel="Vraag het Saldoplan" sub="Saldoplan kijkt in je eigen cijfers en legt uit. Iets wijzigen doet het pas na jouw ja.">
         {huidig && <Link href="/app/assistent" className={knopLicht}>Nieuw gesprek</Link>}
       </Kop>
       <div className="grid gap-6 lg:grid-cols-[1fr_220px]">

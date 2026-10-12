@@ -26,7 +26,7 @@ export default async function ProefKoppelen({ searchParams }: { searchParams: Pr
   const mag = bank
     ? ["Je rekeningen en saldo bekijken", "Je bij- en afschrijvingen van de afgelopen 90 dagen lezen"]
     : st.s === "moneybird"
-      ? ["Je klanten en facturen lezen", "Je bankregels en inkoopfacturen lezen"]
+      ? ["Je klanten en facturen lezen", "Je betalingen en inkoopfacturen lezen"]
       : ["Je uitbetalingen en kosten lezen"];
 
   return (

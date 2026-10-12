@@ -82,15 +82,15 @@ export const BTW_CODES = ["21", "9", "0", "vrijgesteld", "geen", "verlegd", "eu_
 export type BtwCode = (typeof BTW_CODES)[number];
 
 export const BTW_LABEL: Record<BtwCode, string> = {
-  "21": "21%",
-  "9": "9%",
-  "0": "0%",
-  vrijgesteld: "vrijgesteld",
+  "21": "21% btw",
+  "9": "9% btw",
+  "0": "0% btw",
+  vrijgesteld: "vrijgesteld van btw",
   geen: "geen btw",
-  verlegd: "verlegd (NL)",
-  eu_dienst: "EU dienst (verlegd)",
-  eu_goed: "EU goederen (ICV)",
-  buiten_eu: "buiten EU",
+  verlegd: "btw betaalt de ander (verlegd)",
+  eu_dienst: "dienst uit de EU, geen btw op de bon",
+  eu_goed: "spullen uit de EU, geen btw op de bon",
+  buiten_eu: "van buiten de EU",
 };
 
 export const KM_VERGOEDING_2026 = 0.23;

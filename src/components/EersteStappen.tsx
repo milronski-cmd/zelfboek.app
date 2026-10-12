@@ -11,7 +11,7 @@ export function EersteStappen({ stappen }: { stappen: Stap[] }) {
     <section className="kaart mb-6 overflow-hidden">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-lijn px-5 py-3">
         <div>
-          <h2 className="text-[15px] font-semibold">Welkom. Nog {stappen.length - klaar} {stappen.length - klaar === 1 ? "stap" : "stappen"} en de bot neemt het over.</h2>
+          <h2 className="text-[15px] font-semibold">Welkom. Nog {stappen.length - klaar} {stappen.length - klaar === 1 ? "stap" : "stappen"} en Saldoplan neemt het over.</h2>
           <p className="text-[13px] text-tekst-2">Samen ongeveer vijf minuten.</p>
         </div>
         <div className="flex items-center gap-3">

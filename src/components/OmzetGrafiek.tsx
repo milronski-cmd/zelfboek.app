@@ -24,7 +24,7 @@ export function OmzetGrafiek({ data }: { data: Punt[] }) {
     return (
       <div className="flex h-48 flex-col items-center justify-center text-center">
         <p className="text-sm text-tekst-2">Hier komt je omzet en kosten per maand.</p>
-        <p className="mt-1 text-[13px] text-tekst-3">Zodra er bankregels zijn, vult de grafiek zichzelf.</p>
+        <p className="mt-1 text-[13px] text-tekst-3">Zodra er betalingen zijn, vult de grafiek zichzelf.</p>
       </div>
     );
   }

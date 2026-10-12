@@ -62,7 +62,7 @@ export default async function Importeren() {
         <Kaart titel="Excel of een ander pakket">
           <div className="p-5">
             <p className="text-sm text-tekst-2">
-              Vul <a href="/app/importeren/sjabloon" className="text-primair-tekst underline">het Excel-sjabloon</a> in: datum, omschrijving, tegenpartij, bedrag, categorie en btw. Laat je de categorie leeg, dan boekt de bot de regel.
+              Vul <a href="/app/importeren/sjabloon" className="text-primair-tekst underline">het Excel-sjabloon</a> in: datum, omschrijving, tegenpartij, bedrag, categorie en btw. Laat je de categorie leeg, dan boekt Saldoplan de regel.
             </p>
             <div className="mt-4">
               <ResultaatFormulier actie={importeerVanPakket} verborgen={{ pakket: "excel" }} knopTekst="Excel importeren" bezigTekst="Inlezen">

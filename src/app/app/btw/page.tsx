@@ -79,7 +79,7 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
       )}
       {(twijfel > 0 || onbeoordeeld > 0) && (
         <p className="mb-5 rounded-lg bg-mosterd-licht px-4 py-3 text-sm text-mosterd-tekst">
-          Nog niet definitief: {onbeoordeeld > 0 && `${onbeoordeeld === 1 ? "1 betaling is" : `${onbeoordeeld} betalingen zijn`} nog niet geboekt. `}{twijfel > 0 && `De bot heeft ${twijfel === 1 ? "1 vraag" : `${twijfel} vragen`} voor je. `}
+          Nog niet definitief: {onbeoordeeld > 0 && `${onbeoordeeld === 1 ? "1 betaling is" : `${onbeoordeeld} betalingen zijn`} nog niet geboekt. `}{twijfel > 0 && `Saldoplan heeft ${twijfel === 1 ? "1 vraag" : `${twijfel} vragen`} voor je. `}
           <Link href="/app/bank" className="underline">Naar de bank</Link>
         </p>
       )}
@@ -141,13 +141,13 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
       </div>
 
       {(icp.regels.length > 0 || icp.onbekend > 0) && (
-        <Kaart titel="Opgaaf ICP" className="mt-6">
-          <p className="px-5 pt-3 text-sm text-tekst-2">Verplicht in dezelfde periode zodra rubriek 3b is ingevuld: per EU-klant met btw-nummer de omzet.</p>
+        <Kaart titel="Lijst met EU-klanten (ICP-opgaaf)" className="mt-6">
+          <p className="px-5 pt-3 text-sm text-tekst-2">Moet je apart doorgeven zodra je aan bedrijven in de EU verkoopt (vakje 3b): per klant het bedrag. Het bestand staat klaar bij Downloaden.</p>
           <table className="tabel mt-2">
             <thead><tr><th>Land</th><th>Btw-nummer</th><th>Klant</th><th className="num">Diensten</th><th className="num">Leveringen</th></tr></thead>
             <tbody>{icp.regels.map((r) => <tr key={r.btwNummer}><td>{r.land}</td><td className="tabular">{r.btwNummer}</td><td>{r.naam}</td><td className="num">{euro(r.diensten)}</td><td className="num">{euro(r.goederen)}</td></tr>)}</tbody>
           </table>
-          {icp.onbekend > 0 && <p className="px-5 py-3 text-sm text-mosterd-tekst">{euro(icp.onbekend)} EU-omzet komt uit bankregels zonder factuur. Maak daar een factuur van of koppel een klant met btw-nummer, anders klopt je ICP niet.</p>}
+          {icp.onbekend > 0 && <p className="px-5 py-3 text-sm text-mosterd-tekst">{euro(icp.onbekend)} EU-omzet komt uit betalingen zonder factuur. Maak daar een factuur van of vul het btw-nummer van de klant in, anders klopt de lijst niet.</p>}
         </Kaart>
       )}
 
@@ -168,7 +168,7 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
       )}
 
       <p className="mt-6 max-w-2xl text-[13px] leading-relaxed text-tekst-3">
-        Berekend uit je bankregels, gekoppelde bonnen en privédeel. Rubriek 4b (buitenlandse software met verlegde btw) staat ook in 5b en is netto nul. Rond af op hele euro&apos;s bij het overnemen.
+        Berekend uit je betalingen, gekoppelde bonnen en privédeel. Rubriek 4b (buitenlandse software met verlegde btw) staat ook in 5b en is netto nul. Rond af op hele euro&apos;s bij het overnemen.
         Je tijdvak is {tijdvak === "maand" ? "een maand" : tijdvak === "jaar" ? "een jaar" : "een kwartaal"}; wijzigen kan bij <Link href="/app/ib" className="underline">Inkomstenbelasting</Link>. {MERK} dient niet zelf in.
       </p>
     </>

@@ -85,7 +85,7 @@ export async function stuurVragenMail(ondernemingId: string): Promise<{ verstuur
 
   const tekst = vragen.map((t) => `${t.tegenpartij} ${euro(Math.abs(t.bedrag))} (${t.datum.toLocaleDateString("nl-NL")})\n  Zakelijk: ${antwoordLink(t.id, "zakelijk")}\n  Privé: ${antwoordLink(t.id, "prive")}`).join("\n\n");
   const html = htmlMail(
-    vragen.length === 1 ? "Eén vraag van de bot" : `${vragen.length} korte vragen van de bot`,
+    vragen.length === 1 ? "Eén vraag van Saldoplan" : `${vragen.length} korte vragen van Saldoplan`,
     [`Alles is geboekt. Alleen deze ${vragen.length === 1 ? "regel weet ik" : "regels weet ik"} niet zeker. Tik op een knop, meer hoef je niet te doen.`, ...regels],
     { tekst: "Open mijn overzicht", url: `${BASIS()}/app` },
   );

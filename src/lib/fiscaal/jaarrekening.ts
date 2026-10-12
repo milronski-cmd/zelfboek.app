@@ -62,34 +62,34 @@ export async function jaarrekening(ondernemingId: string, jaar: number): Promise
   }
 
   const debiteuren = rond(openFacturen.reduce((s, f) => s + (f.betaaldOp && f.betaaldOp >= eind ? f.totaal : f.totaal - f.betaaldBedrag), 0));
-  if (debiteuren) activaPosten.push({ label: "Debiteuren (open facturen)", rgs: "BVorDebHad", bedrag: debiteuren });
+  if (debiteuren) activaPosten.push({ label: "Nog te ontvangen van klanten", rgs: "BVorDebHad", bedrag: debiteuren });
 
   let activaBoekwaarde = 0;
   for (const a of activa) {
     if (a.verkochtOp && a.verkochtOp < eind) continue;
     activaBoekwaarde += boekwaarde(a, peil).boekwaarde;
   }
-  if (activaBoekwaarde) activaPosten.push({ label: "Materiële vaste activa (boekwaarde)", rgs: "BMvaBeiVvp", bedrag: rond(activaBoekwaarde) });
+  if (activaBoekwaarde) activaPosten.push({ label: "Spullen voor je bedrijf (waarde nu)", rgs: "BMvaBeiVvp", bedrag: rond(activaBoekwaarde) });
 
   // Btw-schuld: laatste kwartaal als die nog niet betaald is
   const q4 = btwAangifte(btwRegels);
   const q4Betaald = aangiften.some((a) => a.periode === laatstePeriode && a.status === "betaald");
   const btwSchuld = q4Betaald ? 0 : q4["5c_te_betalen"];
-  if (btwSchuld > 0) passivaPosten.push({ label: "Te betalen omzetbelasting", rgs: "BSchBepBtw", bedrag: rond(btwSchuld) });
-  else if (btwSchuld < 0) activaPosten.push({ label: "Te vorderen omzetbelasting", rgs: "BVorVbkTvo", bedrag: rond(-btwSchuld) });
+  if (btwSchuld > 0) passivaPosten.push({ label: "Btw die je nog betaalt", rgs: "BSchBepBtw", bedrag: rond(btwSchuld) });
+  else if (btwSchuld < 0) activaPosten.push({ label: "Btw die je terugkrijgt", rgs: "BVorVbkTvo", bedrag: rond(-btwSchuld) });
 
   const totaalActiva = rond(activaPosten.reduce((s, p) => s + p.bedrag, 0));
   const schulden = rond(passivaPosten.reduce((s, p) => s + p.bedrag, 0));
   const eigenVermogen = rond(totaalActiva - schulden);
-  passivaPosten.unshift({ label: "Ondernemingsvermogen", rgs: "BEivKapOnd", bedrag: eigenVermogen });
+  passivaPosten.unshift({ label: "Eigen geld in je bedrijf", rgs: "BEivKapOnd", bedrag: eigenVermogen });
 
   const priveOpnamen = rond(-(prive._sum.bedrag ?? 0));
   const marge = wv.omzet > 0 ? wv.winst / wv.omzet : 0;
   const kengetallen = [
-    { label: "Brutomarge", waarde: `${(marge * 100).toFixed(1).replace(".", ",")}%`, uitleg: "Winst gedeeld door omzet." },
+    { label: "Winst per euro omzet", waarde: `${(marge * 100).toFixed(1).replace(".", ",")}%`, uitleg: "Winst gedeeld door omzet." },
     { label: "Privéopnamen", waarde: `€ ${Math.round(priveOpnamen).toLocaleString("nl-NL")}`, uitleg: "Wat je dit jaar als privé hebt aangemerkt." },
-    { label: "Liquiditeit", waarde: `€ ${Math.round(bankTotaal).toLocaleString("nl-NL")}`, uitleg: "Banksaldo einde jaar." },
-    { label: "Solvabiliteit", waarde: totaalActiva > 0 ? `${((eigenVermogen / totaalActiva) * 100).toFixed(0)}%` : "–", uitleg: "Eigen vermogen gedeeld door balanstotaal." },
+    { label: "Op de bank eind jaar", waarde: `€ ${Math.round(bankTotaal).toLocaleString("nl-NL")}`, uitleg: "Banksaldo einde jaar." },
+    { label: "Deel van je bezit dat van jou is", waarde: totaalActiva > 0 ? `${((eigenVermogen / totaalActiva) * 100).toFixed(0)}%` : "–", uitleg: "Eigen vermogen gedeeld door balanstotaal." },
   ];
 
   return {

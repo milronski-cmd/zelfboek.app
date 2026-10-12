@@ -46,10 +46,10 @@ export function BotPaneel({ dicht, verborgen }: { dicht: boolean; verborgen: boo
   const paneel = ooitOpen ? createPortal(
     <div className={`fixed inset-0 z-[60] ${open ? "" : "hidden"}`} aria-hidden={!open}>
       <button type="button" aria-label="Sluiten" onClick={sluit} className={`bot-achter absolute inset-0 ${uit ? "uit" : ""}`} />
-      <div role="dialog" aria-modal="false" aria-label="Vraag het de bot" className={`bot-paneel ai-balk-binnen absolute inset-x-3 bottom-3 flex h-[78vh] flex-col overflow-hidden sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[min(640px,82vh)] sm:w-[400px] ${uit ? "uit" : ""}`}>
+      <div role="dialog" aria-modal="false" aria-label="Vraag het Saldoplan" className={`bot-paneel ai-balk-binnen absolute inset-x-3 bottom-3 flex h-[78vh] flex-col overflow-hidden sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[min(640px,82vh)] sm:w-[400px] ${uit ? "uit" : ""}`}>
         <header className="flex shrink-0 items-center gap-2.5 border-b border-lijn px-4 py-3">
           <span className="text-primair"><Sterretje size={20} /></span>
-          <span className="flex-1 text-sm font-semibold">Vraag het de bot</span>
+          <span className="flex-1 text-sm font-semibold">Vraag het Saldoplan</span>
           <Link href="/app/assistent" onClick={sluit} className="iconknop h-8 w-8" aria-label="Open in volledig scherm" title="Volledig scherm">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7" /></svg>
           </Link>
@@ -71,12 +71,12 @@ export function BotPaneel({ dicht, verborgen }: { dicht: boolean; verborgen: boo
       <div className={`bot-mini mb-2 ${dicht ? "md:hidden" : ""}`}>
         <button type="button" onClick={toon} className="bot-mini-vak" aria-haspopup="dialog" aria-expanded={open}>
           <span className="shrink-0 text-primair"><Sterretje size={18} /></span>
-          <span className="min-w-0 flex-1 truncate font-medium">Vraag het de bot</span>
+          <span className="min-w-0 flex-1 truncate font-medium">Vraag het Saldoplan</span>
           <kbd className="rounded border border-lijn-2 bg-papier px-1 font-sans text-[10px] leading-[16px] text-tekst-3">⌘K</kbd>
         </button>
       </div>
       <div className={`bot-mini mb-2 ${dicht ? "hidden md:flex md:justify-center" : "hidden"}`}>
-        <button type="button" onClick={toon} className="bot-mini-vak bot-mini-rond" aria-label="Vraag het de bot" title="Vraag het de bot (⌘K)" aria-haspopup="dialog" aria-expanded={open}>
+        <button type="button" onClick={toon} className="bot-mini-vak bot-mini-rond" aria-label="Vraag het Saldoplan" title="Vraag het Saldoplan (⌘K)" aria-haspopup="dialog" aria-expanded={open}>
           <span className="text-primair"><Sterretje size={18} /></span>
         </button>
       </div>

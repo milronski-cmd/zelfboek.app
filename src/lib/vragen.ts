@@ -5,7 +5,7 @@ import { CATEGORIE_INFO } from "./categorieen";
 const categorieLabel = (c: string | null) => (c && c in CATEGORIE_INFO ? CATEGORIE_INFO[c as keyof typeof CATEGORIE_INFO].label.toLowerCase() : "overige kosten");
 
 /**
- * De vragen van de bot aan de ondernemer ("zakelijk of privé?"), op één plek.
+ * De vragen van Saldoplan aan de ondernemer ("zakelijk of privé?"), op één plek.
  * Betalingen aan dezelfde winkel worden één vraag: één antwoord geldt voor allemaal.
  * Een taak die hetzelfde vraagt (bijvoorbeeld van de assistent) telt niet als extra vraag.
  */
@@ -77,7 +77,7 @@ export async function sluitDubbeleTaken(ondernemingId: string, sleutel: string) 
   if (dubbel.length) await db.taak.updateMany({ where: { id: { in: dubbel } }, data: { klaar: true } });
 }
 
-/** Kaartjes voor het scherm: bedragen en datum als gewone tekst, voorstel van de bot in gewone woorden. */
+/** Kaartjes voor het scherm: bedragen en datum als gewone tekst, voorstel van Saldoplan in gewone woorden. */
 export function naarKaarten(vragen: Vraag[]): import("@/components/Vragen").VraagKaart[] {
   const kort = (d: Date) => d.toLocaleDateString("nl-NL", { day: "numeric", month: "short", timeZone: "Europe/Amsterdam" }).replace(".", "");
   return vragen.map((v) => ({

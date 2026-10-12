@@ -20,7 +20,7 @@ export function BonUpload({ actie }: { actie: (fd: FormData) => Promise<Resultaa
           Foto maken
         </label>
       </div>
-      {bezig && <p className="mt-3 text-sm text-tekst-2">De bot leest de bonnen en zoekt de bankregels erbij.</p>}
+      {bezig && <p className="mt-3 text-sm text-tekst-2">Saldoplan leest de bonnen en zoekt de betalingen erbij.</p>}
       {staat && <div className="mt-3"><Melding r={staat} /></div>}
     </form>
   );

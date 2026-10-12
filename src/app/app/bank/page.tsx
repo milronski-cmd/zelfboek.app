@@ -60,13 +60,13 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
     <>
       <Kop titel="Bank" sub="Elke regel wordt geboekt met een uitleg. Bij twijfel beslis jij.">
         {open > 0 && <form action={beoordeelOpenstaandFormulier}><button className={knopLicht}>{open === 1 ? "1 betaling" : `${open} betalingen`} laten boeken</button></form>}
-        {twijfel > 0 && <form action={bevestigAlles}><button className={knopLicht}>Alles goedkeuren zoals de bot voorstelt</button></form>}
+        {twijfel > 0 && <form action={bevestigAlles}><button className={knopLicht}>Alles goedkeuren zoals Saldoplan voorstelt</button></form>}
       </Kop>
 
       {vragen.length > 0 && (
         <section className="kaart mb-6 overflow-hidden border-mosterd/50">
           <header className="border-b border-lijn bg-mosterd-licht px-5 py-3">
-            <h2 className="text-[15px] font-semibold">De bot heeft {vragen.length === 1 ? "1 vraag" : `${vragen.length} vragen`} voor je</h2>
+            <h2 className="text-[15px] font-semibold">Saldoplan heeft {vragen.length === 1 ? "1 vraag" : `${vragen.length} vragen`} voor je</h2>
             <p className="text-[13px] text-tekst-2">Was het voor je werk of privé? Tik op een knop, of veeg op je telefoon: naar rechts is zakelijk, naar links privé.</p>
           </header>
           <Vragen vragen={naarKaarten(vragen.slice(0, 8))} actie={beantwoordVraag} />
@@ -106,7 +106,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
               accept=".csv,.txt,.sta,.940,.mt940,.swi,.xml,text/csv,text/plain,application/xml,text/xml"
               label="Afschrift van je bank (download het bij je bank als CSV, MT940 of CAMT)"
               knopTekst="Uploaden en boeken"
-              bezigTekst="De bot boekt de regels"
+              bezigTekst="Saldoplan boekt de regels"
             />
             <p className="mt-2 text-sm text-tekst-2">
               Liever niets uploaden? <Link href="/app/koppelingen" className="text-primair-tekst underline">Koppel je bank</Link>, dan halen we elke nacht de nieuwe regels op.
@@ -139,7 +139,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
       {regels.length === 0 ? (
         <div className="mt-4">
           <Leeg
-            tekst={totaal === 0 && !sp.q && !sp.maand && !sp.filter ? "Nog geen bankregels. Upload een bankbestand of koppel je bank, dan boekt de bot alles vannacht." : "Geen regels die hieraan voldoen."}
+            tekst={totaal === 0 && !sp.q && !sp.maand && !sp.filter ? "Nog geen betalingen. Upload een bankbestand of koppel je bank, dan boekt Saldoplan alles vannacht." : "Geen regels die hieraan voldoen."}
             actie={totaal === 0 && !sp.filter ? <Link href="/app/koppelingen" className="knop knop-klein">Bank koppelen</Link> : <Link href="/app/bank" className="knop-licht knop-klein">Alles tonen</Link>}
           />
         </div>
@@ -208,7 +208,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
                       </details>
                     </td>
                     <td className="whitespace-nowrap text-[13px]">
-                      {t.zakelijk === null ? <Pil kleur="grijs">wacht op de bot</Pil>
+                      {t.zakelijk === null ? <Pil kleur="grijs">wacht op Saldoplan</Pil>
                         : t.bevestigd ? <Pil kleur="groen">geboekt</Pil>
                         : <Pil kleur="geel">twijfel, {Math.round((t.zekerheid ?? 0) * 100)}% zeker</Pil>}
                       {t.bon && <div className="mt-1 text-tekst-2">bon gekoppeld</div>}

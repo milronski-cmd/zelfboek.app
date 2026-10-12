@@ -85,7 +85,7 @@ export async function wijzigTransactie(formData: FormData): Promise<void> {
 }
 
 /**
- * Vraag beantwoorden met één tik: zakelijk (boeking van de bot blijft) of privé.
+ * Vraag beantwoorden met één tik: zakelijk (boeking van Saldoplan blijft) of privé.
  * Geldt voor alle betalingen aan dezelfde winkel in de vraag; met "altijd" ook voor alle toekomstige.
  */
 export async function beantwoordVraag(formData: FormData): Promise<void> {
@@ -237,7 +237,7 @@ export async function proefToestaan(formData: FormData): Promise<void> {
       create: { ondernemingId: o.id, iban, naam: `${bank} Zakelijk`, bank, bron: "psd2", psd2AccountId: `proef-${code}`, psd2Verloopt: new Date(Date.now() + 89 * 864e5), saldo: 4210.37 },
     });
     const uit = await importeerRegels(o.id, proefBankRegels(iban), { bron: "psd2", bank, bankrekeningId: rek.id });
-    melding = `${bank} is gekoppeld (proef). ${uit.nieuw} voorbeeldregels opgehaald${uit.aiFout ? "." : ` en ${uit.beoordeeld} door de bot geboekt.`}`;
+    melding = `${bank} is gekoppeld (proef). ${uit.nieuw} voorbeeldregels opgehaald${uit.aiFout ? "." : ` en ${uit.beoordeeld} door Saldoplan geboekt.`}`;
   } else {
     const soort = st.s as KoppelingSoort;
     await bewaarKoppeling(o.id, soort, { proef: "1", ...(st.a ? { shop: st.a, url: st.a } : {}) }, st.a);

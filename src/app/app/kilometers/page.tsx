@@ -22,7 +22,7 @@ export default async function Kilometers() {
 
   return (
     <>
-      <Kop titel={`Kilometers ${jaar}`} sub={`Zakelijke ritten met je eigen auto of fiets leveren € ${KM_VERGOEDING.toFixed(2).replace(".", ",")} per kilometer aftrek op. De bot telt het mee in je inkomstenbelasting.`} />
+      <Kop titel={`Kilometers ${jaar}`} sub={`Zakelijke ritten met je eigen auto of fiets leveren € ${KM_VERGOEDING.toFixed(2).replace(".", ",")} per kilometer aftrek op. Saldoplan telt het mee in je inkomstenbelasting.`} />
 
       <form action={kilometersToevoegen} className="kaart grid gap-2 px-4 py-3 sm:grid-cols-[auto_1fr_1fr_auto_auto_auto_auto] sm:items-center">
         <input name="datum" type="date" defaultValue={isoDatum(new Date())} aria-label="Datum" className="veld veld-klein" />

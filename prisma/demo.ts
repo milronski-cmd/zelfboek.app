@@ -165,7 +165,7 @@ async function main() {
   }
 
   await db.taak.create({ data: { ondernemingId: oid, titel: "Is de betaling van Cafe Het Hoekje (€ 42,50) zakelijk? Lunch met een klant?", bron: "ai" } });
-  await db.taak.create({ data: { ondernemingId: oid, titel: "Btw-nummer van Weber GmbH controleren in VIES", deadline: new Date(nu.getTime() + 5 * 864e5), bron: "ai" } });
+  await db.taak.create({ data: { ondernemingId: oid, titel: "Controleer of het btw-nummer van Weber GmbH klopt (dat kan gratis op de site van de EU)", deadline: new Date(nu.getTime() + 5 * 864e5), bron: "ai" } });
   await db.melding.create({ data: { ondernemingId: oid, soort: "herinnering", titel: "Factuur 2026-0031 is 7 dagen te laat", tekst: "Bakkerij De Korst heeft een eerste herinnering gekregen. Over 14 dagen volgt de tweede.", link: "/app/facturen" } });
   await db.melding.create({ data: { ondernemingId: oid, soort: "deadline", titel: "Btw-aangifte over dit kwartaal", tekst: "De aangifte staat klaar. Uiterlijk de laatste dag van de volgende maand indienen en betalen.", link: "/app/btw" } });
   await db.melding.create({ data: { ondernemingId: oid, soort: "sync", titel: "Bankbestand verwerkt", tekst: `${regels.length} regels geboekt.`, link: "/app/bank", gelezen: true } });

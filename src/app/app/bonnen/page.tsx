@@ -8,7 +8,7 @@ import { Kop, Leeg, Pil, knop, knopLicht, veld } from "@/components/ui";
 
 export const instant = false;
 
-const statusTekst: Record<string, string> = { nieuw: "wordt gelezen", uitgelezen: "nog geen bankregel", gekoppeld: "gekoppeld", fout: "niet leesbaar", handmatig: "handmatig" };
+const statusTekst: Record<string, string> = { nieuw: "wordt gelezen", uitgelezen: "nog geen betaling", gekoppeld: "gekoppeld", fout: "niet leesbaar", handmatig: "handmatig" };
 const statusKleur: Record<string, "groen" | "geel" | "rood" | "grijs"> = { gekoppeld: "groen", handmatig: "groen", fout: "rood", uitgelezen: "geel", nieuw: "grijs" };
 
 async function koppelMetMelding(fd: FormData) {
@@ -28,15 +28,15 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
       })
     : [];
   const regels = geselecteerd?.regelsJson ? (JSON.parse(geselecteerd.regelsJson) as { omschrijving: string; bedrag: number; btw: number }[]) : [];
-  const filters = [{ k: undefined, l: "Alles" }, { k: "uitgelezen", l: "Zonder bankregel" }, { k: "gekoppeld", l: "Gekoppeld" }, { k: "fout", l: "Niet leesbaar" }];
+  const filters = [{ k: undefined, l: "Alles" }, { k: "uitgelezen", l: "Zonder betaling" }, { k: "gekoppeld", l: "Gekoppeld" }, { k: "fout", l: "Niet leesbaar" }];
   const lijstLink = sp.status ? `/app/bonnen?status=${sp.status}` : "/app/bonnen";
 
   return (
     <>
-      <Kop titel="Bonnen" sub="Maak een foto of sleep een PDF. De bot leest het bedrag en hangt de bon aan de bankregel." />
+      <Kop titel="Bonnen" sub="Maak een foto of sleep een PDF. Saldoplan leest het bedrag en hangt de bon aan de betaling." />
       <BonUpload actie={uploadBonnen} />
       <p className="mt-3 text-sm text-tekst-2">
-        Of mail je bonnen naar <span className="rounded bg-white px-2 py-0.5 font-medium text-tekst ring-1 ring-lijn">bonnen+{o.id}@{process.env.INBOUND_DOMEIN ?? "saldoplan.nl"}</span>. Stuur de bon als bijlage door, de bot doet de rest.
+        Of mail je bonnen naar <span className="rounded bg-white px-2 py-0.5 font-medium text-tekst ring-1 ring-lijn">bonnen+{o.id}@{process.env.INBOUND_DOMEIN ?? "saldoplan.nl"}</span>. Stuur de bon als bijlage door, Saldoplan doet de rest.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
@@ -48,7 +48,7 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
 
       <div className={`mt-4 grid items-start gap-6 ${geselecteerd ? "lg:grid-cols-[1fr_400px]" : ""}`}>
         {bonnen.length === 0 ? (
-          <Leeg tekst={sp.status ? "Geen bonnen met deze status." : "Nog geen bonnen. Maak een foto van je eerste bon, de bot doet de rest."} actie={sp.status ? <Link href="/app/bonnen" className="knop-licht knop-klein">Alles tonen</Link> : undefined} />
+          <Leeg tekst={sp.status ? "Geen bonnen met deze status." : "Nog geen bonnen. Maak een foto van je eerste bon, Saldoplan doet de rest."} actie={sp.status ? <Link href="/app/bonnen" className="knop-licht knop-klein">Alles tonen</Link> : undefined} />
         ) : (
           <div className="kaart overflow-x-auto">
             <table className="tabel tabel-stapel">
@@ -124,14 +124,14 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
               )}
 
               <div className="border-t border-lijn pt-4">
-                <p className="text-sm font-medium">Bankregel</p>
+                <p className="text-sm font-medium">Betaling</p>
                 {geselecteerd.transactie ? (
                   <div className="mt-1 flex items-center justify-between gap-3 text-sm">
                     <span className="truncate">{datumNl(geselecteerd.transactie.datum)}, {geselecteerd.transactie.tegenpartij}, <span className="tabular">{euro(geselecteerd.transactie.bedrag)}</span></span>
                     <form action={bonOntkoppelen}><input type="hidden" name="id" value={geselecteerd.id} /><button className="knop-licht knop-klein">Ontkoppelen</button></form>
                   </div>
                 ) : kandidaten.length === 0 ? (
-                  <p className="mt-1 text-sm text-tekst-2">Geen passende bankregel gevonden. Privé betaald? Dan hoef je niets te doen.</p>
+                  <p className="mt-1 text-sm text-tekst-2">Geen passende betaling gevonden. Privé betaald? Dan hoef je niets te doen.</p>
                 ) : (
                   <>
                     <p className="mt-1 text-[13px] text-tekst-3">Kies de regel die bij deze bon hoort.</p>

@@ -83,7 +83,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
         { href: "/app/jaarrekening", label: "Jaaroverzicht" },
         { href: "/app/exports", label: "Downloaden" },
         { href: "/app/meldingen", label: tellers.meldingen ? `Meldingen (${tellers.meldingen})` : "Meldingen" },
-        { href: "/app/assistent", label: "Vraag het de bot" },
+        { href: "/app/assistent", label: "Vraag het Saldoplan" },
         { href: "/app/bank/rekeningen", label: "Rekeningen" },
         { href: "/app/importeren", label: "Overstappen" },
         { href: "/app/instellingen", label: "Instellingen" },
@@ -198,7 +198,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tekst-3" aria-hidden>
               <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
             </svg>
-            <input ref={zoekveld} name="q" type="search" placeholder="Zoek facturen, klanten, bankregels" aria-label="Zoeken" autoComplete="off" className="veld veld-klein bg-papier pl-9 pr-9 shadow-none focus:bg-white" />
+            <input ref={zoekveld} name="q" type="search" placeholder="Zoek facturen, klanten, betalingen" aria-label="Zoeken" autoComplete="off" className="veld veld-klein bg-papier pl-9 pr-9 shadow-none focus:bg-white" />
             <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border border-lijn-2 bg-white px-1.5 font-sans text-[11px] leading-[16px] text-tekst-3 md:block">/</kbd>
           </form>
 

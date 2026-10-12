@@ -39,7 +39,7 @@ export default async function Antwoord({ searchParams }: { searchParams: Promise
             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="var(--groen)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
           <h1 className="display mt-5 text-[32px] font-semibold">Geboekt als {t.zakelijk ? "zakelijk" : "privé"}</h1>
-          <p className="mt-2 text-[16px] text-tekst-2">{t.tegenpartij}, {euro(Math.abs(t.bedrag))}. De bot onthoudt dit voor de volgende keer.</p>
+          <p className="mt-2 text-[16px] text-tekst-2">{t.tegenpartij}, {euro(Math.abs(t.bedrag))}. Saldoplan onthoudt dit voor de volgende keer.</p>
         </>
       ) : t ? (
         <form action={bevestig} className="mt-8 flex flex-col items-center">

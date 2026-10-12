@@ -30,19 +30,19 @@ export default async function Activa() {
 
   return (
     <>
-      <Kop titel="Grote aankopen" sub={`Aankopen vanaf € ${INVESTERINGSGRENS} zonder btw schrijf je over meerdere jaren af. De bot boekt de afschrijving elke maand zelf.`}>
+      <Kop titel="Grote aankopen" sub={`Koop je iets van € ${INVESTERINGSGRENS} of meer (zonder btw), dan tellen de kosten verspreid over een paar jaar mee. Saldoplan regelt dat elke maand zelf.`}>
         <form action={afschrijvingenBijwerken}><button className={knopLicht}>Afschrijvingen bijwerken</button></form>
       </Kop>
 
       <Cijferband>
-        <Tegel label="Boekwaarde nu" waarde={totaalBoekwaarde} hint={`${activa.filter((a) => !a.verkochtOp).length} in gebruik`} />
-        <Tegel label={`Afschrijving ${jaar}`} waarde={afschrijvingJaar} hint="telt als kosten" />
+        <Tegel label="Waarde nu" waarde={totaalBoekwaarde} hint={`${activa.filter((a) => !a.verkochtOp).length} in gebruik`} />
+        <Tegel label={`Kosten in ${jaar}`} waarde={afschrijvingJaar} hint="het deel dat dit jaar meetelt" />
         <Tegel label={`Investeringsaftrek ${jaar}`} waarde={kia} accent={kia > 0 ? "groen" : undefined} hint={investeringenDitJaar > 0 && kia === 0 ? `${euro(investeringenDitJaar)} geïnvesteerd, drempel is € ${KIA.drempel}` : `${KIA.pct * 100}% extra aftrek tussen € ${KIA.drempel} en € ${KIA.pctTot}`} />
       </Cijferband>
 
       {kandidaten.length > 0 && (
         <Kaart titel="Deze aankopen lijken investeringen" className="mt-6">
-          <p className="px-5 pt-3 text-sm text-tekst-2">Zet ze op de balans, dan schrijft de bot ze af en krijg je investeringsaftrek.</p>
+          <p className="px-5 pt-3 text-sm text-tekst-2">Zet ze op de balans, dan schrijft Saldoplan ze af en krijg je investeringsaftrek.</p>
           <ul className="mt-2 divide-y divide-lijn">
             {kandidaten.map((t) => (
               <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
@@ -78,7 +78,7 @@ export default async function Activa() {
       </Kaart>
 
       {activa.length === 0 ? (
-        <div className="mt-6"><Leeg tekst="Nog geen bedrijfsmiddelen. Koop je iets van meer dan € 450 zonder btw, dan vraagt de bot of het op de balans moet." /></div>
+        <div className="mt-6"><Leeg tekst="Nog geen bedrijfsmiddelen. Koop je iets van meer dan € 450 zonder btw, dan vraagt Saldoplan of het op de balans moet." /></div>
       ) : (
         <div className="mt-6 space-y-3">
           {activa.map((a) => {
@@ -92,11 +92,11 @@ export default async function Activa() {
                     <span className="font-medium">{a.naam}</span>
                     <span className="block text-[13px] text-tekst-2">{categorieTekst[a.categorie] ?? a.categorie}, gekocht {datumNl(a.aanschafDatum)}, {a.looptijdJaren} jaar{a.priveDeel ? `, ${Math.round(a.priveDeel * 100)}% privé` : ""}</span>
                   </span>
-                  <span className="tabular text-sm">{a.verkochtOp ? `Verkocht ${datumNl(a.verkochtOp)}${resultaat != null ? `, boekresultaat ${euro(resultaat)}` : ""}` : <>Boekwaarde <span className="font-medium">{euro(bw.boekwaarde)}</span> van {euro(bw.aanschafZakelijk)}</>}</span>
+                  <span className="tabular text-sm">{a.verkochtOp ? `Verkocht ${datumNl(a.verkochtOp)}${resultaat != null ? `, winst of verlies op de verkoop ${euro(resultaat)}` : ""}` : <>Nu nog <span className="font-medium">{euro(bw.boekwaarde)}</span> van {euro(bw.aanschafZakelijk)}</>}</span>
                 </summary>
                 <div className="mt-4 grid gap-6 border-t border-lijn pt-4 md:grid-cols-2">
                   <table className="tabel [&_td]:px-0 [&_td]:py-1.5 [&_th]:px-0">
-                    <thead><tr><th>Jaar</th><th className="num">Afschrijving</th><th className="num">Boekwaarde eind</th></tr></thead>
+                    <thead><tr><th>Jaar</th><th className="num">Kosten dit jaar</th><th className="num">Waarde eind jaar</th></tr></thead>
                     <tbody>{schema.map((r) => <tr key={r.jaar}><td>{r.jaar}</td><td className="num">{euro(r.afschrijving)}</td><td className="num">{euro(r.boekwaardeEind)}</td></tr>)}</tbody>
                   </table>
                   <div className="space-y-3 text-sm">

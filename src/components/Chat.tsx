@@ -74,7 +74,7 @@ export function Chat({ gesprekId: startId, start, eersteVraag, compact = false }
         {berichten.length === 0 && (
           <div className={`mx-auto max-w-lg text-center ${compact ? "py-5" : "py-8"}`}>
             <p className={`font-semibold ${compact ? "text-[15px]" : "text-[18px]"}`}>Waar wil je meer over weten?</p>
-            <p className="mt-1 text-sm text-tekst-2">De bot kijkt in je boekhouding en geeft antwoord in gewone taal.</p>
+            <p className="mt-1 text-sm text-tekst-2">Saldoplan kijkt in je boekhouding en geeft antwoord in gewone taal.</p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               {SUGGESTIES.map((s) => (
                 <button key={s} type="button" onClick={() => verstuur(s)} className="knop-licht knop-klein">{s}</button>

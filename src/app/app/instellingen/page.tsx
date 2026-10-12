@@ -60,7 +60,7 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
         <form action={bedrijfOpslaan} className={kaart}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Veld naam="naam" label="Bedrijfsnaam" waarde={o.naam} />
-            <Veld naam="branche" label="Wat doe je?" waarde={o.branche} hint="Bijvoorbeeld webdesigner, fotograaf of webshop. Helpt de bot bij het boeken." />
+            <Veld naam="branche" label="Wat doe je?" waarde={o.branche} hint="Bijvoorbeeld webdesigner, fotograaf of webshop. Helpt Saldoplan bij het boeken." />
             <div>
               <label className="lbl" htmlFor="rechtsvorm">Rechtsvorm</label>
               <select id="rechtsvorm" name="rechtsvorm" defaultValue={o.rechtsvorm} className={veld}><option value="eenmanszaak">Eenmanszaak</option><option value="vof">Vof</option></select>
@@ -180,7 +180,7 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
         <div className={`${kaart} border-rood/40`}>
           <div>
             <h2 className="text-sm font-semibold text-rood-tekst">Onderneming verwijderen</h2>
-            <p className="mt-1 text-sm text-tekst-2">Verwijdert alle bankregels, bonnen, facturen en instellingen van {o.naam}. Dit kan niet ongedaan worden gemaakt. Download eerst je exports.</p>
+            <p className="mt-1 text-sm text-tekst-2">Verwijdert alle betalingen, bonnen, facturen en instellingen van {o.naam}. Dit kan niet ongedaan worden gemaakt. Download eerst je exports.</p>
           </div>
           <FormulierMetMelding actie={ondernemingVerwijderen} knopTekst="Definitief verwijderen" gevaarlijk className="space-y-3 border-t border-lijn pt-5">
             <div>

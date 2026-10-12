@@ -111,7 +111,7 @@ export default async function FactuurDetail({ params }: { params: Promise<{ id: 
           </section>
 
           {isOpen && kandidaten.length > 0 && (
-            <Kaart titel="Deze bankregels lijken de betaling te zijn">
+            <Kaart titel="Deze betalingen lijken de betaling te zijn">
               <ul className="divide-y divide-lijn">
                 {kandidaten.map((t) => (
                   <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">

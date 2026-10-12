@@ -17,7 +17,7 @@ export default async function NieuweFactuur({ searchParams }: { searchParams: Pr
   const geordend = klant ? [...klanten].sort((a, b) => (a.id === klant ? -1 : b.id === klant ? 1 : 0)) : klanten;
   return (
     <>
-      <Kop titel={bestaand ? `Concept ${bestaand.nummer} bewerken` : "Nieuwe factuur"} sub="Het nummer komt vanzelf. Btw verleggen en de KOR past de bot zelf toe." />
+      <Kop titel={bestaand ? `Concept ${bestaand.nummer} bewerken` : "Nieuwe factuur"} sub="Het nummer komt vanzelf. Btw verleggen en de KOR past Saldoplan zelf toe." />
       <FactuurFormulier
         soort="factuur"
         actie={factuurOpslaan}
