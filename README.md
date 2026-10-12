@@ -75,7 +75,9 @@ Open http://localhost:3000. Zonder SMTP-instellingen komt de inlogcode in `uploa
 
 Lokaal werkt elke koppelknop in de proefmodus met voorbeeldgegevens. Demo-gegevens in je lokale database (één onderneming met een jaar aan bankregels, facturen, bonnen en klanten): `npm run demo [e-mailadres]`. Werkt alleen op een database op localhost en wist eerst de gegevens van die onderneming.
 
-Tests: `npx tsx test/parsers.ts`, `test/importeer.ts`, `test/facturen.ts`, `test/fiscaal.ts`, `test/exports-db.ts`, `test/d-moduleD.ts`, `test/ronde3.ts`.
+Tests: `npm test` (met `DATABASE_URL` naar een **test**database). Daarin onder meer `test/getallen.ts` (btw, winst, IB en vrij te besteden met de hand nagerekend: deelbetaling, creditfactuur, EU-dienst, verlegd, buiten de EU, gemengde kosten, KOR, factuur- en kasstelsel), `test/veilig.ts` en `test/isolatie.ts` (scheiding tussen ondernemingen en rollen; met `BASIS=http://127.0.0.1:3011` ook tegen een draaiende server).
+
+Live zetten: zie `LIVEGANG.md`. Schema-wijzigingen gaan via migraties (`prisma/migrations`, `npm run db:migreer`).
 
 ## Ontwerp
 

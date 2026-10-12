@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
 import { stripeKlant } from "@/lib/stripe";
 import { db, eigenaarOnderneming } from "@/lib/db";
 import { huidigeSessie } from "@/lib/auth";

@@ -11,6 +11,8 @@ import { bedrijfOpslaan, bedrijfUitKvk, facturenOpslaan, fiscaalOpslaan, lidToev
 import { FormulierMetMelding } from "@/components/FormulierMetMelding";
 import { Kop, Melding, Pil, knop, knopLicht, veld } from "@/components/ui";
 
+const ALLES_ZIP = "/api/exports/alles"; // download, geen paginanavigatie
+
 export const instant = false;
 
 const tabs = [
@@ -234,7 +236,7 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
         <div className={`${kaart} border-rood/40`}>
           <div>
             <h2 className="text-sm font-semibold text-rood-tekst">Onderneming verwijderen</h2>
-            <p className="mt-1 text-sm text-tekst-2">Verwijdert alle betalingen, bonnen, facturen en instellingen van {o.naam}. Dit kan niet ongedaan worden gemaakt. Een lopend abonnement stopt meteen. <a href="/api/exports/alles" className="text-primair-tekst underline">Download eerst al je gegevens (zip)</a>.</p>
+            <p className="mt-1 text-sm text-tekst-2">Verwijdert alle betalingen, bonnen, facturen en instellingen van {o.naam}. Dit kan niet ongedaan worden gemaakt. Een lopend abonnement stopt meteen. <a href={ALLES_ZIP} download className="text-primair-tekst underline">Download eerst al je gegevens (zip)</a>.</p>
           </div>
           <FormulierMetMelding actie={ondernemingVerwijderen} knopTekst="Definitief verwijderen" gevaarlijk className="space-y-3 border-t border-lijn pt-5">
             <div>
