@@ -66,6 +66,12 @@ async function main() {
     check("app-code klopt de eerste keer", await appCodeKlopt({ ...g, totpLaatsteStap: null }, code));
     const vers = await db.gebruiker.findUniqueOrThrow({ where: { id: g.id } });
     check("dezelfde app-code werkt geen tweede keer", !(await appCodeKlopt(vers, code)));
+    // Eerste keer inloggen: vijf verzoeken tegelijk maken samen één onderneming
+    const { eersteOnderneming } = await import("../src/lib/auth");
+    const nieuw = await db.gebruiker.create({ data: { email: `eerste-${Date.now()}@test.saldoplan.nl` } });
+    const os = await Promise.all(Array.from({ length: 5 }, () => eersteOnderneming(nieuw)));
+    check("eerste login: één onderneming, ook bij vijf verzoeken tegelijk", new Set(os.map((o) => o.id)).size === 1 && (await db.lidmaatschap.count({ where: { gebruikerId: nieuw.id } })) === 1);
+    await db.onderneming.delete({ where: { id: os[0].id } }); await db.gebruiker.delete({ where: { id: nieuw.id } });
     // Limieten tellen per sleutel
     const sleutel = `test:${Date.now()}`;
     const uit = [];

@@ -1,7 +1,7 @@
 import { BOT_ONBEREIKBAAR } from "@/lib/ai";
 import { huidigeSessie } from "@/lib/auth";
 import { huidigeOnderneming, mijnRol } from "@/lib/db";
-import { abonnementStatus } from "@/lib/auth";
+import { abonnementStatus, geenToegangTekst } from "@/lib/auth";
 import { aiTegoed, AI_OP } from "@/lib/limiet";
 import { foutTekst } from "@/lib/fout";
 import { chatBeurt } from "@/lib/assistent/chat";
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   if (!bericht) return new Response("Leeg bericht", { status: 400 });
   const rol = await mijnRol();
   const enkel = (tekst: string) => new Response(JSON.stringify({ type: "fout", tekst }) + "\n" + JSON.stringify({ type: "klaar", gesprekId: body.gesprekId ?? null }) + "\n", { headers: { "Content-Type": "application/x-ndjson; charset=utf-8" } });
-  if (process.env.STRIPE_SECRET_KEY && !o.demoTot && !abonnementStatus(o).toegang) return enkel("Je proefperiode is voorbij. Kies een abonnement onder Instellingen, Abonnement; dan helpt de bot je meteen weer.");
+  if (process.env.STRIPE_SECRET_KEY && !o.demoTot && !abonnementStatus(o).toegang) return enkel(`${geenToegangTekst(o)} Kies een abonnement onder Instellingen, Abonnement; dan helpt de bot je meteen weer.`);
   if (!(await aiTegoed(o.id, Boolean(o.demoTot)))) return enkel(AI_OP);
 
   const encoder = new TextEncoder();

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { abonnementStatus, huidigeOnderneming, logUit, vereisGebruiker, wisselOnderneming } from "@/lib/auth";
+import { abonnementStatus, geenToegangTekst, huidigeOnderneming, logUit, vereisGebruiker, wisselOnderneming } from "@/lib/auth";
 import { Schil } from "@/components/Schil";
 import { openVragen } from "@/lib/vragen";
 
@@ -48,7 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       )}
       {!status.toegang && (
         <p className="mb-6 rounded-md border border-rood/30 bg-rood-licht px-4 py-3 text-sm text-rood-tekst">
-          Je proefperiode is voorbij. <Link href="/app/instellingen?tab=abonnement" className="underline">Start je abonnement</Link> om verder te boeken. Bekijken kan altijd.
+          {geenToegangTekst(o)} <Link href="/app/instellingen?tab=abonnement" className="underline">Start je abonnement</Link> om verder te boeken. Bekijken en downloaden kan altijd.
         </p>
       )}
       {children}

@@ -19,6 +19,7 @@ export default async function Exports({ searchParams }: { searchParams: Promise<
     {
       kop: "Hele administratie",
       items: [
+        { titel: "Alles in één keer", tekst: "Al je gegevens, je bonnen als originele bestanden, je facturen als PDF en per jaar een Excel-werkboek, in één zip. Handig als je stopt of overstapt.", href: "/api/exports/alles", knop: "Download zip" },
         { titel: "Excel-werkboek", tekst: "Transacties, facturen, winst-en-verlies, balans, btw per kwartaal, bonnen, uren en kilometers in tabbladen. Voor je boekhouder of voor jezelf.", href: `/api/exports/excel?jaar=${jaar}`, knop: "Download Excel" },
         { titel: "Auditfile voor de Belastingdienst", tekst: "Het standaardformaat (XAF 3.2) bij een controle of als je overstapt naar een ander pakket. Grootboek op RGS-codes.", href: `/api/exports/xaf?jaar=${jaar}`, knop: "Download auditfile" },
         { titel: "Jaarrekening", tekst: "Winst-en-verliesrekening, balans en kengetallen op een paar pagina's. Handig bij een hypotheek of financiering.", href: `/api/exports/jaarrekening-pdf?jaar=${jaar}`, knop: "Download PDF" },

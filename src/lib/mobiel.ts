@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { db } from "@/lib/db";
 import { hash } from "@/lib/crypto";
-import { abonnementStatus } from "./auth";
+import { abonnementStatus, geenToegangTekst } from "./auth";
 
 /**
  * Hulpfuncties voor de mobiele API (/api/mobiel). De app stuurt een bearer-token;
@@ -38,18 +38,11 @@ export async function mobielContext(req: Request) {
   if (lid) {
     const rolOk = ["eigenaar", "boekhouder"].includes(lid.rol);
     const abonnementOk = !process.env.STRIPE_SECRET_KEY || Boolean(lid.onderneming.demoTot) || abonnementStatus(lid.onderneming).toegang;
-    const schrijfFout = !rolOk ? "Je hebt alleen leesrechten in deze onderneming." : !abonnementOk ? "Je proefperiode is voorbij. Kies een abonnement in de webapp onder Instellingen, Abonnement." : null;
+    const schrijfFout = !rolOk ? "Je hebt alleen leesrechten in deze onderneming." : !abonnementOk ? `${geenToegangTekst(lid.onderneming)} Kies een abonnement in de webapp onder Instellingen, Abonnement.` : null;
     return { sessie: s, onderneming: lid.onderneming, rol: lid.rol, magSchrijven: !schrijfFout, schrijfFout };
   }
   // Eerste keer: onderneming aanmaken, net als de webapp doet bij de eerste login.
-  const o = await db.onderneming.create({
-    data: {
-      naam: s.gebruiker.naam ? `${s.gebruiker.naam}` : "Mijn onderneming",
-      email: s.gebruiker.email,
-      proefTot: new Date(Date.now() + 30 * 864e5),
-      leden: { create: { gebruikerId: s.gebruikerId, rol: "eigenaar" } },
-    },
-  });
+  const o = await (await import("./auth")).eersteOnderneming(s.gebruiker);
   await db.sessie.update({ where: { id: s.id }, data: { actieveOndernemingId: o.id } });
   return { sessie: s, onderneming: o, rol: "eigenaar", magSchrijven: true, schrijfFout: null };
 }

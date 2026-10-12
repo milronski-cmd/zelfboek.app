@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { BTW_CODES, BTW_LABEL, CATEGORIEEN, CATEGORIE_INFO } from "@/lib/categorieen";
+import { BTW_LABEL, CATEGORIE_INFO } from "@/lib/categorieen";
 import { datumKort, euro, wanneerNl } from "@/lib/btw";
 import { beantwoordVraag, beoordeelOpenstaandFormulier, bevestigAlles, importeerBestand, verwijderTransactie, wijzigTransactie } from "@/lib/acties-bank";
 import { UploadFormulier } from "@/components/UploadFormulier";
+import { Uitklap } from "@/components/Uitklap";
+import { WijzigBoeking } from "@/components/WijzigBoeking";
 import { BankIcoon } from "@/components/BankIcoon";
 import { Vragen } from "@/components/Vragen";
 import { naarKaarten, openVragen } from "@/lib/vragen";
@@ -106,19 +108,15 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
               accept=".csv,.txt,.sta,.940,.mt940,.swi,.xml,text/csv,text/plain,application/xml,text/xml"
               label="Afschrift van je bank of creditcard (download het als CSV, MT940 of CAMT; ICS en American Express werken ook)"
               knopTekst="Uploaden en boeken"
-              bezigTekst="Saldoplan boekt de regels"
+              bezigTekst="Saldoplan boekt de regels (kan een minuut duren)"
             />
             <p className="mt-2 text-sm text-tekst-2">
               Liever niets uploaden? <Link href="/app/koppelingen" className="text-primair-tekst underline">Koppel je bank</Link>, dan halen we elke nacht de nieuwe regels op.
             </p>
           </>
         );
-        return rekeningen.length === 0 ? upload : (
-          <details className="kaart px-5 py-3">
-            <summary className="cursor-pointer text-sm font-medium text-tekst-2 hover:text-tekst">Afschrift uploaden</summary>
-            <div className="mt-3">{upload}</div>
-          </details>
-        );
+        // Altijd hetzelfde blok (open als er nog niets is), zodat de uitslag van de upload blijft staan.
+        return <Uitklap titel="Afschrift uploaden" beginOpen={rekeningen.length === 0}>{upload}</Uitklap>;
       })()}
 
       <div className="mt-8 flex flex-wrap items-center gap-2">
@@ -177,40 +175,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
                     </td>
                     <td>
                       <p className="text-[13px]">{t.zakelijk === false ? "Privé" : t.categorie && t.categorie in CATEGORIE_INFO ? CATEGORIE_INFO[t.categorie as keyof typeof CATEGORIE_INFO].label : "Nog niet geboekt"}{t.zakelijk !== false && t.btwCode ? <span className="text-tekst-3"> · {BTW_LABEL[t.btwCode as keyof typeof BTW_LABEL] ?? t.btwCode}</span> : null}</p>
-                      <details className="mt-1">
-                      <summary className="cursor-pointer text-[13px] text-primair-tekst">Wijzigen</summary>
-                      <form action={wijzigTransactie} className="mt-1.5 space-y-1.5">
-                        <input type="hidden" name="id" value={t.id} />
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <select name="zakelijk" defaultValue={t.zakelijk === false ? "nee" : "ja"} aria-label="Zakelijk of privé" className="veld veld-klein w-auto">
-                            <option value="ja">Zakelijk</option>
-                            <option value="nee">Privé</option>
-                          </select>
-                          <select name="categorie" defaultValue={t.categorie ?? "overig"} aria-label="Categorie" className="veld veld-klein w-auto max-w-[11rem]">
-                            {CATEGORIEEN.map((c) => <option key={c} value={c}>{CATEGORIE_INFO[c].label}</option>)}
-                          </select>
-                          <select name="btwCode" defaultValue={t.btwCode ?? "21"} aria-label="Btw" className="veld veld-klein w-auto">
-                            {BTW_CODES.map((c) => <option key={c} value={c}>{BTW_LABEL[c]}</option>)}
-                          </select>
-                          <button className={twijfelt ? "knop knop-klein" : "knop-licht knop-klein"}>{twijfelt ? "Bevestig" : "OK"}</button>
-                        </div>
-                        <details className="text-[13px]">
-                          <summary className="cursor-pointer text-tekst-3 hover:text-tekst">Deels privé, splitsen of opmerking</summary>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            <label className="flex items-center gap-1 text-tekst-2">Privégebruik
-                              <input name="priveDeel" type="number" min={0} max={100} defaultValue={Math.round(t.priveDeel * 100)} className="veld veld-klein w-16" />%
-                            </label>
-                            <label className="flex items-center gap-1 text-tekst-2"><input type="checkbox" name="altijd" value="1" className="h-4 w-4" /> Altijd zo bij {t.tegenpartij || "deze winkel"}</label>
-                            <label className="flex w-full flex-col gap-1 text-tekst-2">Opmerking (voor jezelf of je boekhouder)
-                              <textarea name="opmerking" rows={2} defaultValue={t.opmerking ?? ""} className="veld veld-klein" />
-                            </label>
-                            <label className="flex items-center gap-1 text-tekst-2">Privébedrag afsplitsen
-                              <input name="splitsBedrag" type="text" inputMode="decimal" placeholder="0,00" className="veld veld-klein w-20" />
-                            </label>
-                          </div>
-                        </details>
-                      </form>
-                      </details>
+                      <WijzigBoeking actie={wijzigTransactie} t={{ id: t.id, zakelijk: t.zakelijk, categorie: t.categorie, btwCode: t.btwCode, priveDeel: t.priveDeel, opmerking: t.opmerking, tegenpartij: t.tegenpartij }} twijfelt={twijfelt} />
                     </td>
                     <td className="whitespace-nowrap text-[13px]">
                       {t.zakelijk === null ? <Pil kleur="grijs">wacht op Saldoplan</Pil>

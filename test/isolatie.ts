@@ -103,8 +103,11 @@ async function http() {
     }
     const xaf = await web(`/api/exports/xaf?jaar=${new Date().getFullYear()}`, tokA);
     check("export van A bevat niets van B", xaf.status === 200 && !(await bevatGeheim(xaf)), xaf.status);
-    const csv = await web(`/api/exports/csv?jaar=${new Date().getFullYear()}`, tokA);
-    check("CSV van A bevat niets van B", !(await bevatGeheim(csv)), csv.status);
+    const alles = await web("/api/exports/alles", tokA);
+    const zip = Buffer.from(await alles.arrayBuffer());
+    const { unzipSync, strFromU8 } = await import("fflate");
+    const json = strFromU8(unzipSync(new Uint8Array(zip))["gegevens.json"]);
+    check("zip met al je gegevens van A bevat niets van B", alles.status === 200 && json.includes("Winkel A") && !json.includes(geheim), alles.status);
 
     // App (mobiel)
     const lijst = await app("/api/mobiel/transacties", tokA);
@@ -133,8 +136,9 @@ async function http() {
     check("echte factuurlink werkt", echt.status === 200 && (await echt.text()).includes(`B-${stempel}`), echt.status);
     const offerte = await fetch(`${BASIS}/offerte/${offB.acceptToken}`);
     check("offerte in concept is niet openbaar", !(await offerte.text()).includes(`OB-${stempel}`), offerte.status);
+    await db.offerte.update({ where: { id: offB.id }, data: { status: "verzonden" } });
     const tekst = await fetch(`${BASIS}/offerte/${offB.acceptToken}?fout=${encodeURIComponent("Bel 0900-OPLICHTER")}`);
-    check("eigen tekst via de link verschijnt niet", !(await tekst.text()).includes("OPLICHTER"));
+    check("eigen tekst via de link verschijnt niet op de pagina", !(await tekst.text()).replace(/<script[\s\S]*?<\/script>/g, "").includes("OPLICHTER")); // de link zelf staat wel in de paginadata van Next
 
     // Geheimen en webhooks
     const cron = await fetch(`${BASIS}/api/cron?secret=${encodeURIComponent(process.env.CRON_SECRET ?? "x")}`);

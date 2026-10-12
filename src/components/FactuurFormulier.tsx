@@ -84,15 +84,15 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
           </div>
           {klantId === "nieuw" && (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <input name="klantNaam" placeholder="Bedrijfsnaam" required className={veld} />
-              <input name="klantEmail" type="email" placeholder="E-mailadres" className={veld} />
-              <input name="klantAdres" placeholder="Straat en huisnummer" className={veld} />
+              <input name="klantNaam" aria-label="Bedrijfsnaam" placeholder="Bedrijfsnaam" required className={veld} />
+              <input name="klantEmail" type="email" aria-label="E-mailadres" placeholder="E-mailadres" className={veld} />
+              <input name="klantAdres" aria-label="Straat en huisnummer" placeholder="Straat en huisnummer" className={veld} />
               <div className="grid grid-cols-2 gap-3">
-                <input name="klantPostcode" placeholder="Postcode" className={veld} />
-                <input name="klantPlaats" placeholder="Plaats" className={veld} />
+                <input name="klantPostcode" aria-label="Postcode" placeholder="Postcode" className={veld} />
+                <input name="klantPlaats" aria-label="Plaats" placeholder="Plaats" className={veld} />
               </div>
-              <input name="klantLand" placeholder="Land, bijvoorbeeld NL" value={nieuweKlant.land} onChange={(e) => setNieuweKlant({ ...nieuweKlant, land: e.target.value.toUpperCase() })} className={veld} />
-              <input name="klantBtwNummer" placeholder="Btw-nummer (nodig voor verleggen in de EU)" value={nieuweKlant.btwNummer} onChange={(e) => setNieuweKlant({ ...nieuweKlant, btwNummer: e.target.value })} className={veld} />
+              <input name="klantLand" aria-label="Land" placeholder="Land, bijvoorbeeld NL" value={nieuweKlant.land} onChange={(e) => setNieuweKlant({ ...nieuweKlant, land: e.target.value.toUpperCase() })} className={veld} />
+              <input name="klantBtwNummer" aria-label="Btw-nummer van de klant" placeholder="Btw-nummer (nodig voor verleggen in de EU)" value={nieuweKlant.btwNummer} onChange={(e) => setNieuweKlant({ ...nieuweKlant, btwNummer: e.target.value })} className={veld} />
             </div>
           )}
         </div>

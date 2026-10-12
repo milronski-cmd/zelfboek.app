@@ -36,6 +36,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ soort: s
 
   try {
     switch (soort) {
+      case "alles": {
+        const { allesExport } = await import("@/lib/exports/alles");
+        return bestand(Buffer.from(await allesExport(o.id)), `${naam}-alle-gegevens.zip`, "application/zip");
+      }
       case "excel":
         return bestand(await excelExport(o.id, jaar), `${naam}-${jaar}.xlsx`, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
       case "xaf":

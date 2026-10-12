@@ -174,18 +174,32 @@ export const huidigeOnderneming = cache(async () => {
   }
   // Aangebracht via een verwijslink? Dan staat de code in een cookie (gezet op de inlogpagina).
   const ref = (await cookies()).get("sp_ref")?.value?.replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(0, 12) || null;
-  const o = await db.onderneming.create({
-    data: {
-      verwezenDoor: ref,
-      naam: s.gebruiker.naam ? `${s.gebruiker.naam}` : "Mijn onderneming",
-      email: s.gebruiker.email,
-      proefTot: new Date(Date.now() + 30 * 864e5),
-      leden: { create: { gebruikerId: s.gebruikerId, rol: "eigenaar" } },
-    },
-  });
+  const o = await eersteOnderneming(s.gebruiker, ref);
   await db.sessie.update({ where: { id: s.id }, data: { actieveOndernemingId: o.id } });
   return o;
 });
+
+/**
+ * De eerste onderneming van een nieuwe gebruiker, precies één keer: bij de eerste keer inloggen vragen de
+ * pagina, het menu en vooraf geladen pagina's tegelijk om "mijn onderneming". Een slot per gebruiker in de
+ * database voorkomt dat er dan twee worden aangemaakt.
+ */
+export async function eersteOnderneming(g: { id: string; naam: string | null; email: string }, ref: string | null = null) {
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"eerste-onderneming:" + g.id}))`;
+    const al = await tx.lidmaatschap.findFirst({ where: { gebruikerId: g.id }, include: { onderneming: true } });
+    if (al) return al.onderneming;
+    return tx.onderneming.create({
+      data: {
+        verwezenDoor: ref,
+        naam: g.naam ? `${g.naam}` : "Mijn onderneming",
+        email: g.email,
+        proefTot: new Date(Date.now() + 30 * 864e5),
+        leden: { create: { gebruikerId: g.id, rol: "eigenaar" } },
+      },
+    });
+  });
+}
 
 /**
  * De actieve onderneming, maar alleen als de gebruiker er mag schrijven (eigenaar of boekhouder).
@@ -201,7 +215,7 @@ export async function schrijfOnderneming(opties?: { ookZonderAbonnement?: boolea
   // Proef voorbij of abonnement gestopt: kijken en downloaden mag, wijzigen pas weer met een abonnement.
   // Alleen als betalen echt kan (Stripe ingesteld); een demo loopt vanzelf af.
   if (!opties?.ookZonderAbonnement && process.env.STRIPE_SECRET_KEY && !o.demoTot && !abonnementStatus(o).toegang) {
-    throw new Error("Je proefperiode is voorbij. Kies een abonnement onder Instellingen, Abonnement; daarna kun je meteen verder. Je gegevens blijven gewoon bewaard.");
+    throw new Error(`${geenToegangTekst(o)} Kies een abonnement onder Instellingen, Abonnement; daarna kun je meteen verder. Je gegevens blijven gewoon bewaard.`);
   }
   return o;
 }
@@ -231,6 +245,9 @@ export async function wisselOnderneming(ondernemingId: string) {
   if (!lid) throw new Error("Geen toegang tot deze onderneming");
   await db.sessie.update({ where: { id: s.id }, data: { actieveOndernemingId: ondernemingId } });
 }
+
+/** Waarom je niet meer kunt wijzigen: proef voorbij of abonnement gestopt. */
+export const geenToegangTekst = (o: { abonnement: string }) => (o.abonnement === "proef" ? "Je proefperiode is voorbij." : "Je abonnement is gestopt.");
 
 /** Abonnement actief, in proef, of verlopen? */
 export function abonnementStatus(o: { abonnement: string; proefTot: Date | null }) {
