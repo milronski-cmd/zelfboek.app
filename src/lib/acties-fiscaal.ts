@@ -308,3 +308,26 @@ export async function jaarAfsluiten(fd: FormData): Promise<void> {
   await logNu(o.id, `Jaar ${jaar} afgesloten`);
   revalidatePath("/app/jaarrekening");
 }
+
+/** Btw-aangifte rechtstreeks indienen (alleen als de koppeling met Digipoort/hub aanstaat). */
+export async function btwIndienen(fd: FormData): Promise<void> {
+  const o = await schrijfOnderneming();
+  const jaar = Math.round(n(fd, "jaar"));
+  const periode = Math.round(n(fd, "periode"));
+  const { dienBtwIn } = await import("./indienen");
+  let melding: string;
+  try {
+    const kenmerk = await dienBtwIn(o, jaar, periode);
+    await db.aangifte.upsert({
+      where: { ondernemingId_soort_jaar_periode: { ondernemingId: o.id, soort: "btw", jaar, periode } },
+      update: { status: "ingediend", ingediendOp: new Date(), notitie: kenmerk },
+      create: { ondernemingId: o.id, soort: "btw", jaar, periode, rubrieken: s(fd, "rubrieken") || "{}", bedrag: n(fd, "bedrag"), status: "ingediend", ingediendOp: new Date(), notitie: kenmerk },
+    });
+    await logNu(o.id, "Btw-aangifte ingediend via Saldoplan", `kenmerk ${kenmerk}`);
+    melding = "m=" + encodeURIComponent("Je btw-aangifte is ingediend. Betaal nu het bedrag hieronder.");
+  } catch (e) {
+    melding = "fout=" + encodeURIComponent(e instanceof Error ? e.message : String(e));
+  }
+  revalidatePath("/app/btw");
+  redirect(`/app/btw?j=${jaar}&p=${periode}&${melding}`);
+}

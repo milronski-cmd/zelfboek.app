@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Delen } from "@/components/Delen";
+import { peppolAan, peppolId } from "@/lib/indienen";
 import { factuurUrl } from "@/lib/facturen/link";
 import { vul } from "@/lib/facturen/taal";
 
@@ -14,7 +15,7 @@ import { db, huidigeOnderneming } from "@/lib/db";
 import { datumNl, euro, rond, isoDatum } from "@/lib/btw";
 import { parseRegels } from "@/lib/facturen/bereken";
 import { statusPil, statusTekst, OPEN_STATUS } from "@/lib/facturen/status";
-import { factuurAfletteren, factuurBetaald, factuurBetaallink, factuurCrediteren, factuurHerinnering, factuurStatus, factuurVerwijderen, factuurVerzenden } from "@/lib/acties-facturen";
+import { factuurAfletteren, factuurBetaald, factuurBetaallink, factuurCrediteren, factuurHerinnering, factuurPeppol, factuurStatus, factuurVerwijderen, factuurVerzenden } from "@/lib/acties-facturen";
 import { Kaart, Kop, Pil, knopLicht, veld } from "@/components/ui";
 import { ActieKnop } from "./Acties";
 
@@ -64,6 +65,7 @@ export default async function FactuurDetail({ params }: { params: Promise<{ id: 
           <ActieKnop actie={factuurVerzenden} id={f.id} label={f.status === "concept" ? "Verzenden per e-mail" : "Opnieuw verzenden"} primair={f.status === "concept"} />
         )}
         {f.soort === "credit" && f.status === "concept" && <ActieKnop actie={factuurVerzenden} id={f.id} label="Creditfactuur verzenden" primair />}
+        {peppolAan() && peppolId(f.klant) && (f.status === "concept" || isOpen) && <ActieKnop actie={factuurPeppol} id={f.id} label="Versturen via Peppol" />}
       </Kop>
 
       <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr]">

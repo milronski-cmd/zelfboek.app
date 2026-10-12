@@ -4,7 +4,8 @@ import { connection } from "next/server";
 import { db, huidigeOnderneming } from "@/lib/db";
 import { btwAangifte, btwDeadline, datumNl, euro, kwartaalVan, periodeBereik, type Aangifte } from "@/lib/btw";
 import { icpOpgaaf } from "@/lib/exports/icp";
-import { aangifteOpslaan } from "@/lib/acties-fiscaal";
+import { aangifteOpslaan, btwIndienen } from "@/lib/acties-fiscaal";
+import { digipoortAan } from "@/lib/indienen";
 import { Kaart, Kop, Leeg, Pil, Waarom, knopLicht } from "@/components/ui";
 
 export const instant = false;
@@ -24,7 +25,7 @@ const rubrieken: { code: string; naam: string; omzet: keyof Aangifte; btw?: keyo
 const statusPil: Record<string, "groen" | "geel" | "grijs"> = { concept: "grijs", klaar: "geel", ingediend: "groen", betaald: "groen" };
 const statusTekst: Record<string, string> = { concept: "Nog niet definitief", klaar: "Klaar om in te dienen", ingediend: "Ingediend", betaald: "Ingediend en betaald" };
 
-export default async function Btw({ searchParams }: { searchParams: Promise<{ j?: string; p?: string; stap?: string }> }) {
+export default async function Btw({ searchParams }: { searchParams: Promise<{ j?: string; p?: string; stap?: string; m?: string; fout?: string }> }) {
   await connection();
   const sp = await searchParams;
   const o = await huidigeOnderneming();
@@ -155,9 +156,21 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
         </>
       )}
 
+      {sp.m && <p className="mb-4 rounded-lg bg-groen-licht px-4 py-3 text-sm text-groen-tekst">{sp.m}</p>}
+      {sp.fout && <p className="mb-4 rounded-lg bg-rood-licht px-4 py-3 text-sm text-rood-tekst">{sp.fout}</p>}
+      {stap === 2 && digipoortAan() && (
+        <section className="kaart mb-4 flex flex-wrap items-center gap-4 p-5">
+          <div className="min-w-0 flex-1 basis-[240px]">
+            <h2 className="text-[16px] font-semibold">Laat Saldoplan de aangifte indienen</h2>
+            <p className="text-[13px] text-tekst-2">We sturen de bedragen hieronder rechtstreeks naar de Belastingdienst. Je krijgt het kenmerk terug.</p>
+          </div>
+          <form action={btwIndienen}>{verborgen("ingediend")}<button className="knop knop-groot">Nu indienen</button></form>
+        </section>
+      )}
       {stap === 2 && (
         <>
           <section className="kaart mb-4 p-5">
+            {digipoortAan() && <p className="mb-2 text-[13px] text-tekst-3">Liever zelf? Dat kan zo:</p>}
             <h2 className="text-[16px] font-semibold">Doe de aangifte bij de Belastingdienst</h2>
             <ol className="mt-3 space-y-2 text-sm">
               <li className="flex gap-3">{rondje(1)}<span className="pt-0.5">Log in op <a href="https://mijn.belastingdienst.nl/mbd-pmb/" target="_blank" rel="noreferrer" className="font-semibold text-primair-tekst underline">Mijn Belastingdienst Zakelijk</a> en open de aangifte omzetbelasting voor {label}.</span></li>

@@ -460,3 +460,14 @@ export async function terugkerendOverslaan(fd: FormData): Promise<void> {
   if (t) await db.terugkerendeFactuur.update({ where: { id: t.id }, data: { volgendeOp: volgendeDatum(t.volgendeOp, t.interval) } });
   ververs();
 }
+
+/** Factuur versturen via Peppol (e-factuur rechtstreeks in de boekhouding van de klant). */
+export async function factuurPeppol(fd: FormData): Promise<Resultaat> {
+  const o = await schrijfOnderneming();
+  try {
+    await (await import("./indienen")).verstuurPeppol(String(fd.get("id") ?? ""), o.id);
+    await logNu(o.id, "Factuur verstuurd via Peppol");
+    ververs();
+    return { ok: true, melding: "Verstuurd via Peppol." };
+  } catch (e) { return fout(e); }
+}
