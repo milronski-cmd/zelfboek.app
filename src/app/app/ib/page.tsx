@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { ibIndicatie } from "@/lib/geld";
+import { ibIndicatie, ibPerMaand } from "@/lib/geld";
 import { euro } from "@/lib/btw";
 import { korCheck } from "@/lib/fiscaal/kor";
 import * as C from "@/lib/fiscaal/constanten-2026";
@@ -16,6 +16,7 @@ export default async function Ib({ searchParams }: { searchParams: Promise<{ j?:
   const o = await huidigeOnderneming();
   const jaar = Number(sp.j) || new Date().getFullYear();
   const { maanden, wv, ib, ibJaar, verwachteWinst, btwJaar } = await ibIndicatie(o, jaar);
+  const perMaand = await ibPerMaand(o, jaar);
   const kor = korCheck({
     omzetJaar: wv.omzet,
     maandenVerstreken: maanden,
@@ -39,6 +40,16 @@ export default async function Ib({ searchParams }: { searchParams: Promise<{ j?:
         <Tegel label="Verwacht over het hele jaar" waarde={ibJaar.teBetalen} hint={`bij een winst rond ${euro(verwachteWinst)}`} />
         <Tegel label="Zet per maand apart" waarde={Math.round(ibJaar.teBetalen / 12)} accent="groen" hint="dan is de aanslag geen verrassing" />
       </Cijferband>
+
+      {perMaand.length > 1 && (
+        <Kaart titel="Maand voor maand" className="mt-6">
+          <p className="px-5 pt-3 text-[13px] text-tekst-2">Je winst per maand, en wat je over het hele jaar aan belasting verwacht als het zo doorgaat. Zo zie je vroeg of je potje groot genoeg is.</p>
+          <table className="tabel tabel-stapel mt-2">
+            <thead><tr><th>Maand</th><th className="num">Winst</th><th className="num">Verwachte belasting over het jaar</th></tr></thead>
+            <tbody>{perMaand.map((m) => <tr key={m.maand}><td className="capitalize">{m.maand}</td><td data-label="winst" className={`num ${m.winst < 0 ? "text-rood-tekst" : ""}`}>{euro(m.winst)}</td><td data-label="verwacht" className="num">{euro(m.verwachtJaar)}</td></tr>)}</tbody>
+          </table>
+        </Kaart>
+      )}
 
       <Kaart titel="Zo komt het bedrag tot stand" className="mt-6">
         <table className="tabel">

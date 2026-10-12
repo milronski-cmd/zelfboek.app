@@ -294,3 +294,17 @@ export async function rittenUitAgenda(fd: FormData): Promise<AgendaResultaat> {
     return { ok: true, melding: `${nieuw} ritten toegevoegd (heen en terug, met de afstand van een eerdere rit naar dezelfde plaats).${zonderKm ? ` ${zonderKm} afspraken met een nieuwe plaats: vul die één keer zelf in, daarna gaat het vanzelf.` : ""}` };
   } catch (e) { return { ok: false, fout: e instanceof Error ? e.message : String(e) }; }
 }
+
+/** Jaar afsluiten met één knop: afschrijvingen bijwerken en vastleggen dat het jaar is gecontroleerd. */
+export async function jaarAfsluiten(fd: FormData): Promise<void> {
+  const o = await schrijfOnderneming();
+  const jaar = Math.round(n(fd, "jaar")) || new Date().getFullYear() - 1;
+  await boekAfschrijvingen(o.id, new Date(jaar, 11, 31));
+  await db.aangifte.upsert({
+    where: { ondernemingId_soort_jaar_periode: { ondernemingId: o.id, soort: "jaarafsluiting", jaar, periode: 0 } },
+    update: { status: "klaar", ingediendOp: new Date() },
+    create: { ondernemingId: o.id, soort: "jaarafsluiting", jaar, periode: 0, rubrieken: "{}", bedrag: 0, status: "klaar", ingediendOp: new Date() },
+  });
+  await logNu(o.id, `Jaar ${jaar} afgesloten`);
+  revalidatePath("/app/jaarrekening");
+}

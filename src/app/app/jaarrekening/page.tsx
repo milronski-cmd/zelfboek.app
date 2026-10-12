@@ -4,7 +4,7 @@ import { db, huidigeOnderneming } from "@/lib/db";
 import { euro, isoDatum } from "@/lib/btw";
 import { jaarrekening } from "@/lib/fiscaal/jaarrekening";
 import { boekAfschrijvingen } from "@/lib/fiscaal/afschrijving";
-import { memoriaalToevoegen } from "@/lib/acties-fiscaal";
+import { jaarAfsluiten, memoriaalToevoegen } from "@/lib/acties-fiscaal";
 import { CATEGORIEEN, CATEGORIE_INFO } from "@/lib/categorieen";
 import { Cijferband, Kaart, Kop, Leeg, Tegel, knop, knopLicht, veld } from "@/components/ui";
 
@@ -22,6 +22,21 @@ export default async function JaarrekeningPagina({ searchParams }: { searchParam
   const jaar = Number(sp.j) || new Date().getFullYear();
   await boekAfschrijvingen(o.id, peildatum(jaar));
   const jr = await jaarrekening(o.id, jaar);
+  // Jaarafsluiting: wat er nog openstaat voordat je het jaar dichtzet.
+  const [open, twijfel, losseBonnen, btwIngediend, afgesloten] = await Promise.all([
+    db.transactie.count({ where: { ondernemingId: o.id, datum: { gte: new Date(jaar, 0, 1), lt: new Date(jaar + 1, 0, 1) }, zakelijk: null } }),
+    db.transactie.count({ where: { ondernemingId: o.id, datum: { gte: new Date(jaar, 0, 1), lt: new Date(jaar + 1, 0, 1) }, zakelijk: { not: null }, bevestigd: false } }),
+    db.bon.count({ where: { ondernemingId: o.id, status: "uitgelezen", datum: { gte: new Date(jaar, 0, 1), lt: new Date(jaar + 1, 0, 1) } } }),
+    db.aangifte.count({ where: { ondernemingId: o.id, soort: "btw", jaar, status: { in: ["ingediend", "betaald"] } } }),
+    db.aangifte.findFirst({ where: { ondernemingId: o.id, soort: "jaarafsluiting", jaar } }),
+  ]);
+  const nodigBtw = o.korDeelnemer ? 0 : o.btwTijdvak === "maand" ? 12 : o.btwTijdvak === "jaar" ? 1 : 4;
+  const punten: [boolean, string][] = [
+    [open === 0, open === 0 ? "Alle betalingen zijn geboekt" : `${open} betalingen zijn nog niet geboekt`],
+    [twijfel === 0, twijfel === 0 ? "Geen open vragen" : `${twijfel} vragen van Saldoplan wachten op je antwoord`],
+    [losseBonnen === 0, losseBonnen === 0 ? "Alle bonnen horen bij een betaling" : `${losseBonnen} bonnen horen nog nergens bij`],
+    [btwIngediend >= nodigBtw, nodigBtw === 0 ? "Geen btw-aangifte nodig (KOR)" : `${btwIngediend} van ${nodigBtw} btw-aangiftes staan als ingediend`],
+  ];
 
   return (
     <>
@@ -32,6 +47,21 @@ export default async function JaarrekeningPagina({ searchParams }: { searchParam
       </Kop>
 
       {(await db.transactie.count({ where: { ondernemingId: o.id } })) === 0 && <div className="mb-6"><Leeg tekst="Hier staat nog niets, want er zijn nog geen betalingen. Koppel je bank of upload een afschrift; daarna rekent Saldoplan dit vanzelf uit." actie={<Link href="/app/koppelingen" className="knop knop-klein">Bank koppelen</Link>} /></div>}
+      <section className="kaart mb-6 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-[15px] font-semibold">Jaar {jaar} afsluiten</h2>
+            <p className="text-[13px] text-tekst-2">{afgesloten ? `Afgesloten op ${afgesloten.ingediendOp?.toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })}. Download het jaaroverzicht voor je bank, hypotheek of boekhouder.` : "Alles nagelopen? Dan sluit je het jaar met één knop af en download je het overzicht."}</p>
+          </div>
+          {afgesloten ? <a href={`/api/exports/jaarrekening-pdf?jaar=${jaar}`} className={knop}>Jaaroverzicht (PDF)</a> : (
+            <form action={jaarAfsluiten}><input type="hidden" name="jaar" value={jaar} /><button className={knop}>Jaar afsluiten</button></form>
+          )}
+        </div>
+        <ul className="mt-3 space-y-1 text-sm">
+          {punten.map(([ok, t]) => <li key={t} className="flex gap-2"><span aria-hidden className={ok ? "text-groen-tekst" : "text-mosterd-tekst"}>{ok ? "✓" : "•"}</span><span className={ok ? "" : "text-mosterd-tekst"}>{t}</span></li>)}
+        </ul>
+      </section>
+
       <Cijferband>
         <Tegel label="Omzet" waarde={jr.wv.omzet} />
         <Tegel label="Kosten" waarde={jr.wv.kosten} hint={`waarvan ${euro(jr.wv.afschrijving)} afschrijving`} />

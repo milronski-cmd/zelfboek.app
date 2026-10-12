@@ -178,3 +178,19 @@ export async function geldVooruit(o: Onderneming): Promise<GeldVooruit> {
     potjePerMaand: { btw: rond(Math.max(0, ib.btwJaar["5c_te_betalen"]) / ib.maanden), ib: Math.max(0, Math.round((ib.ibJaar.teBetalen - ibBetaald) / Math.max(1, 12 - nu.getMonth()))) },
   };
 }
+
+/** Maand voor maand: winst van die maand en de verwachte inkomstenbelasting over het hele jaar met de cijfers tot dan. */
+export async function ibPerMaand(o: Onderneming, jaar = new Date().getFullYear()) {
+  const nu = new Date();
+  const maanden = jaar === nu.getFullYear() ? nu.getMonth() + 1 : 12;
+  const uit: { maand: string; winst: number; verwachtJaar: number }[] = [];
+  let vorige = 0;
+  for (let m = 0; m < maanden; m++) {
+    const wv = await winstVerlies(o.id, new Date(jaar, 0, 1), new Date(jaar, m + 1, 1));
+    const verwachteWinst = Math.round((wv.fiscaleWinst / (m + 1)) * 12);
+    const ib = berekenIb({ fiscaleWinst: verwachteWinst, uren: o.urencriterium ? 1225 : 0, urenCriteriumGehaald: o.urencriterium ? true : undefined, starter: o.starter, investeringen: 0, kilometerVergoeding: 0 });
+    uit.push({ maand: new Date(jaar, m, 1).toLocaleDateString("nl-NL", { month: "long" }), winst: rond(wv.fiscaleWinst - vorige), verwachtJaar: Math.round(ib.teBetalen) });
+    vorige = wv.fiscaleWinst;
+  }
+  return uit;
+}
