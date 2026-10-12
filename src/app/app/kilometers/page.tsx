@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { datumNl, euro, isoDatum } from "@/lib/btw";
+import { datumKort, euro, isoDatum } from "@/lib/btw";
 import { KM_VERGOEDING } from "@/lib/fiscaal/constanten-2026";
 import { kilometersToevoegen, kilometersVerwijderen } from "@/lib/acties-fiscaal";
 import { Cijferband, Kop, Leeg, Tegel } from "@/components/ui";
@@ -58,7 +58,7 @@ export default async function Kilometers() {
             <tbody>
               {regels.map((r) => (
                 <tr key={r.id}>
-                  <td className="whitespace-nowrap text-tekst-2">{datumNl(r.datum)}</td>
+                  <td className="whitespace-nowrap text-tekst-2">{datumKort(r.datum)}</td>
                   <td>{r.van} naar {r.naar}{r.retour ? ", retour" : ""}</td>
                   <td>{r.doel}</td>
                   <td className="text-tekst-2">{vervoerTekst[r.vervoer] ?? r.vervoer}</td>

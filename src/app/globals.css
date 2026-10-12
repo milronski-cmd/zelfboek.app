@@ -286,3 +286,10 @@ label.lbl { display: block; font-size: 13px; font-weight: 500; color: var(--teks
   .tabel-stapel td.num { text-align: left; }
   .tabel-stapel td[data-label]::before { content: attr(data-label) " "; color: var(--tekst-3); }
 }
+
+/* Telefoon en tablet: knoppen en tikvlakken minstens 44 px hoog, zodat je niet mis tikt. */
+@media (pointer: coarse) {
+  .knop, .knop-groen, .knop-licht, .knop-rood { min-height: 44px; }
+  .knop-tekst, .chip, .nav-item { min-height: 40px; }
+  .veld { min-height: 44px; font-size: 16px; }
+}

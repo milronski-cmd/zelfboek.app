@@ -2,7 +2,7 @@ import { isDubbeleVraag, openVragen } from "@/lib/vragen";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { datumNl } from "@/lib/btw";
+import { datumKort } from "@/lib/btw";
 import { Kaart, Kop, Pil, knop, knopLicht, veld } from "@/components/ui";
 
 export const instant = false;
@@ -64,7 +64,7 @@ export default async function Meldingen() {
                       <Pil kleur={m.gelezen ? "grijs" : soortKleur[m.soort] ?? "grijs"}>{soortTekst[m.soort] ?? m.soort}</Pil>
                     </div>
                     <p className={`mt-1 text-sm ${m.gelezen ? "" : "text-tekst-2"}`}>{m.tekst}</p>
-                    <p className="mt-1 text-[13px] text-tekst-3">{datumNl(m.aangemaakt)}</p>
+                    <p className="mt-1 text-[13px] text-tekst-3">{datumKort(m.aangemaakt)}</p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {m.link && <Link href={m.link} className="knop-licht knop-klein">Bekijk</Link>}
@@ -95,7 +95,7 @@ export default async function Meldingen() {
                       <button aria-label={t.klaar ? "Taak heropenen" : "Taak afvinken"} className={`flex h-5 w-5 items-center justify-center rounded border text-[13px] ${t.klaar ? "border-groen bg-groen text-white" : "border-lijn-2 bg-white hover:border-groen"}`}>{t.klaar ? "✓" : ""}</button>
                     </form>
                     <span className={`min-w-0 flex-1 text-sm ${t.klaar ? "text-tekst-3 line-through" : ""}`}>{t.titel}</span>
-                    {t.deadline && <span className={`whitespace-nowrap text-[13px] ${teLaat ? "text-rood-tekst" : "text-tekst-2"}`}>{datumNl(t.deadline)}</span>}
+                    {t.deadline && <span className={`whitespace-nowrap text-[13px] ${teLaat ? "text-rood-tekst" : "text-tekst-2"}`}>{datumKort(t.deadline)}</span>}
                     <span className="hidden whitespace-nowrap text-[13px] text-tekst-3 sm:inline">{bronTekst[t.bron] ?? t.bron}</span>
                   </li>
                 );

@@ -133,3 +133,10 @@ export const isoDatum = (d: Date = new Date()) => d.toLocaleDateString("sv-SE", 
 
 /** Bedrag in hele euro's voor tegels (centen pas in de details): € 1.235. */
 export const euroHeel = (n: number) => `${n < 0 ? "−" : ""}€ ${Math.abs(Math.round(n)).toLocaleString("nl-NL")}`;
+
+/** Korte datum voor lijsten: "8 okt", met jaartal als het niet dit jaar is ("8 okt 2025"). */
+export const datumKort = (d: Date, nu: Date = new Date()) => {
+  const z = { timeZone: "Europe/Amsterdam" } as const;
+  const ditJaar = d.toLocaleDateString("nl-NL", { year: "numeric", ...z }) === nu.toLocaleDateString("nl-NL", { year: "numeric", ...z });
+  return d.toLocaleDateString("nl-NL", { day: "numeric", month: "short", ...(ditJaar ? {} : { year: "numeric" }), ...z }).replace(".", "");
+};

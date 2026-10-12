@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { datumNl, euro } from "@/lib/btw";
+import { datumKort, euro } from "@/lib/btw";
 import { BTW_CODES, BTW_LABEL, CATEGORIEEN, CATEGORIE_INFO, label } from "@/lib/categorieen";
 import { bonKoppelen, bonOntkoppelen, bonOpnieuwLezen, bonVerwijderen, bonWijzigen, uploadBonnen } from "@/lib/acties-bonnen";
 import { BonUpload } from "@/components/BonUpload";
@@ -58,7 +58,7 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
               <tbody>
                 {bonnen.map((b) => (
                   <tr key={b.id} className={b.id === geselecteerd?.id ? "bg-papier" : ""}>
-                    <td className="whitespace-nowrap text-tekst-2">{b.datum ? datumNl(b.datum) : "–"}</td>
+                    <td className="whitespace-nowrap text-tekst-2">{b.datum ? datumKort(b.datum) : "–"}</td>
                     <td>
                       <Link href={`/app/bonnen?${sp.status ? `status=${sp.status}&` : ""}b=${b.id}`} className="font-medium hover:underline">{b.leverancier ?? b.bestandsnaam}</Link>
                       {b.uitleg && <div className="max-w-xs truncate text-[13px] text-tekst-3">{b.uitleg}</div>}
@@ -127,7 +127,7 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
                 <p className="text-sm font-medium">Betaling</p>
                 {geselecteerd.transactie ? (
                   <div className="mt-1 flex items-center justify-between gap-3 text-sm">
-                    <span className="truncate">{datumNl(geselecteerd.transactie.datum)}, {geselecteerd.transactie.tegenpartij}, <span className="tabular">{euro(geselecteerd.transactie.bedrag)}</span></span>
+                    <span className="truncate">{datumKort(geselecteerd.transactie.datum)}, {geselecteerd.transactie.tegenpartij}, <span className="tabular">{euro(geselecteerd.transactie.bedrag)}</span></span>
                     <form action={bonOntkoppelen}><input type="hidden" name="id" value={geselecteerd.id} /><button className="knop-licht knop-klein">Ontkoppelen</button></form>
                   </div>
                 ) : kandidaten.length === 0 ? (
@@ -138,7 +138,7 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
                     <ul className="mt-2 space-y-1.5 text-sm">
                       {kandidaten.map((t) => (
                         <li key={t.id} className="flex items-center justify-between gap-2">
-                          <span className="truncate">{datumNl(t.datum)}, {t.tegenpartij}, <span className="tabular">{euro(t.bedrag)}</span></span>
+                          <span className="truncate">{datumKort(t.datum)}, {t.tegenpartij}, <span className="tabular">{euro(t.bedrag)}</span></span>
                           <form action={koppelMetMelding}><input type="hidden" name="id" value={geselecteerd.id} /><input type="hidden" name="transactieId" value={t.id} /><button className="knop-licht knop-klein">Koppel</button></form>
                         </li>
                       ))}

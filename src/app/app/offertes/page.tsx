@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { datumNl, euro } from "@/lib/btw";
+import { datumKort, euro } from "@/lib/btw";
 import { statusPil, statusTekst } from "@/lib/facturen/status";
 import { Kop, Leeg, Pil, knop } from "@/components/ui";
 
@@ -32,8 +32,8 @@ export default async function Offertes() {
                   <tr key={x.id}>
                     <td className="font-medium"><Link href={`/app/offertes/${x.id}`} className="hover:underline">{x.nummer}</Link></td>
                     <td>{x.klant.naam}</td>
-                    <td className="text-tekst-2">{datumNl(x.datum)}</td>
-                    <td className="text-tekst-2">{datumNl(x.geldigTot)}</td>
+                    <td className="text-tekst-2">{datumKort(x.datum)}</td>
+                    <td className="text-tekst-2">{datumKort(x.geldigTot)}</td>
                     <td className="num">{euro(x.totaal)}</td>
                     <td><Pil kleur={statusPil[status] ?? "grijs"}>{status === "verzonden" ? "Wacht op klant" : statusTekst[status] ?? status}</Pil></td>
                   </tr>

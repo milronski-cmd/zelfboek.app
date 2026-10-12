@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { datumNl, euro, rond } from "@/lib/btw";
+import { datumKort, euro, rond } from "@/lib/btw";
 import { factuurBetaald } from "@/lib/acties-facturen";
 import { Cijferband, Kop, Leeg, Pil, Tegel, knop, knopLicht } from "@/components/ui";
 import { statusPil, statusTekst } from "@/lib/facturen/status";
@@ -84,9 +84,9 @@ export default async function Facturen({ searchParams }: { searchParams: Promise
                       {f.soort === "credit" && <span className="ml-1.5 text-[13px] text-tekst-3">credit</span>}
                     </td>
                     <td>{f.klant.naam}</td>
-                    <td className="text-tekst-2">{datumNl(f.datum)}</td>
+                    <td className="text-tekst-2">{datumKort(f.datum)}</td>
                     <td data-label="vervalt" className={teLaatDagen > 0 ? "text-rood-tekst" : "text-tekst-2"}>
-                      {datumNl(f.vervaldatum)}
+                      {datumKort(f.vervaldatum)}
                       {teLaatDagen > 0 && <span className="block text-[13px]">{teLaatDagen} {teLaatDagen === 1 ? "dag" : "dagen"} te laat</span>}
                     </td>
                     <td className="num">

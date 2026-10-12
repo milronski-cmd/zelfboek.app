@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { datumNl, euro, isoDatum } from "@/lib/btw";
+import { datumKort, euro, isoDatum } from "@/lib/btw";
 import { URENCRITERIUM } from "@/lib/fiscaal/constanten-2026";
 import { urenToevoegen, urenVerwijderen } from "@/lib/acties-fiscaal";
 import { Cijferband, Kaart, Kop, Leeg, Tegel } from "@/components/ui";
@@ -95,7 +95,7 @@ export default async function Uren({ searchParams }: { searchParams: Promise<{ j
             <tbody>
               {regels.map((r) => (
                 <tr key={r.id}>
-                  <td className="whitespace-nowrap text-tekst-2">{datumNl(r.datum)}</td>
+                  <td className="whitespace-nowrap text-tekst-2">{datumKort(r.datum)}</td>
                   <td>{r.klant?.naam ?? <span className="text-tekst-3">geen</span>}</td>
                   <td>{r.omschrijving}</td>
                   <td className="text-tekst-2">{r.soort === "declarabel" ? "Te factureren" : "Eigen zaak"}{r.gefactureerd ? ", gefactureerd" : ""}</td>
