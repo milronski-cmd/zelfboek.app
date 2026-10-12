@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
-import { datumNl } from "@/lib/btw";
+import { datumNl, wanneerNl } from "@/lib/btw";
 import { importeerVanPakket, koppelingOpslaan, koppelingVerwijderen, startKoppeling, startPsd2, syncNu, syncNuFormulier } from "@/lib/acties-bank";
 import { AANBIEDERS, ingesteld, proefmodus, type OAuthSoort } from "@/lib/koppelen";
 import { leesKoppeling } from "@/lib/koppelingen";
@@ -79,7 +79,7 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
     if (!k) return null;
     return (
       <>
-        {k.laatsteSync && <p className="text-[13px] text-tekst-3">Laatst opgehaald {datumNl(k.laatsteSync)}. Daarna elke nacht vanzelf.</p>}
+        {k.laatsteSync && <p className="text-[13px] text-tekst-3">Laatst opgehaald {wanneerNl(k.laatsteSync)}. Daarna elke nacht vanzelf.</p>}
         {k.laatsteFout && <p className="mt-2 text-sm text-rood-tekst">{k.laatsteFout}</p>}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {sync && <ResultaatFormulier actie={syncNu} verborgen={{ soort }} knopTekst="Nu ophalen" bezigTekst="Ophalen" />}

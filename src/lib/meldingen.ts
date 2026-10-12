@@ -93,6 +93,28 @@ export async function controleerDeadlines(ondernemingId: string): Promise<number
     }
   }
 
+  // 6. Bankkoppeling: toestemming verloopt na 90 dagen. 7 en 1 dag vooraf een seintje met de verleng-knop.
+  const verloopt = await db.bankrekening.findMany({ where: { ondernemingId, bron: "psd2", psd2Verloopt: { not: null } }, select: { naam: true, bank: true, psd2Verloopt: true } });
+  for (const r of verloopt) {
+    const d = dagenTot(r.psd2Verloopt!);
+    if ([7, 1].includes(d)) {
+      await nieuw("deadline", `Toestemming bij ${r.bank ?? "je bank"} verloopt over ${d} dag${d === 1 ? "" : "en"}`, `Daarna halen we de betalingen van ${r.naam} niet meer op. Verlengen kost één klik: je logt opnieuw in bij je bank.`, "/app/koppelingen");
+    }
+  }
+
+  // 7. Geld raakt binnen een maand op (vrij te besteden min vaste lasten). Eén keer per week, op maandag.
+  if (new Date().getDay() === 1) {
+    const { geldVooruit } = await import("@/lib/geld");
+    const g = await geldVooruit(o);
+    if (g.krap) await nieuw("deadline", g.vrij != null && g.vrij < 0 ? "Je geld is nu al krap" : `Je geld reikt tot ${g.reiktTekst}`, `Na btw, inkomstenbelasting en je vaste lasten is er weinig over. Kijk op het overzicht bij "Je geld reikt tot" wat er meetelt.`, "/app");
+  }
+
+  // 8. Kosten zonder bon: elke maandag één seintje als er betalingen van meer dan 7 dagen oud zonder bon zijn.
+  if (new Date().getDay() === 1) {
+    const zonderBon = await db.transactie.count({ where: { ondernemingId, zakelijk: true, bedrag: { lt: -50 }, bonId: null, bron: { notIn: ["mollie", "stripe", "shopify", "bol", "woocommerce", "paypal"] }, categorie: { notIn: ["belasting", "overboeking_eigen", "bankkosten", "verzekering"] }, datum: { lt: new Date(Date.now() - 7 * 864e5), gte: new Date(Date.now() - 60 * 864e5) } } });
+    if (zonderBon > 0) await nieuw("ai", `${zonderBon} ${zonderBon === 1 ? "betaling mist" : "betalingen missen"} nog een bon`, "Maak een foto van de bon of stuur hem door per mail. Zo klopt je btw.", "/app/bank?filter=zonderbon");
+  }
+
   return aantal;
 }
 

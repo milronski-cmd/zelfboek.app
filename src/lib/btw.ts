@@ -140,3 +140,13 @@ export const datumKort = (d: Date, nu: Date = new Date()) => {
   const ditJaar = d.toLocaleDateString("nl-NL", { year: "numeric", ...z }) === nu.toLocaleDateString("nl-NL", { year: "numeric", ...z });
   return d.toLocaleDateString("nl-NL", { day: "numeric", month: "short", ...(ditJaar ? {} : { year: "numeric" }), ...z }).replace(".", "");
 };
+
+/** "vandaag 06:00", "gisteren 23:10" of "8 okt 14:02": wanneer iets voor het laatst gebeurde, in gewone woorden. */
+export const wanneerNl = (d: Date, nu: Date = new Date()) => {
+  const z = { timeZone: "Europe/Amsterdam" } as const;
+  const dag = (x: Date) => x.toLocaleDateString("sv-SE", z);
+  const tijd = d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", ...z });
+  if (dag(d) === dag(nu)) return `vandaag ${tijd}`;
+  if (dag(d) === dag(new Date(nu.getTime() - 864e5))) return `gisteren ${tijd}`;
+  return `${datumKort(d, nu)} ${tijd}`;
+};
