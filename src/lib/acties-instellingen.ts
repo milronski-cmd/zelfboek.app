@@ -115,14 +115,26 @@ export async function ondernemingVerwijderen(fd: FormData): Promise<Resultaat> {
   redirect(ander ? "/app" : "/login");
 }
 
-/** Eerste keer: je naam en de naam van je bedrijf, daarna meteen naar het overzicht. */
+/** Aanmelden stap 1: je naam, de naam van je bedrijf en (als je hem bij de hand hebt) je KvK-nummer. */
 export async function welkomOpslaan(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
   const s = await vereisGebruiker();
   const naam = v(fd, "naam");
   const bedrijf = v(fd, "bedrijf");
+  const kvk = v(fd, "kvk")?.replace(/\D/g, "") || null;
   if (naam) await db.gebruiker.update({ where: { id: s.gebruikerId }, data: { naam } });
-  if (bedrijf) await db.onderneming.update({ where: { id: o.id }, data: { naam: bedrijf } });
+  await db.onderneming.update({ where: { id: o.id }, data: { ...(bedrijf ? { naam: bedrijf } : {}), ...(kvk && kvk.length === 8 ? { kvk } : {}) } });
   revalidatePath("/app");
-  redirect("/app");
+  redirect("/welkom?stap=2");
+}
+
+/** Aanmelden stap 2: drie vragen die de juiste instellingen kiezen (btw of KOR, starter, urencriterium). */
+export async function welkomVragen(fd: FormData): Promise<void> {
+  const o = await schrijfOnderneming();
+  await db.onderneming.update({
+    where: { id: o.id },
+    data: { korDeelnemer: fd.get("btw") === "kor", starter: fd.get("starter") === "ja", urencriterium: fd.get("uren") !== "nee" },
+  });
+  revalidatePath("/app");
+  redirect("/welkom?stap=3");
 }
