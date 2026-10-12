@@ -3,6 +3,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { btwAangifte, btwDeadline, kwartaalVan, periodeBereik, rond } from "@/lib/btw";
 import { BTW_CODES, CATEGORIEEN, CATEGORIE_INFO, URENCRITERIUM, label } from "@/lib/categorieen";
+import { btwRegels } from "@/lib/btw-bron";
 
 type Ctx = { ondernemingId: string };
 
@@ -134,7 +135,7 @@ export async function voerToolUit(naam: string, input: Record<string, unknown>, 
       const ond = await db.onderneming.findUniqueOrThrow({ where: { id: o } });
       const { start, eind } = periodeBereik(ond.btwTijdvak, i.jaar, i.periode || 1);
       const rows = await db.transactie.findMany({ where: { ondernemingId: o, datum: { gte: start, lt: eind } } });
-      const a = btwAangifte(rows);
+      const a = btwAangifte(await btwRegels(o, start, eind));
       const open = rows.filter((t) => t.zakelijk === null).length;
       const twijfel = rows.filter((t) => t.zakelijk !== null && !t.bevestigd).length;
       return JSON.stringify({ tijdvak: ond.btwTijdvak, deadline: btwDeadline(eind).toISOString().slice(0, 10), rubrieken: a, nogNietBeoordeeld: open, twijfel, definitief: open === 0 && twijfel === 0 });

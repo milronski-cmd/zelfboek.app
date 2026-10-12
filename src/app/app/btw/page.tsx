@@ -7,6 +7,7 @@ import { icpOpgaaf } from "@/lib/exports/icp";
 import { aangifteOpslaan, btwIndienen } from "@/lib/acties-fiscaal";
 import { digipoortAan } from "@/lib/indienen";
 import { Kaart, Kop, Leeg, Pil, Waarom, knopLicht } from "@/components/ui";
+import { btwRegels } from "@/lib/btw-bron";
 
 export const instant = false;
 
@@ -51,7 +52,7 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
   }
 
   const [regels, twijfel, onbeoordeeld, opgeslagen, historie, icp] = await Promise.all([
-    db.transactie.findMany({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, select: { bedrag: true, btwCode: true, btwBedrag: true, zakelijk: true, categorie: true, priveDeel: true } }),
+    btwRegels(o.id, start, eind),
     db.transactie.count({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind }, bevestigd: false, zakelijk: { not: null } } }),
     db.transactie.count({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind }, zakelijk: null } }),
     db.aangifte.findUnique({ where: { ondernemingId_soort_jaar_periode: { ondernemingId: o.id, soort: "btw", jaar, periode } } }),
@@ -145,7 +146,7 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
           <section className="kaart mb-4 p-5">
             <p className="text-sm text-tekst-2">{a["5c_te_betalen"] >= 0 ? "Je betaalt over deze periode" : "Je krijgt over deze periode terug"}</p>
             <p className="cijfer mt-0.5 text-[30px] font-semibold leading-tight">{euro(Math.abs(a["5c_te_betalen"]))}</p>
-            <Waarom label="Hoe komt dit bedrag tot stand?" regels={[["Btw op je verkopen", euro(a["5a_verschuldigd"])], ["Btw op je inkopen (die krijg je terug)", euro(-a["5b_voorbelasting"])], [a["5c_te_betalen"] >= 0 ? "Te betalen" : "Terug te krijgen", euro(Math.abs(a["5c_te_betalen"]))]]} slot="Saldoplan telt de btw van al je geboekte betalingen en bonnen in deze periode. Privé-uitgaven tellen niet mee." />
+            <Waarom label="Hoe komt dit bedrag tot stand?" regels={[["Btw op je verkopen", euro(a["5a_verschuldigd"])], ["Btw op je inkopen (die krijg je terug)", euro(-a["5b_voorbelasting"])], [a["5c_te_betalen"] >= 0 ? "Te betalen" : "Terug te krijgen", euro(Math.abs(a["5c_te_betalen"]))]]} slot={o.btwStelsel === "kas" ? "Saldoplan telt de btw van al je geboekte betalingen en bonnen in deze periode. Privé-uitgaven tellen niet mee." : "Saldoplan telt de btw van je verstuurde facturen (op de factuurdatum) en van je andere geboekte ontvangsten, betalingen en bonnen in deze periode. Privé-uitgaven tellen niet mee."} />
             <p className="mt-4 text-sm">Kijk de vakjes hieronder na. Klopt het? Ga dan naar de volgende stap.</p>
           </section>
           {vakjes}

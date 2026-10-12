@@ -1,9 +1,10 @@
 import { MERK } from "@/lib/merk";
 import ExcelJS from "exceljs";
 import { db } from "@/lib/db";
-import { btwAangifte, kwartaalBereik } from "@/lib/btw";
+import { kwartaalBereik } from "@/lib/btw";
 import { label } from "@/lib/categorieen";
 import { jaarrekening } from "@/lib/fiscaal/jaarrekening";
+import { aangifteVoor } from "@/lib/btw-bron";
 
 /** Volledige administratie van een jaar in één werkboek. */
 export async function excelExport(ondernemingId: string, jaar: number): Promise<Buffer> {
@@ -103,10 +104,10 @@ export async function excelExport(ondernemingId: string, jaar: number): Promise<
   // Btw per kwartaal
   const q = wb.addWorksheet("Btw per kwartaal");
   q.columns = [{ header: "Rubriek", key: "r", width: 22 }, ...[1, 2, 3, 4].map((k) => ({ header: `Q${k}`, key: `q${k}`, width: 14, style: { numFmt: geld } })), { header: "Jaar", key: "jaar", width: 14, style: { numFmt: geld } }];
-  const perK = [1, 2, 3, 4].map((k) => {
+  const perK = await Promise.all([1, 2, 3, 4].map((k) => {
     const { start: s, eind: e } = kwartaalBereik(jaar, k);
-    return btwAangifte(transacties.filter((x) => x.datum >= s && x.datum < e));
-  });
+    return aangifteVoor(ondernemingId, s, e);
+  }));
   for (const rub of Object.keys(perK[0]) as (keyof (typeof perK)[0])[]) {
     const rij: Record<string, string | number> = { r: rub };
     let som = 0;

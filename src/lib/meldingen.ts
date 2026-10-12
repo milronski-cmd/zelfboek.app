@@ -4,6 +4,7 @@ import { btwAangifte, btwDeadline, euro, periodeBereik, rond } from "@/lib/btw";
 import { URENCRITERIUM } from "@/lib/categorieen";
 import { htmlMail, verstuurMail } from "@/lib/mail";
 import { huidigTijdvak } from "@/lib/assistent/tools";
+import { btwRegels } from "@/lib/btw-bron";
 
 export type MeldingSoort = "deadline" | "herinnering" | "sync" | "ai" | "systeem";
 
@@ -50,8 +51,7 @@ export async function controleerDeadlines(ondernemingId: string): Promise<number
     await nieuw("deadline", `Btw betalen: nog ${dagen} dag${dagen === 1 ? "" : "en"}`, `Je aangifte is verstuurd. Betaal ${euro(opgeslagen.bedrag)} aan de Belastingdienst met het betalingskenmerk uit je bevestiging.`, `/app/btw?j=${vorige.jaar}&p=${vorige.periode}&stap=3`);
   }
   if (!ingediend && [14, 3, 0].includes(dagen)) {
-    const rows = await db.transactie.findMany({ where: { ondernemingId, datum: { gte: start, lt: eind } } });
-    const a = btwAangifte(rows);
+    const a = btwAangifte(await btwRegels(ondernemingId, start, eind));
     const naam = o.btwTijdvak === "maand" ? `maand ${vorige.periode}` : o.btwTijdvak === "jaar" ? `jaar ${vorige.jaar}` : `Q${vorige.periode} ${vorige.jaar}`;
     await nieuw("deadline", `Btw-aangifte ${naam} ${dagen === 0 ? "moet vandaag binnen zijn" : `over ${dagen} dag${dagen === 1 ? "" : "en"}`}`,
       `Indicatie: ${euro(a["5c_te_betalen"])} ${a["5c_te_betalen"] >= 0 ? "te betalen" : "terug te vragen"}. Controleer de twijfelgevallen en neem de rubrieken over bij de Belastingdienst.`,

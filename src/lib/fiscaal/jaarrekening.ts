@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { btwAangifte, rond, periodeBereik } from "@/lib/btw";
 import { boekwaarde } from "./afschrijving";
 import { winstVerlies, type WinstVerlies } from "./winst";
+import { btwRegels as btwBron } from "@/lib/btw-bron";
 
 export type BalansPost = { label: string; rgs: string; bedrag: number };
 
@@ -39,7 +40,7 @@ export async function jaarrekening(ondernemingId: string, jaar: number): Promise
     // Debiteuren per 31-12: verzonden vóór jaareinde en toen nog niet (volledig) betaald, ook als ze inmiddels wel betaald zijn.
     db.factuur.findMany({ where: { ondernemingId, soort: "factuur", datum: { lt: eind }, status: { notIn: ["concept", "gecrediteerd"] }, OR: [{ betaaldOp: null }, { betaaldOp: { gte: eind } }] } }),
     db.activum.findMany({ where: { ondernemingId, aanschafDatum: { lt: eind } } }),
-    db.transactie.findMany({ where: { ondernemingId, datum: { gte: laatsteTijdvak.start, lt: laatsteTijdvak.eind } }, select: { bedrag: true, btwCode: true, btwBedrag: true, zakelijk: true, categorie: true, priveDeel: true } }),
+    btwBron(ondernemingId, laatsteTijdvak.start, laatsteTijdvak.eind),
     db.aangifte.findMany({ where: { ondernemingId, soort: "btw", jaar } }),
     db.transactie.aggregate({ where: { ondernemingId, datum: { gte: start, lt: eind }, categorie: "prive" }, _sum: { bedrag: true } }),
   ]);

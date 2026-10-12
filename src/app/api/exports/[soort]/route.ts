@@ -8,6 +8,7 @@ import { sbrBtwAangifte } from "@/lib/exports/sbr";
 import { icpCsv, icpOpgaaf } from "@/lib/exports/icp";
 import { btwOverzichtPdf, jaarrekeningPdf } from "@/lib/exports/pdf-rapport";
 import { jaarrekening } from "@/lib/fiscaal/jaarrekening";
+import { btwRegels } from "@/lib/btw-bron";
 
 export async function GET(req: Request, { params }: { params: Promise<{ soort: string }> }) {
   const sessie = await huidigeSessie();
@@ -43,7 +44,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ soort: s
       case "sbr":
       case "btw-pdf": {
         const { start, eind } = periodeBereik(tijdvak, jaar, periode);
-        const regels = await db.transactie.findMany({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, select: { bedrag: true, btwCode: true, btwBedrag: true, zakelijk: true, categorie: true, priveDeel: true } });
+        const regels = await btwRegels(o.id, start, eind);
         const aangifte = btwAangifte(regels);
         if (soort === "sbr") {
           const btwId = o.btwId ?? o.btwNummer ?? "";

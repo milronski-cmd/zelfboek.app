@@ -35,10 +35,10 @@ async function main() {
 
     const wv = await winstVerlies(o.id, new Date(2026, 0, 1), new Date(2027, 0, 1));
     console.log("W&V:", { omzet: wv.omzet, kosten: wv.kosten, aftrekbaar: wv.kostenAftrekbaar, afschrijving: wv.afschrijving, winst: wv.winst, fiscaal: wv.fiscaleWinst });
-    // omzet 1000 bank; kosten: 100 + 24.2 + 60 + 480 afschrijving = 664.2; aftrekbaar: representatie 80% → 652.2
-    if (wv.omzet !== 1000) throw new Error("omzet " + wv.omzet);
+    // omzet 1000 bank + 1000 factuur (factuurstelsel, verlegd); kosten: 100 + 24.2 + 60 + 480 afschrijving = 664.2; aftrekbaar: representatie 80% → 652.2
+    if (wv.omzet !== 2000) throw new Error("omzet " + wv.omzet);
     if (Math.abs(wv.kosten - 664.2) > 0.01) throw new Error("kosten " + wv.kosten);
-    if (Math.abs(wv.fiscaleWinst - (1000 - 652.2)) > 0.01) throw new Error("fiscaal " + wv.fiscaleWinst);
+    if (Math.abs(wv.fiscaleWinst - (2000 - 652.2)) > 0.01) throw new Error("fiscaal " + wv.fiscaleWinst);
 
     const jr = await jaarrekening(o.id, 2026);
     console.log("balans:", jr.activa, jr.passiva, jr.totaalActiva, jr.totaalPassiva);

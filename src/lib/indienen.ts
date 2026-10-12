@@ -3,6 +3,7 @@ import { db } from "./db";
 import { btwAangifte, periodeBereik } from "./btw";
 import { sbrBtwAangifte } from "./exports/sbr";
 import { factuurUbl } from "./facturen/ubl";
+import { btwRegels } from "./btw-bron";
 
 /**
  * Klaargezet: rechtstreeks versturen naar de overheid en via Peppol. Gaat aan met env-variabelen;
@@ -27,7 +28,7 @@ export async function dienBtwIn(o: Onderneming, jaar: number, periode: number): 
   if (!btwId) throw new Error("Vul eerst je btw-identificatienummer in bij Instellingen.");
   const tijdvak = o.btwTijdvak as "maand" | "kwartaal" | "jaar";
   const { start, eind } = periodeBereik(tijdvak, jaar, periode || 1);
-  const regels = await db.transactie.findMany({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, select: { bedrag: true, btwCode: true, btwBedrag: true, zakelijk: true, categorie: true, priveDeel: true } });
+  const regels = await btwRegels(o.id, start, eind);
   const xbrl = sbrBtwAangifte({ aangifte: btwAangifte(regels), btwId, naam: o.naam, jaar, tijdvak, periode, contact: { naam: o.naam, telefoon: o.telefoon ?? undefined } });
   const r = await fetch(process.env.DIGIPOORT_HUB_URL!, { method: "POST", headers: { Authorization: `Bearer ${process.env.DIGIPOORT_HUB_KEY}`, "Content-Type": "application/xml" }, body: xbrl });
   const t = await r.text();

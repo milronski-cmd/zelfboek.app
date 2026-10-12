@@ -5,6 +5,7 @@ import { btwUitInclusief } from "@/lib/btw";
 import { parseBankCsv, type BankRegel, type ParseResultaat } from "./csv";
 import { parseMt940 } from "./mt940";
 import { parseCamt053 } from "./camt053";
+import { letterAutomatischAf } from "@/lib/facturen/betaling";
 
 /** Herkent het bestandstype aan de inhoud en parseert. */
 export function parseBankbestand(tekst: string, bestandsnaam = ""): ParseResultaat {
@@ -130,6 +131,7 @@ export async function pasVasteKeuzesToe(ondernemingId: string, alleenSleutel?: s
 /** Alle nog niet beoordeelde transacties in porties van 40 door de AI halen. */
 export async function beoordeelOpenstaand(ondernemingId: string, max = 400): Promise<{ beoordeeld: number; fout?: string }> {
   const o = await db.onderneming.findUniqueOrThrow({ where: { id: ondernemingId } });
+  await letterAutomatischAf(ondernemingId).catch(() => 0);
   const vast = await pasVasteKeuzesToe(ondernemingId);
   const open = await db.transactie.findMany({
     where: { ondernemingId, zakelijk: null },

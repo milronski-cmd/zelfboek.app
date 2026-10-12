@@ -66,6 +66,7 @@ export async function fiscaalOpslaan(fd: FormData): Promise<void> {
     where: { id: o.id },
     data: {
       btwTijdvak: tijdvak && ["maand", "kwartaal", "jaar"].includes(tijdvak) ? tijdvak : "kwartaal",
+      btwStelsel: v(fd, "btwStelsel") === "kas" ? "kas" : "factuur",
       korDeelnemer: fd.get("korDeelnemer") === "on", urencriterium: fd.get("urencriterium") === "on", starter: fd.get("starter") === "on",
       ...(["0.95", "0.85", "0.7"].includes(String(fd.get("zekerheidsgrens"))) ? { zekerheidsgrens: Number(fd.get("zekerheidsgrens")) } : {}),
     },

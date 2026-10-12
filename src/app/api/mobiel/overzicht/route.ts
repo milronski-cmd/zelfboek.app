@@ -4,6 +4,7 @@ import { btwAangifte, btwDeadline, periodeBereik, rond } from "@/lib/btw";
 import { CATEGORIE_INFO } from "@/lib/categorieen";
 import { huidigTijdvak } from "@/lib/assistent/tools";
 import { mobielContext, route } from "@/lib/mobiel";
+import { btwRegels } from "@/lib/btw-bron";
 
 /** Startscherm van de app: saldo, wat aandacht vraagt, open facturen, deze maand, btw en meldingen. */
 export const GET = route(async (req: Request) => {
@@ -19,7 +20,7 @@ export const GET = route(async (req: Request) => {
     db.transactie.count({ where: { ondernemingId: o.id, bevestigd: false, zakelijk: { not: null } } }),
     db.factuur.findMany({ where: { ondernemingId: o.id, status: { in: ["verzonden", "herinnerd", "aangemaand"] } }, select: { totaal: true, betaaldBedrag: true } }),
     db.transactie.findMany({ where: { ondernemingId: o.id, zakelijk: true, datum: { gte: maandStart } }, select: { bedrag: true, btwBedrag: true, priveDeel: true, categorie: true } }),
-    db.transactie.findMany({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, select: { bedrag: true, btwCode: true, btwBedrag: true, zakelijk: true, categorie: true, priveDeel: true } }),
+    btwRegels(o.id, start, eind),
     db.melding.findMany({ where: { ondernemingId: o.id }, orderBy: { aangemaakt: "desc" }, take: 10 }),
   ]);
 

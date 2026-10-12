@@ -92,6 +92,7 @@ model Onderneming {
   startdatum         DateTime?
   btwTijdvak         String    @default("kwartaal") // maand | kwartaal | jaar
   korDeelnemer       Boolean   @default(false)
+  btwStelsel         String    @default("factuur") // factuur (btw over de factuurdatum, standaard) | kas (over ontvangen betalingen)
   urencriterium      Boolean   @default(true)
   starter            Boolean   @default(false) // startersaftrek
   factuurPrefix      String    @default("")

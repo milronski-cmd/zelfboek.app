@@ -134,6 +134,11 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
             <select id="btwTijdvak" name="btwTijdvak" defaultValue={o.btwTijdvak} className={veld}><option value="maand">Elke maand</option><option value="kwartaal">Elk kwartaal</option><option value="jaar">Elk jaar</option></select>
             <p className="mt-1 text-[13px] text-tekst-3">Staat in de brief van de Belastingdienst. De meeste zzp&apos;ers doen aangifte per kwartaal.</p>
           </div>
+          <div>
+            <label className="lbl" htmlFor="btwStelsel">Wanneer telt de btw van een factuur?</label>
+            <select id="btwStelsel" name="btwStelsel" defaultValue={o.btwStelsel} className={veld}><option value="factuur">Als ik de factuur stuur (standaard)</option><option value="kas">Als het geld binnen is (kasstelsel)</option></select>
+            <p className="mt-1 text-[13px] text-tekst-3">Het kasstelsel mag alleen als de Belastingdienst het goedkeurde. Weet je het niet, laat het op standaard.</p>
+          </div>
           <div className="space-y-4 border-t border-lijn pt-5">
             <Vinkje naam="korDeelnemer" label="Ik doe mee aan de kleineondernemersregeling (KOR)" uitleg="Dan reken je geen btw en doe je geen btw-aangifte. Kan alleen onder 20.000 euro omzet per jaar." aan={o.korDeelnemer} />
             <Vinkje naam="urencriterium" label="Ik haal het urencriterium van 1.225 uur" uitleg="Nodig voor de zelfstandigenaftrek en de startersaftrek. Houd je uren bij onder Uren." aan={o.urencriterium} />

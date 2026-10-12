@@ -5,6 +5,7 @@ import { winstVerlies } from "./fiscaal/winst";
 import { berekenIb } from "./fiscaal/ib";
 import { huidigTijdvak } from "./assistent/tools";
 import { winkelSleutel } from "./vragen";
+import { btwRegels } from "./btw-bron";
 
 /**
  * "Saldo vooruit": wat je echt kunt uitgeven, hoe lang je geld reikt en wat je opzij zet.
@@ -23,7 +24,7 @@ export async function ibIndicatie(o: Onderneming, jaar = new Date().getFullYear(
     db.kilometerregel.aggregate({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, _sum: { vergoeding: true } }),
     db.activum.findMany({ where: { ondernemingId: o.id, aanschafDatum: { gte: start, lt: eind }, kiaToegepast: true } }),
     db.transactie.aggregate({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind }, categorie: "aov" }, _sum: { bedrag: true } }),
-    db.transactie.findMany({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, select: { bedrag: true, btwCode: true, btwBedrag: true, zakelijk: true, categorie: true, priveDeel: true } }),
+    btwRegels(o.id, start, eind),
   ]);
   const urenTotaal = uren._sum.uren ?? 0;
   const kmVergoeding = km._sum.vergoeding ?? 0;
@@ -111,13 +112,12 @@ export async function geldVooruit(o: Onderneming): Promise<GeldVooruit> {
   const vorigeEinde = huidig.start;
   const vorigeStart = o.btwTijdvak === "maand" ? new Date(vorigeEinde.getFullYear(), vorigeEinde.getMonth() - 1, 1) : o.btwTijdvak === "jaar" ? new Date(vorigeEinde.getFullYear() - 1, 0, 1) : new Date(vorigeEinde.getFullYear(), vorigeEinde.getMonth() - 3, 1);
   const vorigePeriode = o.btwTijdvak === "maand" ? vorigeStart.getMonth() + 1 : o.btwTijdvak === "jaar" ? 0 : Math.floor(vorigeStart.getMonth() / 3) + 1;
-  const sel = { bedrag: true, btwCode: true, btwBedrag: true, zakelijk: true, categorie: true, priveDeel: true } as const;
 
   const [rekeningen, mutaties, nuRegels, vorigeRegels, vorigeAangifte, open, prive, lasten, ib, fiscus] = await Promise.all([
     db.bankrekening.findMany({ where: { ondernemingId: o.id } }),
     db.transactie.groupBy({ by: ["bankrekeningId"], where: { ondernemingId: o.id }, _sum: { bedrag: true } }),
-    db.transactie.findMany({ where: { ondernemingId: o.id, datum: { gte: huidig.start, lt: huidig.eind } }, select: sel }),
-    db.transactie.findMany({ where: { ondernemingId: o.id, datum: { gte: vorigeStart, lt: vorigeEinde } }, select: sel }),
+    btwRegels(o.id, huidig.start, huidig.eind),
+    btwRegels(o.id, vorigeStart, vorigeEinde),
     db.aangifte.findFirst({ where: { ondernemingId: o.id, soort: "btw", jaar: vorigeStart.getFullYear(), periode: vorigePeriode } }),
     db.factuur.findMany({ where: { ondernemingId: o.id, status: { in: ["verzonden", "herinnerd", "aangemaand"] } }, select: { totaal: true, betaaldBedrag: true, vervaldatum: true } }),
     db.transactie.aggregate({ where: { ondernemingId: o.id, zakelijk: false, bedrag: { lt: 0 }, datum: { gte: new Date(nu.getTime() - 91 * 864e5) } }, _sum: { bedrag: true } }),

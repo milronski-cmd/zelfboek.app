@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { btwUitInclusief, rond } from "@/lib/btw";
 import { CATEGORIE_INFO, type Categorie } from "@/lib/categorieen";
+import { factuurRegels } from "@/lib/btw-bron";
 
 export type WinstRegel = {
   categorie: string;
@@ -52,7 +53,12 @@ export async function winstVerlies(ondernemingId: string, start: Date, eind: Dat
     per.set(i.key, r);
   };
 
-  for (const t of transacties) {
+  // Factuurstelsel (standaard): omzet uit de facturen op factuurdatum; betalingen die aan een factuur hangen tellen niet nog eens.
+  const stelsel = await db.onderneming.findUnique({ where: { id: ondernemingId }, select: { btwStelsel: true } });
+  const opFactuur = stelsel?.btwStelsel !== "kas";
+  const bankRegels = opFactuur ? transacties.filter((t) => !t.factuurId) : transacties;
+  const uitFacturen = opFactuur ? await factuurRegels(ondernemingId, start, eind) : [];
+  for (const t of [...bankRegels, ...uitFacturen]) {
     const zakelijk = 1 - (t.priveDeel ?? 0);
     const incl = Math.abs(t.bedrag);
     const btw = t.btwBedrag ?? btwUitInclusief(incl, t.btwCode);

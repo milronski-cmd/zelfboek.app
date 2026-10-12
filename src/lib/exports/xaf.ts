@@ -1,5 +1,6 @@
 import { MERK } from "@/lib/merk";
 import { db } from "@/lib/db";
+import { EU } from "@/lib/facturen/bereken";
 import { btwUitInclusief, isoDatum, rond } from "@/lib/btw";
 import { CATEGORIE_INFO, RGS_OMSCHRIJVING, type Categorie } from "@/lib/categorieen";
 
@@ -24,7 +25,7 @@ export async function xafExport(ondernemingId: string, jaar: number): Promise<st
   const [o, transacties, facturen, memoriaal, klanten, bonnen] = await Promise.all([
     db.onderneming.findUniqueOrThrow({ where: { id: ondernemingId } }),
     db.transactie.findMany({ where: { ondernemingId, datum: { gte: start, lt: eind }, zakelijk: true }, orderBy: { datum: "asc" }, include: { bankrekening: true } }),
-    db.factuur.findMany({ where: { ondernemingId, datum: { gte: start, lt: eind }, status: { not: "concept" } }, orderBy: { datum: "asc" }, include: { klant: true } }),
+    db.factuur.findMany({ where: { ondernemingId, datum: { gte: start, lt: eind }, OR: [{ status: { not: "concept" } }, { soort: "credit" }] }, orderBy: { datum: "asc" }, include: { klant: true } }),
     db.memoriaalboeking.findMany({ where: { ondernemingId, datum: { gte: start, lt: eind } }, orderBy: { datum: "asc" } }),
     db.klant.findMany({ where: { ondernemingId } }),
     db.bon.findMany({ where: { ondernemingId, status: { in: ["gekoppeld", "uitgelezen"] } }, select: { leverancier: true, leverancierBtw: true } }),
@@ -66,12 +67,16 @@ export async function xafExport(ondernemingId: string, jaar: number): Promise<st
   // Verkoopjournaal
   for (const f of facturen) {
     nr++;
-    const rek = f.btwVerlegd ? "WOmzNopOlb" : "WOmzNopOlv";
+    const buitenEu = f.btwVerlegd && !EU.has((f.klant.land ?? "NL").toUpperCase());
+    const rek = f.btwVerlegd ? (buitenEu ? "WOmzNopOlu" : "WOmzNopOlb") : "WOmzNopOlv";
     gebruikteRek.add(rek);
-    const d = { recID: f.nummer, datum: f.datum, omschrijving: `Factuur ${f.nummer} ${f.klant.naam}`, btwCode: f.btwVerlegd ? "verlegd" : "21", jrn: "VRK", custSupID: f.klantId.slice(-10) };
-    regels.push({ nr, ...d, accID: DEB, debet: f.totaal, credit: 0, btwBedrag: 0 });
-    regels.push({ nr, ...d, accID: rek, debet: 0, credit: f.subtotaal, btwBedrag: f.btw });
-    if (f.btw) regels.push({ nr, ...d, accID: BTW_AF, debet: 0, credit: f.btw, btwBedrag: 0 });
+    const tarief = f.btwVerlegd ? "verlegd" : f.btw === 0 ? "0" : Math.abs(f.btw / (f.subtotaal || 1)) < 0.15 ? "9" : "21";
+    const d = { recID: f.nummer, datum: f.datum, omschrijving: `${f.soort === "credit" ? "Creditfactuur" : "Factuur"} ${f.nummer} ${f.klant.naam}`, btwCode: tarief, jrn: "VRK", custSupID: f.klantId.slice(-10) };
+    // Een creditfactuur (negatief) staat aan de andere kant, met positieve bedragen.
+    const zij = (bedrag: number, debetKant: boolean) => (bedrag >= 0) === debetKant ? { debet: Math.abs(bedrag), credit: 0 } : { debet: 0, credit: Math.abs(bedrag) };
+    regels.push({ nr, ...d, accID: DEB, ...zij(f.totaal, true), btwBedrag: 0 });
+    regels.push({ nr, ...d, accID: rek, ...zij(f.subtotaal, false), btwBedrag: Math.abs(f.btw) });
+    if (f.btw) regels.push({ nr, ...d, accID: BTW_AF, ...zij(f.btw, false), btwBedrag: 0 });
   }
   // Memoriaal
   for (const m of memoriaal) {
