@@ -362,14 +362,17 @@ export async function offerteStatus(fd: FormData): Promise<void> {
 }
 
 /** Publiek, via token: de klant accepteert of wijst af. */
-export async function offerteBesluit(token: string, besluit: "geaccepteerd" | "afgewezen"): Promise<Resultaat> {
+export async function offerteBesluit(token: string, besluit: "geaccepteerd" | "afgewezen", ondertekening?: { handtekening: string; naam: string }): Promise<Resultaat> {
   const of = await db.offerte.findUnique({ where: { acceptToken: token }, include: { klant: true } });
   if (!of) return { ok: false, fout: "Offerte niet gevonden." };
   if (["geaccepteerd", "afgewezen", "gefactureerd"].includes(of.status)) return { ok: false, fout: "Deze offerte is al afgehandeld." };
   if (of.geldigTot < new Date()) return { ok: false, fout: "Deze offerte is verlopen." };
-  await db.offerte.update({ where: { id: of.id }, data: { status: besluit, besluitOp: new Date() } });
+  // Accepteren gaat met een getekende handtekening (PNG, max. ~300 kB) en de naam van wie tekent.
+  const geldig = ondertekening && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(ondertekening.handtekening) && ondertekening.handtekening.length < 400_000 && ondertekening.naam.trim().length > 1;
+  if (besluit === "geaccepteerd" && !geldig) return { ok: false, fout: "Zet je naam en handtekening om de offerte te accepteren." };
+  await db.offerte.update({ where: { id: of.id }, data: { status: besluit, besluitOp: new Date(), ...(besluit === "geaccepteerd" && ondertekening ? { handtekening: ondertekening.handtekening, getekendDoor: ondertekening.naam.trim().slice(0, 120), getekendOp: new Date() } : {}) } });
   await db.melding.create({
-    data: { ondernemingId: of.ondernemingId, soort: "systeem", titel: `Offerte ${besluit}`, tekst: `${of.nummer} door ${of.klant.naam}`, link: `/app/offertes/${of.id}` },
+    data: { ondernemingId: of.ondernemingId, soort: "systeem", titel: besluit === "geaccepteerd" ? `Offerte ${of.nummer} getekend` : `Offerte ${of.nummer} afgewezen`, tekst: besluit === "geaccepteerd" ? `${ondertekening?.naam ?? of.klant.naam} van ${of.klant.naam} heeft de offerte digitaal ondertekend. Maak er met één klik een factuur van.` : `${of.klant.naam} heeft de offerte afgewezen.`, link: `/app/offertes/${of.id}` },
   });
   return { ok: true, melding: besluit === "geaccepteerd" ? "Bedankt, de offerte is geaccepteerd." : "De offerte is afgewezen." };
 }

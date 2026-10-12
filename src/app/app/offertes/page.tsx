@@ -14,7 +14,7 @@ export default async function Offertes() {
   const nu = new Date();
   return (
     <>
-      <Kop titel="Offertes" sub="De klant accepteert online met één klik. Daarna maak je er met één klik een factuur van.">
+      <Kop titel="Offertes" sub="De klant tekent online, met de vinger of muis. Daarna maak je er met één klik een factuur van.">
         <Link href="/app/offertes/nieuw" className={knop}>Nieuwe offerte</Link>
       </Kop>
       {offertes.length === 0 ? (

@@ -20,6 +20,7 @@ type Document = {
   kenmerk?: string;
   betaalLink?: string | null;
   creditVan?: string | null;
+  handtekening?: { png: string; naam: string; op: Date } | null;
 };
 
 function hexNaarRgb(hex: string): [number, number, number] {
@@ -211,6 +212,12 @@ export function maakPdf(o: Onderneming, klant: Klant, doc: Document): Promise<Bu
       pdf.fillColor("#44403c").text(doc.opmerking, links, y, { width: breed });
       y += pdf.heightOfString(doc.opmerking, { width: breed }) + 8;
     }
+    if (doc.handtekening) {
+      const tekst = taal === "nl" ? "Voor akkoord getekend door" : taal === "de" ? "Zur Bestätigung unterschrieben von" : "Signed for approval by";
+      pdf.fillColor(grijs).fontSize(9).text(`${tekst} ${doc.handtekening.naam}, ${datumNl(doc.handtekening.op)}`, links, y + 6, { width: breed });
+      try { pdf.image(Buffer.from(doc.handtekening.png.split(",")[1] ?? "", "base64"), links, y + 20, { fit: [180, 60] }); } catch { /* onleesbare handtekening: alleen de tekst */ }
+      y += 86;
+    }
     if (o.factuurVoettekst) {
       pdf.fontSize(8).fillColor(grijs).text(o.factuurVoettekst, links, pdf.page.height - 70, { width: breed, align: "center" });
     }
@@ -265,6 +272,7 @@ export async function offertePdf(offerte: Offerte & { klant: Klant; onderneming:
     opmerking: offerte.opmerking,
     regels: parseRegels(offerte.regels),
     btwVerlegd: false,
+    handtekening: offerte.handtekening && offerte.getekendOp ? { png: offerte.handtekening, naam: offerte.getekendDoor ?? "", op: offerte.getekendOp } : null,
   });
   const pad = await bewaar(offerte.ondernemingId, "offertes", `${offerte.nummer.replace(/[^\w-]/g, "_")}.pdf`, buf);
   await db.offerte.update({ where: { id: offerte.id }, data: { pdfPad: pad } });

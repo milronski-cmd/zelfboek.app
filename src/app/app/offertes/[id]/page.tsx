@@ -42,6 +42,8 @@ export default async function OfferteDetail({ params }: { params: Promise<{ id: 
             <div className="text-right text-sm">
               <Pil kleur={statusPil[status] ?? "grijs"}>{status === "verzonden" ? "Wacht op klant" : statusTekst[status] ?? status}</Pil>
               {x.besluitOp && <p className="mt-2 text-tekst-2">Besluit van de klant op {datumNl(x.besluitOp)}</p>}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {x.handtekening && <div className="mt-2 inline-block text-left"><img src={x.handtekening} alt={`Handtekening van ${x.getekendDoor ?? "de klant"}`} className="h-16 w-auto rounded border border-lijn bg-white" /><p className="text-[13px] text-tekst-2">Getekend door {x.getekendDoor}{x.getekendOp ? ` op ${datumNl(x.getekendOp)}` : ""}</p></div>}
             </div>
           </div>
           <table className="tabel mt-6 [&_td]:px-0 [&_th]:px-0">

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { datumNl, euro } from "@/lib/btw";
 import { parseRegels } from "@/lib/facturen/bereken";
 import { offerteBesluit } from "@/lib/acties-facturen";
+import { Handtekening } from "@/components/Handtekening";
 
 export const instant = false;
 
@@ -26,7 +27,7 @@ export default async function PubliekeOfferte({ params, searchParams }: { params
     "use server";
     const { redirect } = await import("next/navigation");
     const keuze = fd.get("keuze") === "ja" ? "geaccepteerd" : "afgewezen";
-    const r = await offerteBesluit(token, keuze);
+    const r = await offerteBesluit(token, keuze, { handtekening: String(fd.get("handtekening") ?? ""), naam: String(fd.get("getekendDoor") ?? "") });
     redirect(`/offerte/${token}?${r.ok ? "m" : "fout"}=${encodeURIComponent(r.ok ? r.melding : r.fout)}`);
   }
 
@@ -37,7 +38,7 @@ export default async function PubliekeOfferte({ params, searchParams }: { params
         <h1 className="mt-0.5 text-[26px] font-semibold leading-tight">{x.onderneming.naam}</h1>
         <p className="mt-3 text-tekst-2">Voor {x.klant.naam}. Nummer {x.nummer}, gemaakt op {datumNl(x.datum)} en geldig tot {datumNl(x.geldigTot)}.</p>
 
-        <table className="tabel mt-7 [&_td]:px-0 [&_th]:px-0">
+        <table className="tabel mt-7 [&_td]:px-0 [&_th]:px-0 [&_td.num]:pl-4 [&_th.num]:pl-4">
           <thead><tr><th>Omschrijving</th><th className="num">Aantal</th><th className="num">Bedrag</th></tr></thead>
           <tbody>{regels.map((r, i) => <tr key={i}><td>{r.omschrijving}</td><td className="num">{r.aantal}{r.eenheid ? ` ${r.eenheid}` : ""}</td><td className="num">{euro(r.aantal * r.prijs)}</td></tr>)}</tbody>
         </table>
@@ -52,16 +53,25 @@ export default async function PubliekeOfferte({ params, searchParams }: { params
         {sp.fout && <p className="mt-6 rounded-lg bg-rood-licht px-4 py-3 text-sm text-rood-tekst">{sp.fout}</p>}
 
         {afgehandeld ? (
-          <p className="mt-8 text-sm text-tekst-2">Deze offerte is {x.status === "gefactureerd" ? "geaccepteerd en gefactureerd" : x.status}{x.besluitOp ? ` op ${datumNl(x.besluitOp)}` : ""}.</p>
+          <div className="mt-8 text-sm text-tekst-2">
+            <p>Deze offerte is {x.status === "gefactureerd" ? "geaccepteerd en gefactureerd" : x.status}{x.besluitOp ? ` op ${datumNl(x.besluitOp)}` : ""}.</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {x.handtekening && <div className="mt-3"><img src={x.handtekening} alt={`Handtekening van ${x.getekendDoor ?? "de klant"}`} className="h-20 w-auto rounded border border-lijn bg-white" /><p className="mt-1 text-[13px]">Getekend door {x.getekendDoor}</p></div>}
+          </div>
         ) : verlopen ? (
           <p className="mt-8 text-sm text-tekst-2">Deze offerte is verlopen. Vraag {x.onderneming.email ?? x.onderneming.naam} om een nieuwe.</p>
         ) : (
-          <form action={besluit} className="mt-8 flex flex-wrap gap-3">
-            <button name="keuze" value="ja" className="knop knop-groen px-7 py-3 text-sm">Offerte accepteren</button>
-            <button name="keuze" value="nee" className="knop-licht px-7 py-3 text-sm">Afwijzen</button>
-          </form>
+          <>
+            <form action={besluit} className="mt-8 border-t border-lijn pt-6">
+              <h2 className="mb-3 text-[16px] font-semibold">Akkoord? Teken hieronder</h2>
+              <Handtekening knop="Offerte ondertekenen" />
+            </form>
+            <form action={besluit} className="mt-3">
+              <button name="keuze" value="nee" className="knop-tekst knop-klein">Nee, ik wijs de offerte af</button>
+            </form>
+          </>
         )}
-        <p className="mt-8 text-[13px] text-tekst-3">Door te accepteren ga je akkoord met de offerte zoals hierboven staat. Je ontvangt daarna een factuur van {x.onderneming.naam}.</p>
+        <p className="mt-8 text-[13px] text-tekst-3">Door te ondertekenen ga je akkoord met de offerte zoals hierboven staat. Je ontvangt daarna een factuur van {x.onderneming.naam}.</p>
       </article>
     </main>
   );
