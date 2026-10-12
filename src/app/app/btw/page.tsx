@@ -97,8 +97,8 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
             </li>
           );
         })}
-        <li className="flex justify-between gap-3 bg-papier px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5a</b>Verschuldigde omzetbelasting</span><span className="cijfer font-medium">{euro(a["5a_verschuldigd"])}</span></li>
-        <li className="flex justify-between gap-3 px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5b</b>Voorbelasting</span><span className="cijfer">{euro(a["5b_voorbelasting"])}</span></li>
+        <li className="flex justify-between gap-3 bg-papier px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5a</b>Verschuldigde omzetbelasting <span className="text-tekst-3">(btw op je verkopen)</span></span><span className="cijfer font-medium">{euro(a["5a_verschuldigd"])}</span></li>
+        <li className="flex justify-between gap-3 px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5b</b>Voorbelasting <span className="text-tekst-3">(btw op je inkopen, krijg je terug)</span></span><span className="cijfer">{euro(a["5b_voorbelasting"])}</span></li>
         <li className="flex items-center justify-between gap-3 bg-papier px-4 py-3 font-semibold"><span><b className="tabular mr-3">5c</b>{a["5c_te_betalen"] >= 0 ? "Te betalen" : "Terug te vragen"}</span><span className="cijfer text-[20px]">{euro(Math.abs(a["5c_te_betalen"]))}</span></li>
       </ul>
     </div>

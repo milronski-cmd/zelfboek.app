@@ -12,6 +12,7 @@ import { BankIcoon, DocumentIcoon } from "@/components/BankIcoon";
 import { OmzetGrafiek } from "@/components/OmzetGrafiek";
 import { EersteStappen } from "@/components/EersteStappen";
 import { Vragen } from "@/components/Vragen";
+import { WatAls } from "@/components/WatAls";
 import { isDubbeleVraag, naarKaarten, openVragen } from "@/lib/vragen";
 import { beantwoordVraag } from "@/lib/acties-bank";
 
@@ -123,6 +124,7 @@ function SaldoVooruit({ g }: { g: GeldVooruit }) {
         <p className={`cijfer mt-1 text-[26px] font-semibold leading-tight ${g.vrij < 0 ? "text-rood-tekst" : "text-groen-tekst"}`}>{euroHeel(g.vrij)}</p>
         <p className="text-[13px] text-tekst-3">na btw en inkomstenbelasting</p>
         <Waarom regels={[["Op de bank", euro(g.banksaldo)], ["Btw die je nog betaalt", euro(-g.btwTeBetalen)], [g.ibBetaald > 0 ? "Inkomstenbelasting tot nu, min wat je al betaalde" : "Inkomstenbelasting tot nu", euro(-g.ibOpzij)], ["Vrij te besteden", euro(g.vrij)]]} slot={`De btw betaal je uiterlijk ${datum(g.btwDeadline)}. De inkomstenbelasting is een schatting over je winst van dit jaar tot nu.`} />
+        <WatAls vrij={g.vrij} />
       </div>
       <div className="kaart px-5 py-4">
         <p className="text-[13px] font-medium text-tekst-2">Je geld reikt tot</p>
