@@ -131,11 +131,21 @@ export async function ondernemingVerwijderen(fd: FormData): Promise<Resultaat> {
   const mijnRol = await db.lidmaatschap.findUnique({ where: { gebruikerId_ondernemingId: { gebruikerId: s.gebruikerId, ondernemingId: o.id } } });
   if (mijnRol?.rol !== "eigenaar") return { ok: false, fout: "Alleen de eigenaar kan de onderneming verwijderen." };
   if (String(fd.get("bevestiging") ?? "") !== o.naam) return { ok: false, fout: `Typ precies "${o.naam}" om te bevestigen.` };
+  // Eerst het abonnement stoppen, anders blijft Stripe afschrijven voor een onderneming die niet meer bestaat.
+  if (o.stripeAbonnementId) {
+    const { stripeKlant } = await import("./stripe");
+    try { await stripeKlant()?.subscriptions.cancel(o.stripeAbonnementId); }
+    catch (e) { const m = String((e as { code?: string })?.code ?? ""); if (m !== "resource_missing") return { ok: false, fout: "Je abonnement kon nu niet worden stopgezet bij Stripe. Probeer het over een paar minuten opnieuw; er is nog niets verwijderd." }; }
+  }
   await db.transactie.updateMany({ where: { ondernemingId: o.id }, data: { bonId: null, factuurId: null, activumId: null } });
   await db.onderneming.delete({ where: { id: o.id } });
   await db.sessie.updateMany({ where: { actieveOndernemingId: o.id }, data: { actieveOndernemingId: null } });
   const ander = await db.lidmaatschap.findFirst({ where: { gebruikerId: s.gebruikerId } });
-  if (!ander) await logUit();
+  if (!ander) {
+    // Geen andere onderneming meer: ook je account zelf weg (e-mailadres, sessies, passkeys, inlogcodes).
+    await logUit();
+    await db.gebruiker.delete({ where: { id: s.gebruikerId } }).catch(() => undefined);
+  }
   redirect(ander ? "/app" : "/login");
 }
 

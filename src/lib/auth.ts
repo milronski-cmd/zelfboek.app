@@ -31,12 +31,17 @@ export async function stuurLoginCode(email: string, ip?: string): Promise<{ ok: 
   await db.loginCode.create({
     data: { gebruikerId: gebruiker.id, codeHash: hash(code), verlooptOp: new Date(Date.now() + 10 * 60_000) },
   });
-  const r = await verstuurMail({
-    aan: e,
-    onderwerp: `${code} is je inlogcode voor ${MERK}`,
-    tekst: `Je inlogcode is ${code}. Die is 10 minuten geldig.`,
-    html: htmlMail("Je inlogcode", [`<span style="font-size:32px;letter-spacing:6px;font-weight:600">${code}</span>`, "Deze code is 10 minuten geldig."]),
-  });
+  let r: { verzonden: boolean };
+  try {
+    r = await verstuurMail({
+      aan: e,
+      onderwerp: `${code} is je inlogcode voor ${MERK}`,
+      tekst: `Je inlogcode is ${code}. Die is 10 minuten geldig.`,
+      html: htmlMail("Je inlogcode", [`<span style="font-size:32px;letter-spacing:6px;font-weight:600">${code}</span>`, "Deze code is 10 minuten geldig."]),
+    });
+  } catch {
+    return { ok: false, melding: "We konden je de code nu niet mailen. Probeer het over een paar minuten opnieuw." };
+  }
   const extra = r.verzonden ? "" : ` (Geen SMTP ingesteld: code staat in uploads/outbox.log${process.env.NODE_ENV !== "production" ? `, code ${code}` : ""}.)`;
   return { ok: true, melding: `Code verstuurd naar ${e}.${extra}` };
 }

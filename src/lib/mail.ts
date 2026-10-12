@@ -28,7 +28,8 @@ export async function verstuurMail(opties: {
   }
   if (!process.env.SMTP_HOST && process.env.NODE_ENV === "production") {
     // Nooit stilletjes "verzonden" melden: facturen en herinneringen zouden anders als verstuurd geboekt worden.
-    throw new Error("E-mail staat niet ingesteld (SMTP_HOST ontbreekt).");
+    console.error("[mail] SMTP_HOST ontbreekt");
+    throw new Error("Mailen lukt nu even niet. De factuur of herinnering is niet verstuurd; probeer het later opnieuw.");
   }
   if (process.env.SMTP_HOST) {
     const transport = nodemailer.createTransport({
@@ -37,15 +38,21 @@ export async function verstuurMail(opties: {
       secure: process.env.SMTP_SECURE === "true",
       auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
     });
-    await transport.sendMail({
-      from: van,
-      to: opties.aan,
-      replyTo: opties.antwoordAan,
-      subject: opties.onderwerp,
-      text: opties.tekst,
-      html: opties.html,
-      attachments: opties.bijlagen,
-    });
+    try {
+      await transport.sendMail({
+        from: van,
+        to: opties.aan,
+        replyTo: opties.antwoordAan,
+        subject: opties.onderwerp,
+        text: opties.tekst,
+        html: opties.html,
+        attachments: opties.bijlagen,
+      });
+    } catch (e) {
+      console.error("[mail]", e);
+      const adres = /recipient|mailbox|address|550|553/i.test(String((e as Error)?.message ?? "")) ? ` Klopt het adres ${opties.aan}?` : "";
+      throw new Error(`De mail kon niet worden verstuurd.${adres} Er is niets als verstuurd gemarkeerd; probeer het later opnieuw.`);
+    }
     return { verzonden: true, via: "smtp" };
   }
   try {

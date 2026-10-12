@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { stripeKlant } from "@/lib/stripe";
 import { db } from "@/lib/db";
 
 async function ondernemingVan(stripe: Stripe, klantId: string | null, meta?: Record<string, string>) {
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
   const geheim = process.env.STRIPE_WEBHOOK_SECRET;
   if (!sleutel || !geheim) return NextResponse.json({ fout: "Stripe niet ingesteld" }, { status: 500 });
 
-  const stripe = new Stripe(sleutel);
+  const stripe = stripeKlant()!;
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(await req.text(), req.headers.get("stripe-signature") ?? "", geheim);

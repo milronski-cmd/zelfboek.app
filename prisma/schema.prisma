@@ -94,6 +94,7 @@ model Onderneming {
   btwTijdvak         String    @default("kwartaal") // maand | kwartaal | jaar
   korDeelnemer       Boolean   @default(false)
   whatsappNummer     String?   @unique // pas gezet na het koppelbericht vanaf dat nummer (zie inbound/whatsapp)
+  nachtrunOp         DateTime? // laatste keer dat de dagelijkse taak deze onderneming deed (wie het langst wacht, gaat eerst)
   btwStelsel         String    @default("factuur") // factuur (btw over de factuurdatum, standaard) | kas (over ontvangen betalingen)
   urencriterium      Boolean   @default(true)
   starter            Boolean   @default(false) // startersaftrek

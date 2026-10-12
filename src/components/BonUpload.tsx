@@ -30,6 +30,28 @@ function scherpte(img: HTMLImageElement): number {
 
 const WAZIG = 60;
 
+/** Grote foto's in de browser verkleinen (lang zijde 2400 px, JPEG): sneller en past altijd door de server (max 4 MB per keer). */
+async function verklein(f: File): Promise<File> {
+  if (!f.type.startsWith("image/") || f.size < 1_500_000) return f;
+  const url = URL.createObjectURL(f);
+  try {
+    const img = new Image();
+    await new Promise((ok, fout) => { img.onload = ok; img.onerror = fout; img.src = url; });
+    const schaal = Math.min(1, 2400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * schaal); c.height = Math.round(img.naturalHeight * schaal);
+    c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+    const b = await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/jpeg", 0.85));
+    return b ? new File([b], f.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : f;
+  } catch {
+    return f; // bijv. HEIC dat de browser niet kan tonen: ongewijzigd door, de server meldt het netjes
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+const MAX_PER_KEER = 4_000_000;
+
 /**
  * Bonnen uploaden. Eén foto? Dan eerst bijsnijden en een scherpte-check, zodat Saldoplan hem goed kan lezen.
  * Meerdere bestanden of een PDF gaan meteen door.
@@ -39,6 +61,38 @@ export function BonUpload({ actie }: { actie: (fd: FormData) => Promise<Resultaa
   const invoer = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
   const [foto, setFoto] = useState<{ url: string; naam: string } | null>(null);
+  const [meer, setMeer] = useState<{ bezig: boolean; uitslag: Resultaat | null }>({ bezig: false, uitslag: null });
+
+  // Meerdere bestanden: verkleinen en in porties van hooguit 4 MB versturen, zodat ook een stapel foto's lukt.
+  const meerdere = async (files: File[]) => {
+    setMeer({ bezig: true, uitslag: null });
+    const meldingen: string[] = [];
+    let gelukt = 0;
+    let portie: File[] = [];
+    let grootte = 0;
+    const stuurPortie = async () => {
+      if (!portie.length) return;
+      const fd = new FormData();
+      for (const f of portie) fd.append("bestand", f);
+      try {
+        const r = await actie(fd);
+        meldingen.push(r.ok ? r.melding : r.fout);
+        if (r.ok) gelukt++;
+      } catch {
+        meldingen.push("Een deel van de bonnen kon niet worden verstuurd. Probeer die opnieuw.");
+      }
+      portie = []; grootte = 0;
+    };
+    for (const origineel of files) {
+      const f = await verklein(origineel);
+      if (f.size > MAX_PER_KEER) { meldingen.push(`${origineel.name}: groter dan 4 MB. Maak er een foto van of verklein de PDF.`); continue; }
+      if (grootte + f.size > MAX_PER_KEER) await stuurPortie();
+      portie.push(f); grootte += f.size;
+    }
+    await stuurPortie();
+    const tekst = meldingen.join(" · ") || "Niets verstuurd.";
+    setMeer({ bezig: false, uitslag: gelukt ? { ok: true, melding: tekst } : { ok: false, fout: tekst } });
+  };
 
   const gekozen = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = [...(e.target.files ?? [])];
@@ -47,11 +101,13 @@ export function BonUpload({ actie }: { actie: (fd: FormData) => Promise<Resultaa
       e.target.value = "";
       return;
     }
-    e.target.form?.requestSubmit();
+    e.target.value = "";
+    if (files.length) void meerdere(files);
   };
 
   const sluit = () => { if (foto) URL.revokeObjectURL(foto.url); setFoto(null); };
   const stuur = (bestand: File) => {
+    setMeer({ bezig: false, uitslag: null });
     const fd = new FormData();
     fd.append("bestand", bestand);
     sluit();
@@ -70,8 +126,8 @@ export function BonUpload({ actie }: { actie: (fd: FormData) => Promise<Resultaa
           Foto maken
         </label>
       </div>
-      {bezig && <p className="mt-3 text-sm text-tekst-2">Saldoplan leest de bon en zoekt de betaling erbij.</p>}
-      {staat && <div className="mt-3"><Melding r={staat} /></div>}
+      {(bezig || meer.bezig) && <p className="mt-3 text-sm text-tekst-2" role="status">Saldoplan leest de bon en zoekt de betaling erbij. Dit duurt soms een halve minuut.</p>}
+      {!meer.bezig && (meer.uitslag ?? staat) && <div className="mt-3"><Melding r={meer.uitslag ?? staat} /></div>}
       {foto && <Bijsnijden foto={foto} klaar={stuur} annuleer={sluit} opnieuw={() => { sluit(); camera.current?.click(); }} />}
     </form>
   );
