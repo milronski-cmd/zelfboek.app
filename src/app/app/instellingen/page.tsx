@@ -58,6 +58,7 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
       {sp.stripe === "gelukt" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: true, melding: "Je abonnement is gestart." }} /></div>}
       {sp.stripe === "niet-ingesteld" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: false, fout: process.env.NODE_ENV === "production" ? "Afrekenen voor je abonnement staat nog niet aan. We laten het je weten zodra het kan; je proefperiode loopt gewoon door." : "Afrekenen staat nog niet aan op deze server (STRIPE_SECRET_KEY en STRIPE_PRICE_ID ontbreken)." }} /></div>}
 
+      {tab === "account" && <p className="mb-4 max-w-2xl text-[13px] text-tekst-2"><Link href="/gegevens" className="underline">Zo bewaren we je gegevens</Link> · <Link href="/status" className="underline">Status van Saldoplan</Link></p>}
       {tab === "account" && <AccountInstellingen gebruikerId={s.gebruikerId} thema={(await cookies()).get("sp_thema")?.value ?? "auto"} koppel={sp.tweestap === "koppel"} />}
 
       {tab === "bedrijf" && (
