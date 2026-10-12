@@ -131,6 +131,15 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
             <Vinkje naam="urencriterium" label="Ik haal het urencriterium van 1.225 uur" uitleg="Nodig voor de zelfstandigenaftrek en de startersaftrek. Houd je uren bij onder Uren." aan={o.urencriterium} />
             <Vinkje naam="starter" label="Ik gebruik dit jaar de startersaftrek" uitleg="Kan drie keer in de eerste vijf jaar van je onderneming." aan={o.starter} />
           </div>
+          <fieldset className="border-t border-lijn pt-5">
+            <legend className="text-sm font-semibold">Hoe vaak mag Saldoplan het je vragen?</legend>
+            <p className="mt-0.5 text-[13px] text-tekst-2">Twijfelt Saldoplan over een betaling, dan vraagt het: zakelijk of privé? Kies hoe voorzichtig dat moet.</p>
+            <div className="mt-2 space-y-2 text-sm">
+              {([["0.95", "Voorzichtig", "Vraagt vaker; je controleert meer zelf."], ["0.85", "Normaal", "Aanbevolen."], ["0.7", "Snel", "Vraagt alleen bij echte twijfel; je hebt minder werk."]] as const).map(([w, l, u]) => (
+                <label key={w} className="flex items-start gap-3"><input type="radio" name="zekerheidsgrens" value={w} defaultChecked={Math.abs(o.zekerheidsgrens - Number(w)) < 0.001} className="mt-1" /><span>{l}<span className="block text-[13px] text-tekst-2">{u}</span></span></label>
+              ))}
+            </div>
+          </fieldset>
           <div className="border-t border-lijn pt-5"><button className={knop}>Opslaan</button></div>
         </form>
       )}

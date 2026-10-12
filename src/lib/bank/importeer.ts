@@ -165,7 +165,7 @@ export async function beoordeelOpenstaand(ondernemingId: string, max = 400): Pro
             btwBedrag: b.zakelijk ? btwUitInclusief(Math.abs(t.bedrag), b.btwCode) : 0,
             zekerheid: b.zekerheid,
             uitleg: b.uitleg,
-            bevestigd: b.zekerheid >= 0.85,
+            bevestigd: b.zekerheid >= o.zekerheidsgrens, // per klant: voorzichtig (vaker vragen) of snel
           },
         });
         klaar++;

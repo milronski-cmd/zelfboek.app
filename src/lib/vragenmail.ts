@@ -61,7 +61,7 @@ export async function stuurVragenMail(ondernemingId: string): Promise<{ verstuur
   if (!ontvanger) return { verstuurd: false, vragen: 0 };
 
   const vragen = await db.transactie.findMany({
-    where: { ondernemingId, bevestigd: false, zakelijk: { not: null }, zekerheid: { lt: 0.85 } },
+    where: { ondernemingId, bevestigd: false, zakelijk: { not: null } },
     orderBy: { datum: "desc" },
     take: 8,
   });
