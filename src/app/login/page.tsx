@@ -3,12 +3,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { heeftTweestap, huidigeSessie, logInMetCode, stuurLoginCode } from "@/lib/auth";
 import { PasskeyLogin } from "@/components/Passkey";
+import { VerwijsCookie } from "@/components/VerwijsCookie";
 import { Melding, knop, knopTekst, veld } from "@/components/ui";
 import { Woordmerk } from "@/components/Merk";
 
 export const instant = false;
 
-export default async function Login({ searchParams }: { searchParams: Promise<{ email?: string; m?: string; fout?: string }> }) {
+export default async function Login({ searchParams }: { searchParams: Promise<{ email?: string; m?: string; fout?: string; ref?: string }> }) {
   if (await huidigeSessie()) redirect("/app");
   const sp = await searchParams;
   const tweestap = sp.email ? await heeftTweestap(sp.email) : false;
@@ -30,6 +31,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-16">
+      {sp.ref && <VerwijsCookie code={sp.ref} />}
       <div className="w-full max-w-sm">
         <a href={WEBSITE_URL} className="inline-block" aria-label={MERK}><Woordmerk size={20} /></a>
         <div className="kaart mt-6 p-7">

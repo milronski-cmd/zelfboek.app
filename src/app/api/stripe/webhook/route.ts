@@ -19,6 +19,18 @@ function abonnementVanFactuur(inv: Stripe.Invoice): string | null {
   return null;
 }
 
+async function beloonVerwijzer(stripe: Stripe, ondernemingId: string, code: string) {
+  const coupon = process.env.STRIPE_COUPON_VERWIJZING;
+  if (!coupon) return;
+  const al = await db.logboek.findFirst({ where: { ondernemingId, actie: "Verwijsbeloning gegeven" } });
+  if (al) return;
+  const aanbrenger = await db.onderneming.findUnique({ where: { verwijscode: code } });
+  if (!aanbrenger?.stripeAbonnementId) return;
+  await stripe.subscriptions.update(aanbrenger.stripeAbonnementId, { discounts: [{ coupon }] });
+  await db.logboek.create({ data: { ondernemingId, wie: "Saldoplan", actie: "Verwijsbeloning gegeven", onderwerp: aanbrenger.naam } });
+  await db.melding.create({ data: { ondernemingId: aanbrenger.id, soort: "systeem", titel: "Bedankt voor je verwijzing!", tekst: "Iemand die jij aanbracht is klant geworden. Je korting staat op je volgende factuur.", link: "/app/instellingen?tab=abonnement" } });
+}
+
 export async function POST(req: Request) {
   const sleutel = process.env.STRIPE_SECRET_KEY;
   const geheim = process.env.STRIPE_WEBHOOK_SECRET;
@@ -56,6 +68,8 @@ export async function POST(req: Request) {
     if (o && o.abonnement !== "actief" && o.abonnement !== "gestopt" && (!subId || subId === o.stripeAbonnementId)) {
       await db.onderneming.update({ where: { id: o.id }, data: { abonnement: "actief" } });
     }
+    // Doorverwijsbeloning: de eerste betaalde factuur van een verwezen klant geeft de aanbrenger zijn korting (coupon in Stripe).
+    if (o?.verwezenDoor && inv.amount_paid > 0) await beloonVerwijzer(stripe, o.id, o.verwezenDoor);
   }
   return NextResponse.json({ ontvangen: true });
 }

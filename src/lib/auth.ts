@@ -125,8 +125,11 @@ export const huidigeOnderneming = cache(async () => {
     await db.sessie.update({ where: { id: s.id }, data: { actieveOndernemingId: eerste.ondernemingId } });
     return eerste.onderneming;
   }
+  // Aangebracht via een verwijslink? Dan staat de code in een cookie (gezet op de inlogpagina).
+  const ref = (await cookies()).get("sp_ref")?.value?.replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(0, 12) || null;
   const o = await db.onderneming.create({
     data: {
+      verwezenDoor: ref,
       naam: s.gebruiker.naam ? `${s.gebruiker.naam}` : "Mijn onderneming",
       email: s.gebruiker.email,
       proefTot: new Date(Date.now() + 30 * 864e5),

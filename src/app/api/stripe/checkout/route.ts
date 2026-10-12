@@ -26,11 +26,18 @@ export async function POST(req: Request) {
     return NextResponse.redirect(sessie.url, 303);
   }
 
+  // Jaarabonnement (als STRIPE_PRICE_ID_JAAR is ingesteld) en kortingscodes; een verwijzing geeft de nieuwe klant de verwijskorting.
+  const fd = await req.formData().catch(() => null);
+  const jaarPrijs = process.env.STRIPE_PRICE_ID_JAAR;
+  const gekozenPrijs = fd?.get("termijn") === "jaar" && jaarPrijs ? jaarPrijs : prijs;
+  const verwijsCoupon = o.verwezenDoor ? process.env.STRIPE_COUPON_NIEUWE_KLANT : undefined;
   const proefDagen = o.proefTot ? Math.max(0, Math.ceil((o.proefTot.getTime() - Date.now()) / 864e5)) : 0;
   const sessie = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: klantId,
-    line_items: [{ price: prijs, quantity: 1 }],
+    line_items: [{ price: gekozenPrijs, quantity: 1 }],
+    // Stripe staat één van beide toe: een vaste verwijskorting, of een kortingscode die de klant zelf invult.
+    ...(verwijsCoupon ? { discounts: [{ coupon: verwijsCoupon }] } : { allow_promotion_codes: true }),
     subscription_data: { ...(proefDagen > 0 ? { trial_period_days: proefDagen } : {}), metadata: { ondernemingId: o.id } },
     success_url: `${basis}/app/instellingen?tab=abonnement&stripe=gelukt`,
     cancel_url: `${basis}/app/instellingen?tab=abonnement&stripe=geannuleerd`,

@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { kvkAan } from "@/lib/kvk";
 import { cookies } from "next/headers";
 import { AccountInstellingen } from "@/components/AccountInstellingen";
@@ -46,6 +47,8 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
   const smtpIngesteld = Boolean(process.env.SMTP_HOST);
   const stripeIngesteld = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID);
   const kaart = "kaart max-w-2xl space-y-5 p-6";
+  // Eigen verwijscode (één keer aanmaken, daarna vast).
+  const verwijscode = tab === "abonnement" ? (o.verwijscode ?? (await db.onderneming.update({ where: { id: o.id }, data: { verwijscode: randomBytes(4).toString("hex").toUpperCase() } })).verwijscode) : null;
   const rolTekst: Record<string, string> = { eigenaar: "eigenaar", boekhouder: "boekhouder", lezer: "alleen lezen" };
 
   return (
@@ -197,10 +200,27 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
             {o.abonnement === "actief" || o.abonnement === "achterstallig" ? (
               <form action="/api/stripe/checkout?portaal=1" method="post"><button className={knopLicht}>Betaalgegevens en opzeggen</button></form>
             ) : (
-              <form action="/api/stripe/checkout" method="post"><button className="knop knop-groen" disabled={!stripeIngesteld}>Abonnement starten</button></form>
+              <form action="/api/stripe/checkout" method="post" className="space-y-3">
+                {process.env.STRIPE_PRICE_ID_JAAR && (
+                  <fieldset className="flex flex-wrap gap-3 text-sm">
+                    <label className="flex items-center gap-2"><input type="radio" name="termijn" value="maand" defaultChecked /> Per maand</label>
+                    <label className="flex items-center gap-2"><input type="radio" name="termijn" value="jaar" /> Per jaar{process.env.PRIJS_JAAR_TEKST ? ` (${process.env.PRIJS_JAAR_TEKST})` : ""}</label>
+                  </fieldset>
+                )}
+                <button className="knop knop-groen" disabled={!stripeIngesteld}>Abonnement starten</button>
+                <p className="text-[13px] text-tekst-3">Heb je een kortingscode? Die vul je in bij het afrekenen.</p>
+              </form>
             )}
             {!stripeIngesteld && <p className="mt-2 text-[13px] text-tekst-3">Betalen is nog niet ingesteld op deze server.</p>}
           </div>
+        </div>
+      )}
+
+      {tab === "abonnement" && (
+        <div className={`${kaart} mt-6`}>
+          <h2 className="text-sm font-semibold">Vrienden uitnodigen</h2>
+          <p className="text-sm text-tekst-2">Ken je een zzp&apos;er die dit ook wil? Deel je eigen link. Wordt hij klant, dan krijg je korting op je abonnement{process.env.STRIPE_COUPON_VERWIJZING ? "" : " (deze beloning staat binnenkort aan)"}.</p>
+          <p className="break-all rounded-md border border-lijn bg-papier px-3 py-2 font-mono text-[13px]">{`${(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "")}/login?ref=${verwijscode}`}</p>
         </div>
       )}
 
