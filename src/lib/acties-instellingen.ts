@@ -36,6 +36,7 @@ export async function facturenOpslaan(fd: FormData): Promise<Resultaat> {
     factuurVolgnr: Number.isFinite(volgnr) ? Math.max(o.factuurVolgnr, volgnr) : o.factuurVolgnr,
     betaaltermijn: Number(fd.get("betaaltermijn") ?? 14) || 14, factuurVoettekst: v(fd, "factuurVoettekst"),
     huisstijlKleur: kleur, herinneringAuto: fd.get("herinneringAuto") === "on",
+    herinneringTekst1: v(fd, "herinneringTekst1"), herinneringTekst2: v(fd, "herinneringTekst2"), herinneringTekst3: v(fd, "herinneringTekst3"),
   };
   const logo = fd.get("logo");
   if (logo instanceof File && logo.size > 0) {

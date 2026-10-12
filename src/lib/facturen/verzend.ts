@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { esc, htmlMail, verstuurMail } from "@/lib/mail";
-import { datumNl, euro } from "@/lib/btw";
+import { datumIn, euroIn, taalVan, vul, WOORDEN } from "./taal";
+import { factuurToken, factuurUrl } from "./link";
 import { factuurPdf, offertePdf } from "./pdf";
 import { factuurUbl } from "./ubl";
 import { maakBetaallink } from "./mollie";
@@ -26,22 +27,24 @@ export async function verzendFactuur(factuurId: string, ondernemingId: string, o
 
   const o = vers.onderneming;
   const credit = vers.soort === "credit";
-  const onderwerp = credit ? `Creditfactuur ${vers.nummer} van ${o.naam}` : `Factuur ${vers.nummer} van ${o.naam}`;
+  // In de taal van de klant; met een link om de factuur online te bekijken en een onzichtbaar beeldje voor "geopend".
+  const taal = taalVan(vers.klant.taal);
+  const w = WOORDEN[taal];
+  const v = { nummer: vers.nummer, naam: o.naam, bedrag: euroIn(taal, Math.abs(vers.totaal)), datum: datumIn(taal, vers.vervaldatum), iban: o.iban ?? "[IBAN]", klant: esc(vers.klant.contactpersoon ?? vers.klant.naam) };
+  const basis = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const onderwerp = vul(credit ? w.mailCreditOnderwerp : w.mailFactuurOnderwerp, v);
   const regels = [
-    `Beste ${esc(vers.klant.contactpersoon ?? vers.klant.naam)},`,
-    opties?.tekst ??
-      (credit
-        ? `Hierbij ontvang je creditfactuur ${vers.nummer} van ${euro(Math.abs(vers.totaal))}.`
-        : `Hierbij ontvang je factuur ${vers.nummer} van ${euro(vers.totaal)}. Graag betalen vóór ${datumNl(vers.vervaldatum)} op ${o.iban ?? "[IBAN]"} onder vermelding van ${vers.nummer}.`),
-    "De factuur zit als PDF en als UBL e-factuur in de bijlage.",
-    `Met vriendelijke groet,<br>${esc(o.naam)}`,
+    vul(w.aanhef, v),
+    opties?.tekst ?? vul(credit ? w.mailCredit : w.mailFactuur, v),
+    `${w.mailBijlage} <a href="${factuurUrl(vers.id)}">${w.bekijkOnline}</a>`,
+    `${w.groet}<br>${esc(o.naam)}<img src="${basis}/api/facturen/geopend/${factuurToken(vers.id)}.gif" width="1" height="1" alt="" style="display:block;border:0">`,
   ];
   await verstuurMail({
     aan,
     onderwerp,
     antwoordAan: o.email ?? undefined,
-    tekst: regels.map((r) => r.replace(/<br>/g, "\n")).join("\n\n") + (betaalLink ? `\n\nDirect betalen: ${betaalLink}` : ""),
-    html: htmlMail(onderwerp, regels, betaalLink ? { tekst: "Direct betalen via iDEAL", url: betaalLink } : undefined),
+    tekst: regels.map((r) => r.replace(/<br>/g, "\n").replace(/<[^>]+>/g, "")).join("\n\n") + `\n\n${w.bekijkOnline}: ${factuurUrl(vers.id)}` + (betaalLink ? `\n${w.directBetalen}: ${betaalLink}` : ""),
+    html: htmlMail(onderwerp, regels, betaalLink ? { tekst: w.directBetalen, url: betaalLink } : { tekst: w.bekijkOnline, url: factuurUrl(vers.id) }),
     bijlagen: [
       { filename: `${vers.nummer}.pdf`, content: pdf, contentType: "application/pdf" },
       { filename: `${vers.nummer}.xml`, content: Buffer.from(ubl, "utf8"), contentType: "application/xml" },
@@ -61,19 +64,21 @@ export async function verzendOfferte(offerteId: string, ondernemingId: string, o
   const basis = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const link = `${basis}/offerte/${of.acceptToken}`;
   const o = of.onderneming;
-  const onderwerp = `Offerte ${of.nummer} van ${o.naam}`;
+  const taal = taalVan(of.klant.taal);
+  const w = WOORDEN[taal];
+  const v = { nummer: of.nummer, naam: o.naam, bedrag: euroIn(taal, of.totaal), datum: datumIn(taal, of.geldigTot), klant: esc(of.klant.contactpersoon ?? of.klant.naam) };
+  const onderwerp = vul(w.mailOfferteOnderwerp, v);
   const regels = [
-    `Beste ${esc(of.klant.contactpersoon ?? of.klant.naam)},`,
-    opties?.tekst ?? `Hierbij ontvang je offerte ${of.nummer} van ${euro(of.totaal)} (inclusief btw). De offerte is geldig tot ${datumNl(of.geldigTot)}.`,
-    "Je kunt de offerte online accepteren of afwijzen via de knop hieronder.",
-    `Met vriendelijke groet,<br>${esc(o.naam)}`,
+    vul(w.aanhef, v),
+    opties?.tekst ?? vul(w.mailOfferte, v),
+    `${w.groet}<br>${esc(o.naam)}`,
   ];
   await verstuurMail({
     aan,
     onderwerp,
     antwoordAan: o.email ?? undefined,
-    tekst: regels.map((r) => r.replace(/<br>/g, "\n")).join("\n\n") + `\n\nAccepteren: ${link}`,
-    html: htmlMail(onderwerp, regels, { tekst: "Offerte bekijken en accepteren", url: link }),
+    tekst: regels.map((r) => r.replace(/<br>/g, "\n")).join("\n\n") + `\n\n${w.mailOfferteKnop}: ${link}`,
+    html: htmlMail(onderwerp, regels, { tekst: w.mailOfferteKnop, url: link }),
     bijlagen: [{ filename: `${of.nummer}.pdf`, content: pdf, contentType: "application/pdf" }],
   });
   await db.offerte.update({ where: { id: of.id }, data: { status: of.status === "concept" ? "verzonden" : of.status, verzondenOp: of.verzondenOp ?? new Date() } });

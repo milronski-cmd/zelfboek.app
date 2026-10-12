@@ -108,6 +108,16 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
             </div>
             <div className="sm:col-span-2">
               <Vinkje naam="herinneringAuto" label="Herinneringen automatisch versturen" uitleg="Na 7, 21 en 35 dagen over de vervaldatum, met de wettelijke rente en kosten bij de laatste." aan={o.herinneringAuto} />
+              <details className="mt-3 rounded-lg border border-lijn px-4 py-3">
+                <summary className="cursor-pointer text-sm font-medium">Eigen tekst voor herinneringen (mag leeg)</summary>
+                <p className="mt-2 text-[13px] text-tekst-2">Leeg = de standaardtekst. Je kunt deze plekken gebruiken: {"{nummer}"}, {"{bedrag}"}, {"{datum}"} (vervaldatum), {"{iban}"}, {"{dagen}"}, en bij de laatste {"{kosten}"}, {"{rente}"}, {"{totaal}"}. Aanhef en groet zet Saldoplan er zelf omheen. Klanten met Engels of Duits krijgen de standaardtekst in hun taal.</p>
+                {([1, 2, 3] as const).map((n) => (
+                  <div key={n} className="mt-3">
+                    <label className="lbl" htmlFor={`herinneringTekst${n}`}>{n === 1 ? "Eerste herinnering (na 7 dagen)" : n === 2 ? "Tweede herinnering (na 21 dagen)" : "Laatste herinnering (na 35 dagen)"}</label>
+                    <textarea id={`herinneringTekst${n}`} name={`herinneringTekst${n}`} rows={3} defaultValue={[o.herinneringTekst1, o.herinneringTekst2, o.herinneringTekst3][n - 1] ?? ""} placeholder={n === 1 ? "Misschien is het aan je aandacht ontsnapt: factuur {nummer} van {bedrag} had een vervaldatum van {datum}. ..." : n === 2 ? "Ondanks onze eerdere herinnering staat factuur {nummer} van {bedrag} nog open. ..." : "Factuur {nummer} van {bedrag} is {dagen} dagen over de vervaldatum. ..."} className="veld" />
+                  </div>
+                ))}
+              </details>
             </div>
           </div>
         </FormulierMetMelding>

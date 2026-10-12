@@ -1,4 +1,13 @@
 import Link from "next/link";
+import { Delen } from "@/components/Delen";
+import { factuurUrl } from "@/lib/facturen/link";
+import { vul } from "@/lib/facturen/taal";
+
+/** wa.me-link; met een Nederlands 06-nummer meteen naar die klant, anders kies je zelf in WhatsApp. */
+const whatsappLink = (tel: string | null, tekst: string) => {
+  const n = (tel ?? "").replace(/[^0-9+]/g, "").replace(/^\+/, "").replace(/^00/, "").replace(/^0(?=6)/, "31");
+  return `https://wa.me/${/^\d{10,15}$/.test(n) ? n : ""}?text=${encodeURIComponent(tekst)}`;
+};
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { db, huidigeOnderneming } from "@/lib/db";
@@ -37,6 +46,7 @@ export default async function FactuurDetail({ params }: { params: Promise<{ id: 
   const tijdlijn: { d: Date; t: string }[] = [
     { d: f.aangemaakt, t: "Aangemaakt" },
     ...(f.verzondenOp ? [{ d: f.verzondenOp, t: `Verzonden naar ${f.klant.email ?? "de klant"}` }] : []),
+    ...(f.geopendOp ? [{ d: f.geopendOp, t: `Geopend door ${f.klant.naam}${f.geopendKeer > 1 ? ` (${f.geopendKeer} keer)` : ""}` }] : []),
     ...(f.laatsteHerinnering ? [{ d: f.laatsteHerinnering, t: `${f.status === "aangemaand" ? "Aanmaning" : "Herinnering"} ${f.herinneringen} verstuurd` }] : []),
     ...f.transacties.map((t) => ({ d: t.datum, t: `Betaling van ${euro(t.bedrag)} ontvangen van ${t.tegenpartij}` })),
     ...(f.betaaldOp ? [{ d: f.betaaldOp, t: "Volledig betaald" }] : []),
@@ -123,6 +133,15 @@ export default async function FactuurDetail({ params }: { params: Promise<{ id: 
                   </li>
                 ))}
               </ul>
+            </Kaart>
+          )}
+
+          {f.status !== "concept" && (
+            <Kaart titel="Delen met je klant">
+              <div className="space-y-2 px-5 py-4">
+                <p className="text-[13px] text-tekst-2">{f.geopendOp ? `${f.klant.naam} heeft de factuur geopend op ${datumNl(f.geopendOp)}.` : "Je ziet hier zodra je klant de factuur opent."}</p>
+                <Delen url={factuurUrl(f.id)} whatsapp={whatsappLink(f.klant.telefoon, vul(f.klant.taal === "de" ? "Hallo {klant}, hier ist die Rechnung {nummer} über {bedrag}: {link}" : f.klant.taal === "en" ? "Hi {klant}, here is invoice {nummer} for {bedrag}: {link}" : "Hoi {klant}, hierbij factuur {nummer} van {bedrag}: {link}", { klant: f.klant.contactpersoon ?? f.klant.naam, nummer: f.nummer, bedrag: euro(f.totaal), link: factuurUrl(f.id) }))} />
+              </div>
             </Kaart>
           )}
 

@@ -66,6 +66,7 @@ export default async function Klanten({ searchParams }: { searchParams: Promise<
             <div className="grid grid-cols-2 gap-3"><input name="postcode" placeholder="Postcode" aria-label="Postcode" className={veld} /><input name="plaats" placeholder="Plaats" aria-label="Plaats" className={veld} /></div>
             <div className="grid grid-cols-2 gap-3"><input name="land" placeholder="Land" aria-label="Land" defaultValue="NL" className={veld} /><input name="btwNummer" placeholder="Btw-nummer" aria-label="Btw-nummer" className={veld} /></div>
             <input name="kvk" placeholder="KvK-nummer" aria-label="KvK-nummer" className={veld} />
+            <select name="taal" defaultValue="" aria-label="Taal van facturen" className={veld}><option value="">Taal van facturen: volgt het land</option><option value="nl">Facturen in het Nederlands</option><option value="en">Facturen in het Engels</option><option value="de">Facturen in het Duits</option></select>
             <input name="betaaltermijn" type="number" placeholder={`Betaaltermijn in dagen (standaard ${o.betaaltermijn})`} aria-label="Betaaltermijn" className={veld} />
             <button className={knop}>Klant opslaan</button>
           </form>

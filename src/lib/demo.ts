@@ -27,7 +27,7 @@ const KLANTEN = [
   { naam: "Fysio Centrum Zuid", contactpersoon: "Ruben Visser", email: "administratie@fysiozuid.nl", plaats: "Haren" },
   { naam: "Studio Lente", contactpersoon: "Anne Smit", email: "anne@studiolente.nl", plaats: "Assen" },
   { naam: "Vereniging Dorpshuis", contactpersoon: "Hans Bakker", email: "penningmeester@dorpshuis.nl", plaats: "Zuidlaren" },
-  { naam: "Weber GmbH", contactpersoon: "Katrin Weber", email: "katrin@weber-design.de", plaats: "Bremen", land: "DE", btwNummer: "DE812345678" },
+  { naam: "Weber GmbH", contactpersoon: "Katrin Weber", email: "katrin@weber-design.de", plaats: "Bremen", land: "DE", btwNummer: "DE812345678", taal: "de" },
 ];
 
 

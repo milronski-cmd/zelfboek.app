@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { esc, htmlMail, verstuurMail } from "@/lib/mail";
 import { WETTELIJKE_HANDELSRENTE } from "@/lib/fiscaal/constanten-2026";
-import { datumNl, euro, rond } from "@/lib/btw";
+import { euro, rond } from "@/lib/btw";
+import { datumIn, euroIn, taalVan, vul, WOORDEN } from "./taal";
 import { factuurPdf } from "./pdf";
 
 /** Wettelijke incassokosten (WIK-staffel, art. 2 Besluit vergoeding voor buitengerechtelijke incassokosten). Minimum 40 euro. */
@@ -47,42 +48,24 @@ export async function stuurHerinnering(factuurId: string, ondernemingId: string,
   const o = f.onderneming;
   const pdf = await factuurPdf(f);
 
-  let onderwerp: string;
-  let regels: string[];
-  if (trap === 1) {
-    onderwerp = `Herinnering: factuur ${f.nummer} staat nog open`;
-    regels = [
-      `Beste ${esc(f.klant.contactpersoon ?? f.klant.naam)},`,
-      `Misschien is het aan je aandacht ontsnapt: factuur ${f.nummer} van ${euro(open)} had een vervaldatum van ${datumNl(f.vervaldatum)}. Wil je het bedrag binnen 7 dagen overmaken op ${o.iban ?? "[IBAN]"} onder vermelding van ${f.nummer}?`,
-      "Heb je al betaald, dan kun je dit bericht negeren.",
-      `Met vriendelijke groet,<br>${esc(o.naam)}`,
-    ];
-  } else if (trap === 2) {
-    onderwerp = `Tweede herinnering: factuur ${f.nummer}`;
-    regels = [
-      `Beste ${esc(f.klant.contactpersoon ?? f.klant.naam)},`,
-      `Ondanks onze eerdere herinnering staat factuur ${f.nummer} van ${euro(open)} nog open (vervaldatum ${datumNl(f.vervaldatum)}). Graag binnen 7 dagen betalen op ${o.iban ?? "[IBAN]"} onder vermelding van ${f.nummer}.`,
-      "Blijft betaling uit, dan zijn we genoodzaakt wettelijke rente en incassokosten in rekening te brengen.",
-      `Met vriendelijke groet,<br>${esc(o.naam)}`,
-    ];
-  } else {
-    const kosten = incassokosten(open);
-    const rente = wettelijkeRente(open, dagen);
-    onderwerp = `Aanmaning: factuur ${f.nummer}, laatste verzoek`;
-    regels = [
-      `Beste ${esc(f.klant.contactpersoon ?? f.klant.naam)},`,
-      `Factuur ${f.nummer} van ${euro(open)} is ${dagen} dagen over de vervaldatum. Dit is een laatste verzoek tot betaling binnen 14 dagen na vandaag.`,
-      `Blijft betaling uit, dan brengen we conform de Wet incassokosten ${euro(kosten)} incassokosten in rekening plus wettelijke handelsrente, tot nu ${euro(rente)}. Het totaal wordt dan ${euro(rond(open + kosten + rente))}.`,
-      `Betalen kan op ${o.iban ?? "[IBAN]"} onder vermelding van ${f.nummer}.`,
-      `Met vriendelijke groet,<br>${esc(o.naam)}`,
-    ];
-  }
+  // In de taal van de klant. Voor Nederlandse klanten mag de ondernemer de tekst zelf schrijven (Instellingen > Facturen).
+  const taal = taalVan(f.klant.taal);
+  const w = WOORDEN[taal];
+  const kosten = incassokosten(open);
+  const rente = wettelijkeRente(open, dagen);
+  const v = { nummer: f.nummer, bedrag: euroIn(taal, open), datum: datumIn(taal, f.vervaldatum), iban: o.iban ?? "[IBAN]", naam: o.naam, dagen, kosten: euroIn(taal, kosten), rente: euroIn(taal, rente), totaal: euroIn(taal, rond(open + kosten + rente)), klant: esc(f.klant.contactpersoon ?? f.klant.naam) };
+  const eigen = taal === "nl" ? [o.herinneringTekst1, o.herinneringTekst2, o.herinneringTekst3][trap - 1]?.trim() : null;
+  const onderwerp = vul(trap === 1 ? w.h1Onderwerp : trap === 2 ? w.h2Onderwerp : w.h3Onderwerp, v);
+  const kern = eigen
+    ? eigen.split(/\n\s*\n/).map((alinea) => esc(vul(alinea, v)).replace(/\n/g, "<br>"))
+    : trap === 1 ? [vul(w.h1, v), w.h1Al] : trap === 2 ? [vul(w.h2, v), w.h2Gevolg] : [vul(w.h3, v), vul(w.h3Kosten, v), vul(w.h3Betalen, v)];
+  const regels = [vul(w.aanhef, v), ...kern, `${w.groet}<br>${esc(o.naam)}`];
   await verstuurMail({
     aan: f.klant.email,
     onderwerp,
     antwoordAan: o.email ?? undefined,
     tekst: regels.map((r) => r.replace(/<br>/g, "\n")).join("\n\n") + (f.betaalLinkUrl ? `\n\nDirect betalen: ${f.betaalLinkUrl}` : ""),
-    html: htmlMail(onderwerp, regels, f.betaalLinkUrl ? { tekst: "Direct betalen", url: f.betaalLinkUrl } : undefined),
+    html: htmlMail(onderwerp, regels, f.betaalLinkUrl ? { tekst: w.directBetalen, url: f.betaalLinkUrl } : undefined),
     bijlagen: [{ filename: `${f.nummer}.pdf`, content: pdf, contentType: "application/pdf" }],
   });
   await db.factuur.update({

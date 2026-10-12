@@ -4,14 +4,14 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import type { Factuur, Klant, Offerte, Onderneming } from "@prisma/client";
 import { db } from "@/lib/db";
-import { datumNl, euro } from "@/lib/btw";
+import { datumIn, euroIn, taalVan, vul, WOORDEN } from "./taal";
 import { berekenTotalen, parseRegels, type FactuurRegel } from "./bereken";
 
 type Document = {
   soort: "factuur" | "credit" | "offerte";
   nummer: string;
   datum: Date;
-  tweedeDatumLabel: string;
+  tweedeDatumLabel?: string; // niet meer nodig: het label volgt de taal van de klant
   tweedeDatum: Date;
   referentie?: string | null;
   opmerking?: string | null;
@@ -48,6 +48,11 @@ export function maakPdf(o: Onderneming, klant: Klant, doc: Document): Promise<Bu
     pdf.on("end", () => resolve(Buffer.concat(chunks)));
     pdf.on("error", reject);
 
+    // Alles in de taal van de klant (Nederlands, Engels of Duits).
+    const taal = taalVan(klant.taal);
+    const w = WOORDEN[taal];
+    const euro = (n: number) => euroIn(taal, n);
+    const datumNl = (d: Date) => datumIn(taal, d);
     const kleur = hexNaarRgb(o.huisstijlKleur);
     const grijs = "#78716c";
     const lijn = "#e7e5e4";
@@ -67,13 +72,13 @@ export function maakPdf(o: Onderneming, klant: Klant, doc: Document): Promise<Bu
       pdf.fillColor(kleur).fontSize(20).font("Helvetica-Bold").text(o.naam, links, y);
     }
 
-    const titel = doc.soort === "offerte" ? "OFFERTE" : doc.soort === "credit" ? "CREDITFACTUUR" : "FACTUUR";
+    const titel = (doc.soort === "offerte" ? w.offerte : doc.soort === "credit" ? w.credit : w.factuur).toUpperCase();
     pdf.fillColor(kleur).fontSize(22).font("Helvetica-Bold").text(titel, links, y, { width: breed, align: "right" });
     pdf.fillColor("#1c1917").fontSize(11).font("Helvetica").text(doc.nummer, links, y + 28, { width: breed, align: "right" });
 
     // Afzender
     y = 130;
-    pdf.fontSize(9).fillColor(grijs).text("Van", links, y);
+    pdf.fontSize(9).fillColor(grijs).text(taal === "nl" ? "Van" : taal === "de" ? "Von" : "From", links, y);
     pdf.fillColor("#1c1917").fontSize(10);
     const afz = adresBlok({ naam: o.naam, adres: o.adres, postcode: o.postcode, plaats: o.plaats, land: o.land });
     afz.forEach((r, i) => pdf.text(r, links, y + 14 + i * 13));
@@ -91,7 +96,7 @@ export function maakPdf(o: Onderneming, klant: Klant, doc: Document): Promise<Bu
 
     // Klant
     const kx = links + breed / 2;
-    pdf.fontSize(9).fillColor(grijs).text("Aan", kx, y);
+    pdf.fontSize(9).fillColor(grijs).text(taal === "nl" ? "Aan" : taal === "de" ? "An" : "To", kx, y);
     pdf.fillColor("#1c1917").fontSize(10);
     const kl = adresBlok(klant);
     kl.forEach((r, i) => pdf.text(r, kx, y + 14 + i * 13));
@@ -104,10 +109,10 @@ export function maakPdf(o: Onderneming, klant: Klant, doc: Document): Promise<Bu
     y = Math.max(yy + meta.length * 11, ky) + 20;
     pdf.fontSize(9.5).fillColor("#1c1917");
     const kol = [
-      [`${doc.soort === "offerte" ? "Offertedatum" : "Factuurdatum"}`, datumNl(doc.datum)],
-      [doc.tweedeDatumLabel, datumNl(doc.tweedeDatum)],
-      doc.referentie ? ["Referentie", doc.referentie] : null,
-      doc.creditVan ? ["Credit op", doc.creditVan] : null,
+      [doc.soort === "offerte" ? w.offertedatum : w.factuurdatum, datumNl(doc.datum)],
+      [doc.soort === "offerte" ? w.geldigTot : w.vervaldatum, datumNl(doc.tweedeDatum)],
+      doc.referentie ? [w.referentie, doc.referentie] : null,
+      doc.creditVan ? [w.creditOp, doc.creditVan] : null,
     ].filter(Boolean) as [string, string][];
     kol.forEach(([k, v], i) => {
       pdf.fillColor(grijs).text(k, links + i * 130, y);
@@ -117,11 +122,11 @@ export function maakPdf(o: Onderneming, klant: Klant, doc: Document): Promise<Bu
     // Tabel
     y += 45;
     const kolommen = [
-      { k: "Omschrijving", w: breed * 0.46, align: "left" as const },
-      { k: "Aantal", w: breed * 0.12, align: "right" as const },
-      { k: "Prijs", w: breed * 0.14, align: "right" as const },
-      { k: "Btw", w: breed * 0.1, align: "right" as const },
-      { k: "Bedrag", w: breed * 0.18, align: "right" as const },
+      { k: w.omschrijving, w: breed * 0.46, align: "left" as const },
+      { k: w.aantal, w: breed * 0.12, align: "right" as const },
+      { k: w.prijs, w: breed * 0.14, align: "right" as const },
+      { k: w.btw, w: breed * 0.1, align: "right" as const },
+      { k: w.bedrag, w: breed * 0.18, align: "right" as const },
     ];
     pdf.rect(links, y, breed, 20).fill(kleur);
     let x = links + 6;
@@ -166,40 +171,40 @@ export function maakPdf(o: Onderneming, klant: Klant, doc: Document): Promise<Bu
       pdf.text(v, tx + tw * 0.55, y, { width: tw * 0.45 - 6, align: "right" });
       y += vet ? 18 : 14;
     };
-    regel("Subtotaal", euro(tot.subtotaal));
+    regel(w.subtotaal, euro(tot.subtotaal));
     for (const p of tot.perTarief) {
       if (p.tarief === 0 && tot.perTarief.length > 1 && p.btw === 0) continue;
-      regel(`Btw ${p.tarief}% over ${euro(p.grondslag)}`, euro(p.btw));
+      regel(vul(w.btwOver, { pct: p.tarief, grondslag: euro(p.grondslag) }), euro(p.btw));
     }
     pdf.moveTo(tx, y + 2).lineTo(tx + tw, y + 2).strokeColor(kleur).lineWidth(1).stroke();
     y += 8;
-    regel("Totaal", euro(tot.totaal), true);
+    regel(w.totaal, euro(tot.totaal), true);
 
     // Voet
     y += 16;
     pdf.font("Helvetica").fontSize(9.5).fillColor("#1c1917");
     if (doc.btwVerlegd) {
-      pdf.text("Btw verlegd / VAT reverse charged (art. 44 en 196 Btw-richtlijn 2006/112/EG).", links, y, { width: breed });
+      pdf.text(w.verlegd, links, y, { width: breed });
       y += 16;
     } else if (o.korDeelnemer) {
-      pdf.text("Vrijgesteld van btw op grond van de kleineondernemersregeling (art. 25 Wet OB).", links, y, { width: breed });
+      pdf.text(w.kor, links, y, { width: breed });
       y += 16;
     }
     if (doc.soort === "factuur") {
       pdf.text(
-        `Graag het totaalbedrag van ${euro(tot.totaal)} vóór ${datumNl(doc.tweedeDatum)} overmaken op ${o.iban ?? "[IBAN]"} t.n.v. ${o.naam} onder vermelding van ${doc.kenmerk ?? doc.nummer}.`,
+        vul(w.betaalverzoek, { bedrag: euro(tot.totaal), datum: datumNl(doc.tweedeDatum), iban: o.iban ?? "[IBAN]", naam: o.naam, nummer: doc.kenmerk ?? doc.nummer }),
         links, y, { width: breed },
       );
       y += 30;
       if (doc.betaalLink) {
-        pdf.fillColor(kleur).text(`Direct betalen via iDEAL: ${doc.betaalLink}`, links, y, { width: breed, link: doc.betaalLink, underline: true });
+        pdf.fillColor(kleur).text(`${w.directBetalen}: ${doc.betaalLink}`, links, y, { width: breed, link: doc.betaalLink, underline: true });
         y += 16;
       }
     } else if (doc.soort === "credit") {
-      pdf.text(`Dit bedrag wordt verrekend of binnen 14 dagen teruggestort.`, links, y, { width: breed });
+      pdf.text(w.creditTekst, links, y, { width: breed });
       y += 20;
     } else {
-      pdf.text(`Deze offerte is geldig tot ${datumNl(doc.tweedeDatum)}. Prijzen zijn exclusief btw tenzij anders vermeld.`, links, y, { width: breed });
+      pdf.text(vul(w.offerteTekst, { datum: datumNl(doc.tweedeDatum) }), links, y, { width: breed });
       y += 20;
     }
     if (doc.opmerking) {
@@ -237,7 +242,6 @@ export async function factuurPdf(factuur: Factuur & { klant: Klant; onderneming:
     soort: factuur.soort === "credit" ? "credit" : "factuur",
     nummer: factuur.nummer,
     datum: factuur.datum,
-    tweedeDatumLabel: "Vervaldatum",
     tweedeDatum: factuur.vervaldatum,
     referentie: factuur.referentie,
     opmerking: factuur.opmerking,
@@ -257,7 +261,6 @@ export async function offertePdf(offerte: Offerte & { klant: Klant; onderneming:
     soort: "offerte",
     nummer: offerte.nummer,
     datum: offerte.datum,
-    tweedeDatumLabel: "Geldig tot",
     tweedeDatum: offerte.geldigTot,
     opmerking: offerte.opmerking,
     regels: parseRegels(offerte.regels),

@@ -1,4 +1,5 @@
 "use server";
+import { taalVoorLand } from "./facturen/taal";
 
 import { willekeurigToken } from "./crypto";
 import { revalidatePath } from "next/cache";
@@ -44,6 +45,8 @@ export async function klantOpslaan(fd: FormData): Promise<Resultaat> {
     isOndernemer: fd.has("isOndernemer_form") ? fd.get("isOndernemer") === "ja" : true,
     betaaltermijn: s(fd, "betaaltermijn") ? Number(s(fd, "betaaltermijn")) : null,
     notities: sOfNull(fd, "notities"),
+    // Taal van facturen en herinneringen; niet gekozen = volgt het land (DE → Duits, ander buitenland → Engels).
+    taal: ["nl", "en", "de"].includes(s(fd, "taal")) ? s(fd, "taal") : taalVoorLand(s(fd, "land") || "NL"),
   };
   try {
     const k = id
@@ -111,6 +114,7 @@ async function klantUitFormulier(fd: FormData, ondernemingId: string) {
       plaats: sOfNull(fd, "klantPlaats"),
       land: (s(fd, "klantLand") || "NL").toUpperCase(),
       btwNummer: sOfNull(fd, "klantBtwNummer"),
+      taal: taalVoorLand(s(fd, "klantLand") || "NL"),
     },
   });
 }
