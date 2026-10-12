@@ -216,7 +216,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
 
             <Link href="/app/meldingen" className="iconknop relative" aria-label={tellers.meldingen ? `${tellers.meldingen} ongelezen meldingen` : "Meldingen"}>
               <Icoon naam="bel" size={18} />
-              {tellers.meldingen > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rood ring-2 ring-white" />}
+              {tellers.meldingen > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rood ring-2 ring-[var(--wit)]" />}
             </Link>
 
             <details className="menu relative">

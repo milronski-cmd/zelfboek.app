@@ -13,8 +13,17 @@ export function Beeldmerk({ size = 28, donker = false }: { size?: number; donker
 /** Woordmerk: het Saldoplan-logo (public/logos/saldoplan.png). Op een donkere ondergrond het beeldmerk met witte naam. */
 export function Woordmerk({ donker = false, size = 18 }: { donker?: boolean; size?: number }) {
   if (!donker) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src="/logos/saldoplan.png" alt={MERK} width={720} height={218} style={{ height: Math.round(size * 1.55), width: "auto" }} />;
+    // In de donkere modus het beeldmerk met lichte naam; het logo heeft donkere letters.
+    return (
+      <>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logos/saldoplan.png" alt={MERK} width={720} height={218} className="alleen-licht" style={{ height: Math.round(size * 1.55), width: "auto" }} />
+        <span className="alleen-donker items-center gap-2">
+          <Beeldmerk size={size + 8} />
+          <span className="font-semibold tracking-[-0.02em] text-tekst" style={{ fontSize: size }}>{MERK}</span>
+        </span>
+      </>
+    );
   }
   return (
     <span className="inline-flex items-center gap-2">

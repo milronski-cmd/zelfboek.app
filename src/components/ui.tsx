@@ -73,7 +73,7 @@ export function Pil({ kleur, children }: { kleur: "groen" | "geel" | "rood" | "g
 export function Melding({ r }: { r?: { ok: boolean; melding?: string; fout?: string } | null }) {
   if (!r) return null;
   return (
-    <p className={`rounded-md border px-4 py-3 text-sm ${r.ok ? "border-[#bfe5d0] bg-groen-licht text-groen-tekst" : "border-[#f5c2cc] bg-rood-licht text-rood-tekst"}`}>
+    <p className={`rounded-md border px-4 py-3 text-sm ${r.ok ? "border-groen/30 bg-groen-licht text-groen-tekst" : "border-rood/30 bg-rood-licht text-rood-tekst"}`}>
       {r.ok ? r.melding : r.fout}
     </p>
   );

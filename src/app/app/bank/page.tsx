@@ -159,7 +159,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
               {regels.map((t) => {
                 const twijfelt = t.zakelijk !== null && !t.bevestigd;
                 return (
-                  <tr key={t.id} className={twijfelt ? "bg-[#fffbeb]" : ""}>
+                  <tr key={t.id} className={twijfelt ? "bg-mosterd-licht/50" : ""}>
                     <td className="whitespace-nowrap text-tekst-2">
                       {datumKort(t.datum)}
                       <div className="text-[13px] text-tekst-3">{bronLabel[t.bron] ?? t.bron}{t.bankrekening ? `, ${t.bankrekening.naam}` : ""}</div>

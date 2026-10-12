@@ -43,6 +43,83 @@
   --ring: 0 0 0 4px rgba(29, 177, 223, 0.3);
 }
 
+/*
+  Donkere modus: volgt de telefoon of computer (prefers-color-scheme), tenzij je bij Instellingen zelf
+  "licht" of "donker" kiest (data-thema op <html>). Alleen de tokens wisselen; componenten blijven gelijk.
+*/
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-thema="licht"]) {
+  color-scheme: dark;
+  --inkt: #e7eaf1;
+  --inkt-2: #d3d8e2;
+  --inkt-3: #b8bfcc;
+  --papier: #0e131d;
+  --wit: #171e2c;
+  --lijn: #263043;
+  --lijn-2: #33405a;
+  --tekst: #e7eaf1;
+  --tekst-2: #aeb6c6;
+  --tekst-3: #7f8a9e;
+  --primair-licht: #0f3341;
+  --primair-tekst: #67d2f0;
+  --groen: #2f9282;
+  --groen-licht: #0f2e29;
+  --groen-tekst: #73d6c2;
+  --mosterd-licht: #3a2b0d;
+  --mosterd-tekst: #f2c46d;
+  --rood-licht: #3d151b;
+  --rood-tekst: #ff94a4;
+  --schaduw: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --schaduw-menu: 0 6px 20px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --ring-grijs: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  --ring-grijs-hover: 0 0 0 1px rgba(255, 255, 255, 0.26);
+  --knop-schaduw: 0 1px 1px rgba(0, 0, 0, 0.4);
+  }
+}
+:root[data-thema="donker"] {
+  color-scheme: dark;
+  --inkt: #e7eaf1;
+  --inkt-2: #d3d8e2;
+  --inkt-3: #b8bfcc;
+  --papier: #0e131d;
+  --wit: #171e2c;
+  --lijn: #263043;
+  --lijn-2: #33405a;
+  --tekst: #e7eaf1;
+  --tekst-2: #aeb6c6;
+  --tekst-3: #7f8a9e;
+  --primair-licht: #0f3341;
+  --primair-tekst: #67d2f0;
+  --groen: #2f9282;
+  --groen-licht: #0f2e29;
+  --groen-tekst: #73d6c2;
+  --mosterd-licht: #3a2b0d;
+  --mosterd-tekst: #f2c46d;
+  --rood-licht: #3d151b;
+  --rood-tekst: #ff94a4;
+  --schaduw: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --schaduw-menu: 0 6px 20px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --ring-grijs: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  --ring-grijs-hover: 0 0 0 1px rgba(255, 255, 255, 0.26);
+  --knop-schaduw: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+/* Donker: losse lichte vlakken die niet uit tokens komen. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-thema="licht"]) .bg-white { background-color: var(--wit); }
+  :root:not([data-thema="licht"]) .tabel tbody tr:hover > td { background: #1c2434; }
+  :root:not([data-thema="licht"]) .knop-licht:hover { background: #1f2738; }
+  :root:not([data-thema="licht"]) .knop-licht:active { background: #252e41; }
+  :root:not([data-thema="licht"]) .alleen-licht { display: none !important; }
+}
+:root[data-thema="donker"] .bg-white { background-color: var(--wit); }
+:root[data-thema="donker"] .tabel tbody tr:hover > td { background: #1c2434; }
+:root[data-thema="donker"] .knop-licht:hover { background: #1f2738; }
+:root[data-thema="donker"] .alleen-licht { display: none !important; }
+.alleen-donker { display: none !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-thema="licht"]) .alleen-donker { display: inline-flex !important; } }
+:root[data-thema="donker"] .alleen-donker { display: inline-flex !important; }
+
 @theme inline {
   --color-inkt: var(--inkt);
   --color-inkt-2: var(--inkt-2);

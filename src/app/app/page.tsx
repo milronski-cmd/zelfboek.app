@@ -27,7 +27,7 @@ function VolgendeStap({ acties, klein = false }: { acties: Actie[]; klein?: bool
       <ul className="kaart mb-6 divide-y divide-lijn overflow-hidden">
         {acties.slice(0, 4).map((a) => (
           <li key={a.href + a.tekst}>
-            <Link href={a.href} className="flex items-center gap-3 px-5 py-2.5 text-sm text-tekst-2 hover:bg-[#fafbfc]">
+            <Link href={a.href} className="flex items-center gap-3 px-5 py-2.5 text-sm text-tekst-2 hover:bg-papier">
               <span className="min-w-0 flex-1">{a.tekst}</span>
               <Chevron />
             </Link>
@@ -64,7 +64,7 @@ function VolgendeStap({ acties, klein = false }: { acties: Actie[]; klein?: bool
         <ul className="divide-y divide-lijn border-t border-lijn">
           {rest.slice(0, 3).map((a) => (
             <li key={a.href + a.tekst}>
-              <Link href={a.href} className="flex items-center gap-3 px-5 py-2.5 text-sm text-tekst-2 hover:bg-[#fafbfc]">
+              <Link href={a.href} className="flex items-center gap-3 px-5 py-2.5 text-sm text-tekst-2 hover:bg-papier">
                 <span className="min-w-0 flex-1">{a.tekst}</span>
                 <Chevron />
               </Link>
@@ -291,7 +291,7 @@ export default async function Overzicht() {
         <ul className="kaart divide-y divide-lijn">
           {lijst.map((r) => (
             <li key={r.id}>
-              <Link href={r.href} className="flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc]">
+              <Link href={r.href} className="flex items-center gap-4 px-4 py-3 hover:bg-papier">
                 {r.factuur ? <DocumentIcoon /> : <BankIcoon bank={r.bank} iban={r.iban} />}
                 <span className="min-w-0 flex-1">
                   <span className="block line-clamp-2 break-words text-sm font-medium sm:truncate">{r.titel}</span>

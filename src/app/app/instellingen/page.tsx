@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+import { ThemaKiezer } from "@/components/ThemaKiezer";
 import { Bestandskiezer } from "@/components/Bestandskiezer";
 import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
@@ -11,7 +13,7 @@ export const instant = false;
 
 const tabs = [
   { k: "bedrijf", l: "Bedrijf" }, { k: "facturen", l: "Facturen" }, { k: "fiscaal", l: "Belasting" },
-  { k: "team", l: "Team" }, { k: "email", l: "E-mail" }, { k: "abonnement", l: "Abonnement" }, { k: "gevaar", l: "Verwijderen" },
+  { k: "account", l: "Inloggen en weergave" }, { k: "team", l: "Team" }, { k: "email", l: "E-mail" }, { k: "abonnement", l: "Abonnement" }, { k: "gevaar", l: "Verwijderen" },
 ];
 
 function Veld({ naam, label, waarde, type = "text", hint, breed }: { naam: string; label: string; waarde?: string | null; type?: string; hint?: string; breed?: boolean }) {
@@ -55,6 +57,12 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
       </nav>
       {sp.stripe === "gelukt" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: true, melding: "Je abonnement is gestart." }} /></div>}
       {sp.stripe === "niet-ingesteld" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: false, fout: process.env.NODE_ENV === "production" ? "Afrekenen voor je abonnement staat nog niet aan. We laten het je weten zodra het kan; je proefperiode loopt gewoon door." : "Afrekenen staat nog niet aan op deze server (STRIPE_SECRET_KEY en STRIPE_PRICE_ID ontbreken)." }} /></div>}
+
+      {tab === "account" && (
+        <div className={kaart}>
+          <ThemaKiezer huidig={(await cookies()).get("sp_thema")?.value ?? "auto"} />
+        </div>
+      )}
 
       {tab === "bedrijf" && (
         <form action={bedrijfOpslaan} className={kaart}>
