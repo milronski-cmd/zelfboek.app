@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { db, schrijfOnderneming } from "./db";
 import { rond } from "./btw";
 import { KM_VERGOEDING, INVESTERINGSGRENS } from "./fiscaal/constanten-2026";
@@ -203,6 +204,9 @@ export async function aangifteOpslaan(fd: FormData): Promise<void> {
     create: { ondernemingId: o.id, soort, jaar, periode, rubrieken, bedrag, status, ingediendOp: status !== "concept" && status !== "klaar" ? new Date() : null, betaaldOp: status === "betaald" ? new Date() : null },
   });
   revalidatePath("/app/btw");
+  revalidatePath("/app");
+  // Door naar de volgende stap (die volgt uit de nieuwe status).
+  if (soort === "btw") redirect(`/app/btw?j=${jaar}&p=${periode}`);
 }
 
 // ───────────── IB-instellingen ─────────────

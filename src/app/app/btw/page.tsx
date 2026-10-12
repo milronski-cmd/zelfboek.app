@@ -5,7 +5,7 @@ import { db, huidigeOnderneming } from "@/lib/db";
 import { btwAangifte, btwDeadline, datumNl, euro, kwartaalVan, periodeBereik, type Aangifte } from "@/lib/btw";
 import { icpOpgaaf } from "@/lib/exports/icp";
 import { aangifteOpslaan } from "@/lib/acties-fiscaal";
-import { Kaart, Kop, Leeg, Pil, knopLicht } from "@/components/ui";
+import { Kaart, Kop, Leeg, Pil, Waarom, knopLicht } from "@/components/ui";
 
 export const instant = false;
 
@@ -24,7 +24,7 @@ const rubrieken: { code: string; naam: string; omzet: keyof Aangifte; btw?: keyo
 const statusPil: Record<string, "groen" | "geel" | "grijs"> = { concept: "grijs", klaar: "geel", ingediend: "groen", betaald: "groen" };
 const statusTekst: Record<string, string> = { concept: "Nog niet definitief", klaar: "Klaar om in te dienen", ingediend: "Ingediend", betaald: "Ingediend en betaald" };
 
-export default async function Btw({ searchParams }: { searchParams: Promise<{ j?: string; p?: string }> }) {
+export default async function Btw({ searchParams }: { searchParams: Promise<{ j?: string; p?: string; stap?: string }> }) {
   await connection();
   const sp = await searchParams;
   const o = await huidigeOnderneming();
@@ -67,6 +67,43 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
   const q = `jaar=${jaar}&periode=${periode}`;
   const periodeNaam = (h: { jaar: number; periode: number }) => (tijdvak === "maand" ? `${new Intl.DateTimeFormat("nl-NL", { month: "long" }).format(new Date(h.jaar, h.periode - 1, 1))} ${h.jaar}` : tijdvak === "jaar" ? `${h.jaar}` : `${h.periode}e kwartaal ${h.jaar}`);
 
+  // De stap volgt de status (concept → controleren, klaar → aangifte doen, ingediend/betaald → betalen); ?stap= kiest zelf.
+  const stapNu = status === "concept" ? 1 : status === "klaar" ? 2 : 3;
+  const stap = [1, 2, 3].includes(Number(sp.stap)) ? Number(sp.stap) : stapNu;
+  const verborgen = (st: string) => (
+    <>
+      <input type="hidden" name="soort" value="btw" /><input type="hidden" name="jaar" value={jaar} /><input type="hidden" name="periode" value={periode} />
+      <input type="hidden" name="status" value={st} /><input type="hidden" name="bedrag" value={a["5c_te_betalen"]} /><input type="hidden" name="rubrieken" value={JSON.stringify(a)} />
+    </>
+  );
+  const rondje = (n: number) => <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primair-licht text-[12px] font-semibold text-primair-tekst">{n}</span>;
+  const vakjes = (
+    <div className="kaart overflow-hidden">
+      <div className="hidden grid-cols-[3rem_1fr_10rem_8rem] gap-x-4 border-b border-lijn px-4 py-2 text-[12px] font-semibold uppercase tracking-[.04em] text-tekst-3 sm:grid">
+        <span>Vakje</span><span></span><span className="text-right">Bedrag waarover btw</span><span className="text-right">Btw</span>
+      </div>
+      <ul className="divide-y divide-lijn">
+        {rubrieken.map((r) => {
+          const leeg = a[r.omzet] === 0 && (!r.btw || a[r.btw] === 0);
+          return (
+            <li key={r.code} className={`grid grid-cols-[2.5rem_1fr] gap-x-3 px-4 py-2.5 text-sm sm:grid-cols-[3rem_1fr_10rem_8rem] sm:gap-x-4 ${leeg ? "text-tekst-3" : ""}`}>
+              <span className="tabular font-medium">{r.code}</span>
+              <span>
+                {r.naam}
+                <span className="mt-0.5 block text-[13px] sm:hidden">{euro(a[r.omzet])}{r.btw ? ` · btw ${euro(a[r.btw])}` : ""}</span>
+              </span>
+              <span className="cijfer hidden text-right sm:block">{euro(a[r.omzet])}</span>
+              <span className="cijfer hidden text-right sm:block">{r.btw ? euro(a[r.btw]) : ""}</span>
+            </li>
+          );
+        })}
+        <li className="flex justify-between gap-3 bg-papier px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5a</b>Verschuldigde omzetbelasting</span><span className="cijfer font-medium">{euro(a["5a_verschuldigd"])}</span></li>
+        <li className="flex justify-between gap-3 px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5b</b>Voorbelasting</span><span className="cijfer">{euro(a["5b_voorbelasting"])}</span></li>
+        <li className="flex items-center justify-between gap-3 bg-papier px-4 py-3 font-semibold"><span><b className="tabular mr-3">5c</b>{a["5c_te_betalen"] >= 0 ? "Te betalen" : "Terug te vragen"}</span><span className="cijfer text-[20px]">{euro(Math.abs(a["5c_te_betalen"]))}</span></li>
+      </ul>
+    </div>
+  );
+
   return (
     <>
       <Kop titel={`Btw-aangifte ${label}`} sub={`Indienen en betalen vóór ${datumNl(deadline)} via Mijn Belastingdienst Zakelijk${dagenTot >= 0 && dagenTot <= 14 && !afgehandeld ? `, dat is over ${dagenTot} dagen` : ""}.`}>
@@ -86,60 +123,97 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
 
       {(await db.transactie.count({ where: { ondernemingId: o.id } })) === 0 && <div className="mb-6"><Leeg tekst="Hier staat nog niets, want er zijn nog geen betalingen. Koppel je bank of upload een afschrift; daarna rekent Saldoplan dit vanzelf uit." actie={<Link href="/app/koppelingen" className="knop knop-klein">Bank koppelen</Link>} /></div>}
 
-      {/* In gewone woorden: wat je betaalt en hoe je de aangifte doet. */}
-      <section className="kaart mb-6 p-5">
-        <p className="text-sm text-tekst-2">{a["5c_te_betalen"] >= 0 ? "Je betaalt over deze periode" : "Je krijgt over deze periode terug"}</p>
-        <p className="cijfer mt-0.5 text-[30px] font-semibold leading-tight">{euro(Math.abs(a["5c_te_betalen"]))}</p>
-        {!afgehandeld ? (
-          <ol className="mt-4 space-y-2 text-sm">
-            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primair-licht text-[12px] font-semibold text-primair-tekst">1</span><span className="pt-0.5">Log in op <b>Mijn Belastingdienst Zakelijk</b> en open de aangifte omzetbelasting.</span></li>
-            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primair-licht text-[12px] font-semibold text-primair-tekst">2</span><span className="pt-0.5">Neem de bedragen hieronder over, per vakje (1a, 1b, en zo verder). Alleen hele euro&apos;s: de centen laat je weg.</span></li>
-            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primair-licht text-[12px] font-semibold text-primair-tekst">3</span><span className="pt-0.5">Verstuur hem en klik hieronder op <b>Ik heb ingediend</b>. Betaal vóór {datumNl(deadline)}.</span></li>
-          </ol>
-        ) : <p className="mt-2 text-sm text-groen-tekst">Deze aangifte staat als {status === "betaald" ? "betaald" : "ingediend"}. Je hoeft niets meer te doen.</p>}
-      </section>
+      {/* Drie schermen: controleren, aangifte doen, betalen. De stap volgt de status; terugklikken mag. */}
+      <ol className="mb-5 grid grid-cols-3 gap-2 text-[13px]" aria-label="Stappen">
+        {(["Controleren", "Aangifte doen", "Betalen"] as const).map((naam, i) => {
+          const n = i + 1;
+          const gedaan = n < stapNu || status === "betaald";
+          return (
+            <li key={naam}>
+              <Link href={`/app/btw?j=${jaar}&p=${periode}&stap=${n}`} aria-current={n === stap ? "step" : undefined} className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 ${n === stap ? "border-primair bg-primair-licht font-semibold text-primair-tekst" : "border-lijn bg-white text-tekst-2"}`}>
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${gedaan ? "bg-groen text-white" : n === stap ? "bg-primair text-white" : "bg-lijn text-tekst-2"}`}>{gedaan ? "✓" : n}</span>
+                <span className="min-w-0 leading-tight">{naam}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
 
-      {/* De rubrieken: dit neem je over bij de Belastingdienst. */}
-      <div className="kaart overflow-hidden">
-        <div className="hidden grid-cols-[3rem_1fr_10rem_8rem] gap-x-4 border-b border-lijn px-4 py-2 text-[12px] font-semibold uppercase tracking-[.04em] text-tekst-3 sm:grid">
-          <span>Vakje</span><span></span><span className="text-right">Bedrag waarover btw</span><span className="text-right">Btw</span>
-        </div>
-        <ul className="divide-y divide-lijn">
-          {rubrieken.map((r) => {
-            const leeg = a[r.omzet] === 0 && (!r.btw || a[r.btw] === 0);
-            return (
-              <li key={r.code} className={`grid grid-cols-[2.5rem_1fr] gap-x-3 px-4 py-2.5 text-sm sm:grid-cols-[3rem_1fr_10rem_8rem] sm:gap-x-4 ${leeg ? "text-tekst-3" : ""}`}>
-                <span className="tabular font-medium">{r.code}</span>
-                <span>
-                  {r.naam}
-                  <span className="mt-0.5 block text-[13px] sm:hidden">{euro(a[r.omzet])}{r.btw ? ` · btw ${euro(a[r.btw])}` : ""}</span>
-                </span>
-                <span className="cijfer hidden text-right sm:block">{euro(a[r.omzet])}</span>
-                <span className="cijfer hidden text-right sm:block">{r.btw ? euro(a[r.btw]) : ""}</span>
-              </li>
-            );
-          })}
-          <li className="flex justify-between gap-3 bg-papier px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5a</b>Verschuldigde omzetbelasting</span><span className="cijfer font-medium">{euro(a["5a_verschuldigd"])}</span></li>
-          <li className="flex justify-between gap-3 px-4 py-2.5 text-sm"><span><b className="tabular mr-3">5b</b>Voorbelasting</span><span className="cijfer">{euro(a["5b_voorbelasting"])}</span></li>
-          <li className="flex items-center justify-between gap-3 bg-papier px-4 py-3 font-semibold"><span><b className="tabular mr-3">5c</b>{a["5c_te_betalen"] >= 0 ? "Te betalen" : "Terug te vragen"}</span><span className="cijfer text-[20px]">{euro(Math.abs(a["5c_te_betalen"]))}</span></li>
-        </ul>
-      </div>
+      {stap === 1 && (
+        <>
+          <section className="kaart mb-4 p-5">
+            <p className="text-sm text-tekst-2">{a["5c_te_betalen"] >= 0 ? "Je betaalt over deze periode" : "Je krijgt over deze periode terug"}</p>
+            <p className="cijfer mt-0.5 text-[30px] font-semibold leading-tight">{euro(Math.abs(a["5c_te_betalen"]))}</p>
+            <Waarom label="Hoe komt dit bedrag tot stand?" regels={[["Btw op je verkopen", euro(a["5a_verschuldigd"])], ["Btw op je inkopen (die krijg je terug)", euro(-a["5b_voorbelasting"])], [a["5c_te_betalen"] >= 0 ? "Te betalen" : "Terug te krijgen", euro(Math.abs(a["5c_te_betalen"]))]]} slot="Saldoplan telt de btw van al je geboekte betalingen en bonnen in deze periode. Privé-uitgaven tellen niet mee." />
+            <p className="mt-4 text-sm">Kijk de vakjes hieronder na. Klopt het? Ga dan naar de volgende stap.</p>
+          </section>
+          {vakjes}
+          <form action={aangifteOpslaan} className="mt-4">
+            {verborgen("klaar")}
+            <button className="knop knop-groot w-full justify-center sm:w-auto">Klopt, verder naar de aangifte</button>
+          </form>
+        </>
+      )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      {stap === 2 && (
+        <>
+          <section className="kaart mb-4 p-5">
+            <h2 className="text-[16px] font-semibold">Doe de aangifte bij de Belastingdienst</h2>
+            <ol className="mt-3 space-y-2 text-sm">
+              <li className="flex gap-3">{rondje(1)}<span className="pt-0.5">Log in op <a href="https://mijn.belastingdienst.nl/mbd-pmb/" target="_blank" rel="noreferrer" className="font-semibold text-primair-tekst underline">Mijn Belastingdienst Zakelijk</a> en open de aangifte omzetbelasting voor {label}.</span></li>
+              <li className="flex gap-3">{rondje(2)}<span className="pt-0.5">Neem de bedragen hieronder over, per vakje. Alleen hele euro&apos;s: de centen laat je weg. Lege vakjes laat je op 0.</span></li>
+              <li className="flex gap-3">{rondje(3)}<span className="pt-0.5">Verstuur de aangifte. Je krijgt een bevestiging met een <b>betalingskenmerk</b>; dat heb je zo nodig.</span></li>
+            </ol>
+          </section>
+          {vakjes}
+          <form action={aangifteOpslaan} className="mt-4">
+            {verborgen("ingediend")}
+            <button className="knop knop-groot w-full justify-center sm:w-auto">Ik heb de aangifte verstuurd</button>
+          </form>
+        </>
+      )}
+
+      {stap === 3 && (
+        <section className="kaart p-5">
+          {status === "betaald" ? (
+            <p className="text-sm text-groen-tekst">Klaar: deze aangifte is verstuurd{a["5c_te_betalen"] > 0 ? " en betaald" : ""}. Je hoeft niets meer te doen.{opgeslagen?.notitie ? ` Betalingskenmerk ${opgeslagen.notitie}.` : ""}</p>
+          ) : a["5c_te_betalen"] <= 0 ? (
+            <>
+              <h2 className="text-[16px] font-semibold">Je hoeft niets te betalen</h2>
+              <p className="mt-1 text-sm text-tekst-2">Je krijgt {euro(Math.abs(a["5c_te_betalen"]))} terug. De Belastingdienst maakt het over op je rekening.</p>
+              <form action={aangifteOpslaan} className="mt-4">{verborgen("betaald")}<button className="knop knop-groot w-full justify-center sm:w-auto">Afronden</button></form>
+            </>
+          ) : (
+            <>
+              <h2 className="text-[16px] font-semibold">Betaal {euro(a["5c_te_betalen"])} vóór {datumNl(deadline)}</h2>
+              <dl className="mt-3 space-y-1.5 text-sm">
+                <div className="flex justify-between gap-3"><dt className="text-tekst-2">Naar rekening</dt><dd className="cijfer font-medium">NL86 INGB 0002 4455 88</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-tekst-2">Ten name van</dt><dd className="font-medium">Belastingdienst</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-tekst-2">Bedrag</dt><dd className="cijfer font-medium">{euro(a["5c_te_betalen"])}</dd></div>
+              </dl>
+              <form action={aangifteOpslaan} className="mt-4 space-y-3">
+                {verborgen("betaald")}
+                <div>
+                  <label className="lbl" htmlFor="kenmerk">Betalingskenmerk <span className="font-normal text-tekst-3">(uit de bevestiging van de Belastingdienst)</span></label>
+                  <input id="kenmerk" name="notitie" inputMode="numeric" defaultValue={opgeslagen?.notitie ?? ""} placeholder="16 cijfers" className="veld" />
+                </div>
+                <p className="text-[13px] text-tekst-3">Zet het kenmerk in je bank bij &ldquo;betalingskenmerk&rdquo;, niet bij de omschrijving. Saldoplan herinnert je 14 en 3 dagen voor de deadline.</p>
+                <button className="knop knop-groot w-full justify-center sm:w-auto">Ik heb betaald</button>
+              </form>
+            </>
+          )}
+        </section>
+      )}
+
+      <div className="mt-6 flex flex-wrap items-center gap-2">
         <a href={`/api/exports/btw-pdf?${q}`} className={knopLicht}>PDF-overzicht</a>
+        <a href="/api/agenda/btw" className={knopLicht}>Deadlines in je agenda</a>
         <a href={`/api/exports/sbr?${q}`} className="knop-tekst">Bestand voor je boekhouder (SBR)</a>
-        {icp.regels.length > 0 && <a href={`/api/exports/icp?${q}`} className={knopLicht}>ICP-opgaaf als CSV</a>}
+        {icp.regels.length > 0 && <a href={`/api/exports/icp?${q}`} className={knopLicht}>Lijst EU-klanten (CSV)</a>}
         <span className="ml-auto flex items-center gap-2 text-sm">
           <Pil kleur={statusPil[status] ?? "grijs"}>{statusTekst[status] ?? status}</Pil>
           {opgeslagen?.ingediendOp && <span className="text-[13px] text-tekst-3">op {datumNl(opgeslagen.ingediendOp)}</span>}
         </span>
-        {(["klaar", "ingediend", "betaald"] as const).map((st) => (
-          <form key={st} action={aangifteOpslaan}>
-            <input type="hidden" name="soort" value="btw" /><input type="hidden" name="jaar" value={jaar} /><input type="hidden" name="periode" value={periode} />
-            <input type="hidden" name="status" value={st} /><input type="hidden" name="bedrag" value={a["5c_te_betalen"]} /><input type="hidden" name="rubrieken" value={JSON.stringify(a)} />
-            <button className={status === st ? "chip chip-actief" : "chip"}>{st === "klaar" ? "Markeer als klaar" : st === "ingediend" ? "Ik heb ingediend" : "Ik heb betaald"}</button>
-          </form>
-        ))}
       </div>
 
       {(icp.regels.length > 0 || icp.onbekend > 0) && (

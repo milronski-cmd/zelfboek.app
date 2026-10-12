@@ -43,14 +43,19 @@ export async function controleerDeadlines(ondernemingId: string): Promise<number
   const { start, eind } = periodeBereik(o.btwTijdvak, vorige.jaar, vorige.periode || 1);
   const deadline = btwDeadline(eind);
   const dagen = dagenTot(deadline);
-  const ingediend = await db.aangifte.findFirst({ where: { ondernemingId, soort: "btw", jaar: vorige.jaar, periode: vorige.periode, status: { in: ["ingediend", "betaald"] } } });
-  if (!ingediend && [14, 7, 1, 0].includes(dagen)) {
+  const opgeslagen = await db.aangifte.findFirst({ where: { ondernemingId, soort: "btw", jaar: vorige.jaar, periode: vorige.periode } });
+  const ingediend = opgeslagen && ["ingediend", "betaald"].includes(opgeslagen.status);
+  // Herinneringen 14 en 3 dagen vooraf (en op de laatste dag); nog niet betaald na indienen: 3 dagen en 1 dag vooraf.
+  if (opgeslagen?.status === "ingediend" && opgeslagen.bedrag > 0 && [3, 1].includes(dagen)) {
+    await nieuw("deadline", `Btw betalen: nog ${dagen} dag${dagen === 1 ? "" : "en"}`, `Je aangifte is verstuurd. Betaal ${euro(opgeslagen.bedrag)} aan de Belastingdienst met het betalingskenmerk uit je bevestiging.`, `/app/btw?j=${vorige.jaar}&p=${vorige.periode}&stap=3`);
+  }
+  if (!ingediend && [14, 3, 0].includes(dagen)) {
     const rows = await db.transactie.findMany({ where: { ondernemingId, datum: { gte: start, lt: eind } } });
     const a = btwAangifte(rows);
     const naam = o.btwTijdvak === "maand" ? `maand ${vorige.periode}` : o.btwTijdvak === "jaar" ? `jaar ${vorige.jaar}` : `Q${vorige.periode} ${vorige.jaar}`;
     await nieuw("deadline", `Btw-aangifte ${naam} ${dagen === 0 ? "moet vandaag binnen zijn" : `over ${dagen} dag${dagen === 1 ? "" : "en"}`}`,
       `Indicatie: ${euro(a["5c_te_betalen"])} ${a["5c_te_betalen"] >= 0 ? "te betalen" : "terug te vragen"}. Controleer de twijfelgevallen en neem de rubrieken over bij de Belastingdienst.`,
-      `/app/btw?j=${vorige.jaar}&k=${vorige.periode}`);
+      `/app/btw?j=${vorige.jaar}&p=${vorige.periode}`);
   }
 
   // 2. Proefperiode.

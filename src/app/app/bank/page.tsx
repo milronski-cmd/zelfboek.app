@@ -167,7 +167,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
                     <td>
                       <div className="font-medium">{t.tegenpartij || "Onbekend"}</div>
                       <div className="max-w-xs truncate text-[13px] text-tekst-3" title={t.omschrijving}>{t.omschrijving}</div>
-                      {t.uitleg && <div className="mt-1 max-w-xs text-[13px] text-tekst-2">{t.uitleg}</div>}
+                      {t.uitleg && <div className="mt-1 max-w-xs text-[13px] text-tekst-2"><span className="text-tekst-3">Waarom zo: </span>{t.uitleg}</div>}
                     </td>
                     <td className={`num ${t.bedrag > 0 ? "text-groen-tekst" : ""}`}>
                       {euro(t.bedrag)}
