@@ -1,12 +1,12 @@
 import { connection } from "next/server";
 import Link from "next/link";
-import { huidigeOnderneming } from "@/lib/db";
+import { db, huidigeOnderneming } from "@/lib/db";
 import { ibIndicatie } from "@/lib/geld";
 import { euro } from "@/lib/btw";
 import { korCheck } from "@/lib/fiscaal/kor";
 import * as C from "@/lib/fiscaal/constanten-2026";
 import { ibInstellingenOpslaan } from "@/lib/acties-fiscaal";
-import { Cijferband, Kaart, Kop, Tegel, knop, knopLicht, veld } from "@/components/ui";
+import { Cijferband, Kaart, Kop, Leeg, Tegel, knop, knopLicht, veld } from "@/components/ui";
 
 export const instant = false;
 
@@ -32,6 +32,7 @@ export default async function Ib({ searchParams }: { searchParams: Promise<{ j?:
         <Link href={`/app/ib?j=${jaar + 1}`} className={knopLicht}>{jaar + 1}</Link>
       </Kop>
 
+      {(await db.transactie.count({ where: { ondernemingId: o.id } })) === 0 && <div className="mb-6"><Leeg tekst="Hier staat nog niets, want er zijn nog geen betalingen. Koppel je bank of upload een afschrift; daarna rekent Saldoplan dit vanzelf uit." actie={<Link href="/app/koppelingen" className="knop knop-klein">Bank koppelen</Link>} /></div>}
       <Cijferband>
         <Tegel label="Fiscale winst tot nu" waarde={wv.fiscaleWinst} hint={`${maanden} van 12 maanden`} />
         <Tegel label="Belasting en Zvw tot nu" waarde={ib.teBetalen} hint={`${(ib.effectiefTarief * 100).toFixed(1).replace(".", ",")}% van je winst`} />

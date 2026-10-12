@@ -65,7 +65,7 @@ export default async function Uren({ searchParams }: { searchParams: Promise<{ j
         <Cijferband>
           <Tegel label="Geregistreerd" waarde={uur(totaal)} hint={`${uur(declarabel)} te factureren`} />
           <Tegel label="Deze week" waarde={uur(dezeWeek)} hint="laatste 7 dagen" />
-          <Tegel label="Verwacht eind van het jaar" waarde={uur(verwacht)} accent={verwacht >= URENCRITERIUM ? "groen" : "rood"} hint={verwacht >= URENCRITERIUM ? "je haalt het urencriterium" : `nog ${Math.max(0, URENCRITERIUM - totaal).toFixed(0)} uur nodig`} />
+          <Tegel label="Verwacht eind van het jaar" waarde={uur(verwacht)} accent={verwacht >= URENCRITERIUM ? "groen" : "rood"} hint={verwacht >= URENCRITERIUM ? "je haalt het urencriterium" : `nog ${Math.round(Math.max(0, URENCRITERIUM - totaal)).toLocaleString("nl-NL")} uur nodig`} />
         </Cijferband>
       </div>
 

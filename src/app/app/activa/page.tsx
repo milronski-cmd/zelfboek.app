@@ -37,7 +37,7 @@ export default async function Activa() {
       <Cijferband>
         <Tegel label="Waarde nu" waarde={totaalBoekwaarde} hint={`${activa.filter((a) => !a.verkochtOp).length} in gebruik`} />
         <Tegel label={`Kosten in ${jaar}`} waarde={afschrijvingJaar} hint="het deel dat dit jaar meetelt" />
-        <Tegel label={`Investeringsaftrek ${jaar}`} waarde={kia} accent={kia > 0 ? "groen" : undefined} hint={investeringenDitJaar > 0 && kia === 0 ? `${euro(investeringenDitJaar)} geïnvesteerd, drempel is € ${KIA.drempel}` : `${KIA.pct * 100}% extra aftrek tussen € ${KIA.drempel} en € ${KIA.pctTot}`} />
+        <Tegel label={`Investeringsaftrek ${jaar}`} waarde={kia} accent={kia > 0 ? "groen" : undefined} hint={investeringenDitJaar > 0 && kia === 0 ? `${euro(investeringenDitJaar)} geïnvesteerd, drempel is € ${KIA.drempel.toLocaleString("nl-NL")}` : `${Math.round(KIA.pct * 100)}% extra aftrek bij aankopen tussen € ${KIA.drempel.toLocaleString("nl-NL")} en € ${KIA.pctTot.toLocaleString("nl-NL")}`} />
       </Cijferband>
 
       {kandidaten.length > 0 && (

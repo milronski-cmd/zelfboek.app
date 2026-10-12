@@ -1,12 +1,12 @@
 import { connection } from "next/server";
 import Link from "next/link";
-import { huidigeOnderneming } from "@/lib/db";
+import { db, huidigeOnderneming } from "@/lib/db";
 import { euro, isoDatum } from "@/lib/btw";
 import { jaarrekening } from "@/lib/fiscaal/jaarrekening";
 import { boekAfschrijvingen } from "@/lib/fiscaal/afschrijving";
 import { memoriaalToevoegen } from "@/lib/acties-fiscaal";
 import { CATEGORIEEN, CATEGORIE_INFO } from "@/lib/categorieen";
-import { Cijferband, Kaart, Kop, Tegel, knop, knopLicht, veld } from "@/components/ui";
+import { Cijferband, Kaart, Kop, Leeg, Tegel, knop, knopLicht, veld } from "@/components/ui";
 
 export const instant = false;
 
@@ -31,6 +31,7 @@ export default async function JaarrekeningPagina({ searchParams }: { searchParam
         <a href={`/api/exports/jaarrekening-pdf?jaar=${jaar}`} className={knop}>Download als PDF</a>
       </Kop>
 
+      {(await db.transactie.count({ where: { ondernemingId: o.id } })) === 0 && <div className="mb-6"><Leeg tekst="Hier staat nog niets, want er zijn nog geen betalingen. Koppel je bank of upload een afschrift; daarna rekent Saldoplan dit vanzelf uit." actie={<Link href="/app/koppelingen" className="knop knop-klein">Bank koppelen</Link>} /></div>}
       <Cijferband>
         <Tegel label="Omzet" waarde={jr.wv.omzet} />
         <Tegel label="Kosten" waarde={jr.wv.kosten} hint={`waarvan ${euro(jr.wv.afschrijving)} afschrijving`} />

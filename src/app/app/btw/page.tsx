@@ -5,7 +5,7 @@ import { db, huidigeOnderneming } from "@/lib/db";
 import { btwAangifte, btwDeadline, datumNl, euro, kwartaalVan, periodeBereik, type Aangifte } from "@/lib/btw";
 import { icpOpgaaf } from "@/lib/exports/icp";
 import { aangifteOpslaan } from "@/lib/acties-fiscaal";
-import { Kaart, Kop, Pil, knopLicht } from "@/components/ui";
+import { Kaart, Kop, Leeg, Pil, knopLicht } from "@/components/ui";
 
 export const instant = false;
 
@@ -83,6 +83,8 @@ export default async function Btw({ searchParams }: { searchParams: Promise<{ j?
           <Link href="/app/bank" className="underline">Naar de bank</Link>
         </p>
       )}
+
+      {(await db.transactie.count({ where: { ondernemingId: o.id } })) === 0 && <div className="mb-6"><Leeg tekst="Hier staat nog niets, want er zijn nog geen betalingen. Koppel je bank of upload een afschrift; daarna rekent Saldoplan dit vanzelf uit." actie={<Link href="/app/koppelingen" className="knop knop-klein">Bank koppelen</Link>} /></div>}
 
       {/* In gewone woorden: wat je betaalt en hoe je de aangifte doet. */}
       <section className="kaart mb-6 p-5">

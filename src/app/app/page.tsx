@@ -89,7 +89,7 @@ function AiBalk() {
           <span className="flex h-9 w-9 shrink-0 items-center justify-center text-primair" aria-hidden>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2z" /><path d="M19 14l.9 2.6L22.5 17.5l-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9L19 14z" opacity=".7" /><path d="M5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7L5 15z" opacity=".5" /></svg>
           </span>
-          <input name="q" required autoComplete="off" placeholder="Vraag het Saldoplan over je boekhouding, bijvoorbeeld: hoe sta ik ervoor deze maand?" aria-label="Je vraag aan Saldoplan" className="min-w-0 flex-1 bg-transparent text-[16px] text-tekst outline-none placeholder:text-tekst-3" />
+          <input name="q" required autoComplete="off" placeholder="Vraag het Saldoplan, bijvoorbeeld: hoe sta ik ervoor?" aria-label="Je vraag aan Saldoplan" className="min-w-0 flex-1 bg-transparent text-[16px] text-tekst outline-none placeholder:text-tekst-3" />
           <button type="submit" className="knop knop-groot">Vraag</button>
         </form>
         <div className="flex flex-wrap items-center gap-2 border-t border-lijn px-4 py-2.5 sm:px-5">
@@ -292,10 +292,10 @@ export default async function Overzicht() {
               <Link href={r.href} className="flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc]">
                 {r.factuur ? <DocumentIcoon /> : <BankIcoon bank={r.bank} iban={r.iban} />}
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{r.titel}</span>
-                  <span className="mt-1 flex items-center gap-2 text-[13px] text-tekst-2">
+                  <span className="block line-clamp-2 break-words text-sm font-medium sm:truncate">{r.titel}</span>
+                  <span className="mt-1 flex items-start gap-2 text-[13px] text-tekst-2">
                     <Pil kleur={r.pil}>{r.status}</Pil>
-                    <span className="truncate">{r.sub}</span>
+                    <span className="line-clamp-2 sm:truncate">{r.sub}</span>
                   </span>
                 </span>
                 <span className="shrink-0 text-right">
