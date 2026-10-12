@@ -127,6 +127,8 @@ async function main() {
   regels.push({ ondernemingId: oid, bankrekeningId: revolut.id, datum: new Date(nu.getFullYear(), nu.getMonth(), 1), bedrag: -15, tegenpartij: "Figma", omschrijving: "Figma Professional", hash: "demo-revo-1", bron: "csv", categorie: "software", btwCode: "verlegd", btwBedrag: 0, zakelijk: true, zekerheid: 0.97, uitleg: "Ontwerpsoftware, btw verlegd.", bevestigd: true });
   regels.push({ ondernemingId: oid, bankrekeningId: revolut.id, datum: new Date(nu.getFullYear(), nu.getMonth(), 1), bedrag: -25, tegenpartij: "Revolut", omschrijving: "Business plan Grow", hash: "demo-revo-2", bron: "csv", categorie: "bankkosten", btwCode: "geen", btwBedrag: 0, zakelijk: true, zekerheid: 0.99, uitleg: "Abonnement zakelijke rekening, vrijgesteld.", bevestigd: true });
   regels.push({ ondernemingId: oid, bankrekeningId: revolut.id, datum: new Date(nu.getFullYear(), nu.getMonth(), 5), bedrag: 2000, tegenpartij: "Studio Noord", tegenIban: "NL69INGB0001234567", omschrijving: "Overboeking eigen rekening", hash: "demo-revo-3", bron: "csv", categorie: "overboeking_eigen", btwCode: "geen", btwBedrag: 0, zakelijk: true, zekerheid: 0.99, uitleg: "Overboeking tussen eigen rekeningen.", bevestigd: true });
+  // Geen betalingen in de toekomst: wat na vandaag zou vallen, schuift naar de afgelopen dagen.
+  regels.forEach((r, i) => { if (r.datum instanceof Date && r.datum > nu) r.datum = new Date(nu.getFullYear(), nu.getMonth(), nu.getDate() - 1 - (i % 6)); });
   for (const r of regels) await db.transactie.create({ data: r });
 
   // Facturen: betaald, open, te laat, concept.
