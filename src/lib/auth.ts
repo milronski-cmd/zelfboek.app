@@ -11,6 +11,10 @@ import { binnenLimiet, DAG, klantIp, UUR } from "./limiet";
 import { testmodus } from "./testmodus";
 
 const COOKIE = "bb_sessie";
+/** Tijdens meekijken bewaart deze cookie de eigen sessie van de beheerder. */
+export const BEHEER_COOKIE = "bb_beheer";
+export const GEBLOKKEERD = "Dit account is geblokkeerd. Mail support@saldoplan.nl als je denkt dat dit niet klopt.";
+export const MEEKIJKEN = "Je kijkt mee: wijzigen kan niet. Stop met meekijken om terug te gaan naar beheer.";
 const SESSIE_DAGEN = 30;
 
 /** Stap 1: code per e-mail. Maakt de gebruiker aan als die nog niet bestaat. */
@@ -20,6 +24,7 @@ export async function stuurLoginCode(email: string, ip?: string): Promise<{ ok: 
   // Per IP hooguit 10 codes per uur (tegen massaal aanvragen en als mailbom).
   if (!(await binnenLimiet(`code-ip:${ip ?? (await klantIp())}`, 10, UUR))) return { ok: false, melding: "Te veel aanvragen vanaf dit adres. Probeer het over een uur opnieuw." };
   const gebruiker = await db.gebruiker.upsert({ where: { email: e }, update: {}, create: { email: e } });
+  if (gebruiker.geblokkeerd) return { ok: false, melding: GEBLOKKEERD };
   // Hooguit 3 codes per 10 minuten en 10 per dag per adres; elke nieuwe code maakt de vorige ongeldig.
   const [recent, vandaag] = await Promise.all([
     db.loginCode.count({ where: { gebruikerId: gebruiker.id, aangemaakt: { gt: new Date(Date.now() - 10 * 60_000) } } }),
@@ -60,6 +65,7 @@ export async function maakSessie(gebruikerId: string): Promise<{ nieuw: boolean 
 /** Sessie in de database; geeft het token terug (de app bewaart het zelf, de webapp zet een cookie). */
 export async function nieuweSessie(gebruikerId: string): Promise<{ token: string; nieuw: boolean }> {
   const gebruiker = await db.gebruiker.findUniqueOrThrow({ where: { id: gebruikerId } });
+  if (gebruiker.geblokkeerd) throw new Error(GEBLOKKEERD);
   const token = willekeurigToken();
   const lid = await db.lidmaatschap.findFirst({ where: { gebruikerId } });
   await db.sessie.create({
@@ -94,6 +100,7 @@ export async function controleerLoginCode(email: string, code: string, appCode?:
   if (!(await binnenLimiet(`login-ip:${ip ?? (await klantIp())}`, 30, UUR))) return { ok: false, melding: "Te veel pogingen vanaf dit adres. Probeer het over een uur opnieuw." };
   const gebruiker = await db.gebruiker.findUnique({ where: { email: e } });
   if (!gebruiker) return { ok: false, melding: "Code verlopen of onjuist. Vraag een nieuwe code aan." };
+  if (gebruiker.geblokkeerd) return { ok: false, melding: GEBLOKKEERD };
   const fout24 = await db.loginCode.aggregate({ where: { gebruikerId: gebruiker.id, aangemaakt: { gt: new Date(Date.now() - DAG) } }, _sum: { pogingen: true } });
   if ((fout24._sum.pogingen ?? 0) >= 15) return { ok: false, melding: "Te vaak een foute code vandaag. Probeer het morgen opnieuw, of log in met Face ID of vingerafdruk." };
   // Eén open code per gebruiker; na 5 foute pogingen is die waardeloos (tegen gokken op 6 cijfers).
@@ -139,6 +146,12 @@ export async function logUit() {
   const token = jar.get(COOKIE)?.value;
   if (token) await db.sessie.deleteMany({ where: { tokenHash: hash(token) } });
   jar.delete(COOKIE);
+  // Uitloggen tijdens meekijken: ook de bewaarde beheerderssessie weg (niemand blijft per ongeluk ingelogd).
+  const beheer = jar.get(BEHEER_COOKIE)?.value;
+  if (beheer) {
+    await db.sessie.deleteMany({ where: { tokenHash: hash(beheer) } });
+    jar.delete(BEHEER_COOKIE);
+  }
 }
 
 export const huidigeSessie = cache(async () => {
@@ -147,6 +160,12 @@ export const huidigeSessie = cache(async () => {
   if (!token) return null;
   const s = await db.sessie.findUnique({ where: { tokenHash: hash(token) }, include: { gebruiker: true } });
   if (!s || s.verlooptOp < new Date()) return null;
+  // Geblokkeerd: niet meer binnen (een beheerder die meekijkt mag wel kijken).
+  if (s.gebruiker.geblokkeerd && !s.meekijkerEmail) return null;
+  // Laatst actief bijhouden (hooguit eens per kwartier een schrijfactie); meekijken telt niet mee.
+  if (!s.meekijkerEmail && (!s.gebruiker.laatstActief || Date.now() - s.gebruiker.laatstActief.getTime() > 15 * 60_000)) {
+    await db.gebruiker.update({ where: { id: s.gebruikerId }, data: { laatstActief: new Date() } }).catch(() => undefined);
+  }
   return s;
 });
 
@@ -210,6 +229,7 @@ export async function eersteOnderneming(g: { id: string; naam: string | null; em
  */
 export async function schrijfOnderneming(opties?: { ookZonderAbonnement?: boolean }) {
   const s = await vereisGebruiker();
+  if (s.meekijkerEmail) throw new Error(MEEKIJKEN);
   const o = await huidigeOnderneming();
   const lid = await db.lidmaatschap.findUnique({
     where: { gebruikerId_ondernemingId: { gebruikerId: s.gebruikerId, ondernemingId: o.id } },
@@ -226,6 +246,7 @@ export async function schrijfOnderneming(opties?: { ookZonderAbonnement?: boolea
 /** Alleen voor de eigenaar: abonnement, IBAN op facturen, leden, verwijderen. */
 export async function eigenaarOnderneming() {
   const s = await vereisGebruiker();
+  if (s.meekijkerEmail) throw new Error(MEEKIJKEN);
   const o = await huidigeOnderneming();
   const lid = await db.lidmaatschap.findUnique({ where: { gebruikerId_ondernemingId: { gebruikerId: s.gebruikerId, ondernemingId: o.id } } });
   if (lid?.rol !== "eigenaar") throw new Error("Alleen de eigenaar van deze onderneming kan dit.");
@@ -236,6 +257,7 @@ export async function eigenaarOnderneming() {
 export async function mijnRol(): Promise<"eigenaar" | "boekhouder" | "lezer" | null> {
   const s = await vereisGebruiker();
   const o = await huidigeOnderneming();
+  if (s.meekijkerEmail) return "lezer";
   const lid = await db.lidmaatschap.findUnique({ where: { gebruikerId_ondernemingId: { gebruikerId: s.gebruikerId, ondernemingId: o.id } } });
   return (lid?.rol as "eigenaar" | "boekhouder" | "lezer" | undefined) ?? null;
 }

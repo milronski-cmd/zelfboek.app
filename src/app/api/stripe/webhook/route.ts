@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { stripeKlant } from "@/lib/stripe";
+import { maandBedrag, stripeKlant } from "@/lib/stripe";
 import { db } from "@/lib/db";
 
 async function ondernemingVan(stripe: Stripe, klantId: string | null, meta?: Record<string, string>) {
@@ -56,7 +56,19 @@ export async function POST(req: Request) {
       const abonnement = event.type === "customer.subscription.deleted" || sub.status === "canceled" || sub.status === "unpaid" ? "gestopt"
         : sub.status === "past_due" ? "achterstallig"
         : ["active", "trialing"].includes(sub.status) ? "actief" : o.abonnement;
-      await db.onderneming.update({ where: { id: o.id }, data: { abonnement, stripeAbonnementId: event.type === "customer.subscription.deleted" ? null : sub.id } });
+      const gestopt = abonnement === "gestopt";
+      await db.onderneming.update({
+        where: { id: o.id },
+        data: {
+          abonnement,
+          stripeAbonnementId: event.type === "customer.subscription.deleted" ? null : sub.id,
+          // Voor de cijfers in beheer: ruwe status, wat het per maand opbrengt, wanneer betaald en wanneer gestopt.
+          stripeStatus: event.type === "customer.subscription.deleted" ? "canceled" : sub.status,
+          maandBedragCent: gestopt ? null : maandBedrag(sub),
+          ...(sub.status === "active" && !o.betaaldSinds ? { betaaldSinds: new Date() } : {}),
+          ...(gestopt && o.abonnement !== "gestopt" ? { gestoptOp: new Date() } : {}),
+        },
+      });
     }
   } else if (event.type === "invoice.payment_failed") {
     const inv = event.data.object as Stripe.Invoice;

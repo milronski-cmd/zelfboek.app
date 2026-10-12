@@ -25,6 +25,8 @@ export async function sessieUitRequest(req: Request) {
   if (!token) throw new ApiFout(401, "Niet ingelogd.");
   const s = await db.sessie.findUnique({ where: { tokenHash: hash(token) }, include: { gebruiker: true } });
   if (!s || s.verlooptOp < new Date()) throw new ApiFout(401, "Sessie verlopen. Log opnieuw in.");
+  if (s.gebruiker.geblokkeerd) throw new ApiFout(403, "Dit account is geblokkeerd.");
+  if (s.meekijkerEmail) throw new ApiFout(401, "Sessie verlopen. Log opnieuw in.");
   return s;
 }
 

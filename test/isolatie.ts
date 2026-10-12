@@ -26,7 +26,7 @@ function bestanden(map: string): string[] {
   });
 }
 const PUBLIEK = new Set(["offerteBesluit", "stap1", "stap2", "start", "besluit", "antwoord", "kies", "beantwoord"]); // inloggen, demo, offerte tekenen, vragenmail (eigen controle)
-const BEWAKERS = /schrijfOnderneming\(|eigenaarOnderneming\(|vereisGebruiker\(|huidigeOnderneming\(/;
+const BEWAKERS = /schrijfOnderneming\(|eigenaarOnderneming\(|vereisGebruiker\(|huidigeOnderneming\(|vereisBeheerder\(/;
 const SCHRIJFT = /db\.\w+\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\(/;
 
 for (const f of bestanden("src")) {

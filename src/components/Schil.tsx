@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Beeldmerk, Woordmerk } from "@/components/Merk";
 import { Icoon, type IcoonNaam } from "@/components/Iconen";
 import { BotPaneel } from "@/components/BotPaneel";
+import { FeedbackKnop, FeedbackVenster } from "@/components/Feedback";
 
 type Kind = { href: string; label: string };
 type Item = { href?: string; label: string; icoon: IcoonNaam; teller?: number; kinderen?: Kind[] };
@@ -17,6 +18,7 @@ type Props = {
   status: { toegang: boolean; tekst: string };
   tellers: { meldingen: number; bank: number };
   ingeklapt: boolean;
+  beheerder?: boolean;
   uitloggen: () => Promise<void>;
   wissel: (fd: FormData) => Promise<void>;
   children: React.ReactNode;
@@ -39,7 +41,7 @@ function Chevron({ open, className = "" }: { open?: boolean; className?: string 
 }
 
 /** De schil van de app: compacte zijbalk links (in te klappen), topbalk met zoeken en snelle acties, inhoud rechts. */
-export function Schil({ onderneming, ondernemingen, email, status, tellers, ingeklapt, uitloggen, wissel, children }: Props) {
+export function Schil({ onderneming, ondernemingen, email, status, tellers, ingeklapt, beheerder, uitloggen, wissel, children }: Props) {
   const pad = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dicht, setDicht] = useState(ingeklapt);
@@ -183,6 +185,9 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
 
         <div className="shrink-0 border-t border-lijn p-2">
           <BotPaneel dicht={dicht} verborgen={pad === "/app"} />
+          <FeedbackKnop className={`nav-item w-full text-tekst-2 ${dicht ? "md:justify-center md:px-0" : ""}`}>
+            <span className="flex min-w-0 flex-1 items-center gap-2.5" title={dicht ? "Feedback" : undefined}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden><path d="M4 5h16v11H9l-5 4z" /><path d="M8 9h8M8 12h5" /></svg><span className={verborgen}>Feedback geven</span></span>
+          </FeedbackKnop>
           <Link href="/app/instellingen?tab=abonnement" onClick={sluit} className={`block px-2 pb-1 text-[12px] text-tekst-3 ${status.toegang ? "hover:text-tekst" : "font-semibold text-rood-tekst"} ${verborgen}`}>{status.tekst}</Link>
           <button type="button" onClick={toggleDicht} aria-pressed={dicht} className={`nav-item hidden w-full text-tekst-2 md:flex ${dicht ? "md:justify-center md:px-0" : ""}`} title={dicht ? "Uitklappen" : "Inklappen"}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 transition-transform ${dicht ? "rotate-180" : ""}`} aria-hidden><path d="M11 17l-5-5 5-5" /><path d="M18 17l-5-5 5-5" /></svg>
@@ -227,6 +232,8 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
                 <hr />
                 <Link href="/app/instellingen">Instellingen</Link>
                 <Link href="/app/instellingen?tab=abonnement">Abonnement <span className="ml-auto text-[12px] text-tekst-3">{status.tekst}</span></Link>
+                <FeedbackKnop className="w-full text-left">Feedback geven</FeedbackKnop>
+                {beheerder && <Link href="/admin">Beheer</Link>}
                 <hr />
                 <form action={uitloggen}><button type="submit">Uitloggen</button></form>
               </div>
@@ -256,6 +263,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
           {tellers.meldingen ? <span className="absolute right-[22%] top-1.5 h-2 w-2 rounded-full bg-rood" /> : null}
         </button>
       </nav>
+      <FeedbackVenster />
     </div>
   );
 }

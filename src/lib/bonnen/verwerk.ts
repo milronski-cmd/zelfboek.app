@@ -77,7 +77,7 @@ export async function bonUploaden(ondernemingId: string, bestand: { naam: string
   try {
     const o = await db.onderneming.findUnique({ where: { id: ondernemingId }, select: { demoTot: true } });
     if (!(await aiTegoed(ondernemingId, Boolean(o?.demoTot)))) throw new Error(AI_OP);
-    const u = await leesBon(bestand.data, bestand.type);
+    const u = await leesBon(bestand.data, bestand.type, ondernemingId);
     const gekoppeld = await verwerkUitlezing(bon.id, ondernemingId, u);
     return { bonId: bon.id, ok: true as const, gekoppeld, uitlezing: u, melding: `${u.leverancier} ${(!u.valuta || u.valuta === "EUR") ? euro(u.totaal) : `${u.totaal.toFixed(2).replace(".", ",")} ${u.valuta}`}: ${gekoppeld ? "gelezen en aan de betaling gehangen" : "gelezen; de betaling zien we nog niet bij de bank"}` };
   } catch (e) {

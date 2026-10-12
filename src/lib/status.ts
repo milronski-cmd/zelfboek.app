@@ -14,7 +14,7 @@ export async function controleerStatus(): Promise<Status[]> {
   } catch {
     s.push({ naam: "App en gegevens", ok: false, tekst: "Storing: we zijn ermee bezig." });
   }
-  const cron = await db.cronLog.findFirst({ orderBy: { gestart: "desc" } }).catch(() => null);
+  const cron = await db.cronLog.findFirst({ where: { taak: "dagelijks" }, orderBy: { gestart: "desc" } }).catch(() => null);
   const uur = cron ? (Date.now() - cron.gestart.getTime()) / 36e5 : null;
   s.push({ naam: "Nachtelijk ophalen en boeken", ok: uur == null ? null : uur < 30 && !cron?.fout, tekst: uur == null ? "Nog niet gedraaid" : `Laatst ${cron!.gestart.toLocaleString("nl-NL", { timeZone: "Europe/Amsterdam", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}${cron?.fout ? ", met een fout" : ""}` });
   const ai = Boolean(process.env.ANTHROPIC_API_KEY) || cliBeschikbaar();

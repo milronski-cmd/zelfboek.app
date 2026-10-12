@@ -155,7 +155,7 @@ export async function beoordeelOpenstaand(ondernemingId: string, max = 400): Pro
           omschrijving: t.omschrijving,
           bron: t.bron,
         })),
-        { naam: o.naam, branche: o.branche, eerdereKeuzes: keuzes },
+        { naam: o.naam, branche: o.branche, eerdereKeuzes: keuzes, ondernemingId },
       );
       for (const b of uitkomst) {
         const t = portie.find((x) => x.id === b.id);

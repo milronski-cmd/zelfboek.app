@@ -42,7 +42,7 @@ export async function bonOpnieuwLezen(formData: FormData): Promise<void> {
   try {
     const buffer = bon.inhoud ? Buffer.from(bon.inhoud) : await readFile(bon.bestandsPad);
     if (!(await aiTegoed(o.id, Boolean(o.demoTot)))) throw new Error(AI_OP);
-    const u = await leesBon(buffer, bon.mimeType);
+    const u = await leesBon(buffer, bon.mimeType, o.id);
     await verwerkUitlezing(bon.id, o.id, u);
   } catch (e) {
     await db.bon.update({ where: { id: bon.id }, data: { status: "fout", uitleg: foutTekst(e) } });

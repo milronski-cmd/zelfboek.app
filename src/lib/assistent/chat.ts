@@ -1,3 +1,4 @@
+import { telTokens } from "@/lib/limiet";
 import type Anthropic from "@anthropic-ai/sdk";
 import { ai, MODEL } from "@/lib/ai";
 import { db } from "@/lib/db";
@@ -54,6 +55,7 @@ export async function chatBeurt(opties: {
     });
     stream.on("text", (t) => opties.emit({ type: "tekst", tekst: t }));
     const antwoord = await stream.finalMessage();
+    await telTokens(o.id, antwoord.usage);
     messages.push({ role: "assistant", content: antwoord.content });
 
     if (antwoord.stop_reason === "refusal") {

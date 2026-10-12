@@ -14,3 +14,16 @@ export function stripeKlant(): Stripe | null {
   }
   return new Stripe(sleutel);
 }
+
+/** Wat het abonnement per maand opbrengt (in centen), uit de prijs in Stripe: jaarprijs / 12, weekprijs * 52 / 12. Korting niet meegerekend. */
+export function maandBedrag(sub: Stripe.Subscription): number | null {
+  let totaal = 0;
+  for (const item of sub.items?.data ?? []) {
+    const p = item.price;
+    if (!p?.unit_amount || !p.recurring) continue;
+    const per = p.recurring.interval_count || 1;
+    const factor = p.recurring.interval === "year" ? 1 / (12 * per) : p.recurring.interval === "month" ? 1 / per : p.recurring.interval === "week" ? 52 / (12 * per) : 365 / (12 * per);
+    totaal += p.unit_amount * (item.quantity ?? 1) * factor;
+  }
+  return totaal > 0 ? Math.round(totaal) : null;
+}

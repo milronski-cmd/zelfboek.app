@@ -18,6 +18,8 @@ model Gebruiker {
   totpGeheim      String? // versleuteld; tweestapsverificatie met een app
   totpAan         Boolean        @default(false)
   totpLaatsteStap Int? // laatst gebruikte tijdstap: dezelfde app-code werkt maar één keer
+  geblokkeerd     Boolean        @default(false) // door een beheerder: niet meer inloggen, sessies weg
+  geblokkeerdOm   String? // reden (alleen voor beheer)
   passkeys        Passkey[]
   sessies         Sessie[]
   codes           LoginCode[]
@@ -56,6 +58,9 @@ model Sessie {
   verlooptOp           DateTime
   aangemaakt           DateTime  @default(now())
   actieveOndernemingId String?
+  /// Meekijken door een beheerder: e-mail van de beheerder. Zo'n sessie kan alleen kijken, niets wijzigen.
+  meekijkerEmail       String?
+  meekijkReden         String?
 }
 
 model Lidmaatschap {
@@ -119,6 +124,10 @@ model Onderneming {
   demoTot            DateTime? // demo-omgeving: verdwijnt na dit moment
   verwijscode        String?   @unique
   verwezenDoor       String? // verwijscode van wie deze klant aanbracht
+  stripeStatus       String? // ruwe status uit Stripe (active, trialing, past_due, canceled, ...)
+  maandBedragCent    Int? // wat dit abonnement per maand opbrengt volgens Stripe (jaarprijs / 12), voor MRR
+  betaaldSinds       DateTime? // eerste keer dat Stripe "active" meldde (proef naar betaald)
+  gestoptOp          DateTime? // wanneer het abonnement stopte
   aangemaakt         DateTime  @default(now())
 
   leden          Lidmaatschap[]
@@ -551,4 +560,54 @@ model Poging {
 model Verwerkt {
   id         String   @id
   aangemaakt DateTime @default(now())
+}
+
+// ─────────────────────────── Beheer (Saldoplan zelf) ───────────────────────────
+
+/// Wat beheerders deden (klant bekeken, proef verlengd, geblokkeerd, meegekeken). Blijft staan als de klant weg is.
+model BeheerLog {
+  id            String   @id @default(cuid())
+  beheerder     String // e-mail van de beheerder
+  actie         String
+  gebruikerId   String?
+  ondernemingId String?
+  doel          String? // leesbaar: e-mail of naam van de klant op het moment van de actie
+  reden         String?
+  aangemaakt    DateTime @default(now())
+
+  @@index([aangemaakt])
+}
+
+/// Feedback uit de app (knop "Feedback" op pc, telefoon en in de mobiele app).
+model Feedback {
+  id             String    @id @default(cuid())
+  gebruikerId    String?
+  ondernemingId  String?
+  email          String?
+  tekst          String
+  pagina         String?
+  toestel        String? // kort: "iPhone, Safari" of "Windows, Chrome" of "app iOS"
+  bron           String    @default("web") // web | app
+  schermafbeelding Bytes?
+  schermMime     String?
+  status         String    @default("nieuw") // nieuw | bekeken | opgelost
+  notitie        String? // interne notitie van de beheerder
+  aangemaakt     DateTime  @default(now())
+  bijgewerkt     DateTime  @updatedAt
+
+  @@index([status, aangemaakt])
+}
+
+/// AI-gebruik per onderneming per dag (voor kosten per klant en daglimiet). Tokens uit het antwoord van de AI.
+model AiVerbruik {
+  id            String   @id @default(cuid())
+  ondernemingId String
+  dag           DateTime // begin van de dag (UTC)
+  verzoeken     Int      @default(0)
+  invoerTokens  Int      @default(0)
+  uitvoerTokens Int      @default(0)
+  limietGeraakt Int      @default(0) // hoe vaak de daglimiet iemand tegenhield
+
+  @@unique([ondernemingId, dag])
+  @@index([dag])
 }

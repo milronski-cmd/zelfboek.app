@@ -4,6 +4,7 @@ import { z } from "zod";
 import { BTW_CODES, CATEGORIEEN, CATEGORIE_INFO } from "./categorieen";
 import { cliBeschikbaar, viaClaudeCli } from "./ai-cli";
 import { testmodus, TESTMODUS_AI } from "./testmodus";
+import { telTokens } from "./limiet";
 
 /** Geen API-sleutel maar wel de Claude Code-CLI op deze pc: dan via het abonnement (alleen lokaal). */
 /** Wat de klant ziet als de AI niet bereikbaar is (geen sleutel, storing). Geen techniek in beeld. */
@@ -59,7 +60,7 @@ export type Beoordeling = z.infer<typeof BeoordelingSchema>["beoordelingen"][num
 
 export async function beoordeelTransacties(
   regels: { id: string; datum: string; bedrag: number; tegenpartij: string; omschrijving: string; bron?: string }[],
-  context: { naam: string; branche?: string | null; eerdereKeuzes?: string[] },
+  context: { naam: string; branche?: string | null; eerdereKeuzes?: string[]; ondernemingId?: string },
 ): Promise<Beoordeling[]> {
   if (regels.length === 0) return [];
   const geschiedenis = context.eerdereKeuzes?.length
@@ -83,6 +84,7 @@ export async function beoordeelTransacties(
     messages: [{ role: "user", content: vraag }],
     output_config: { format: zodOutputFormat(BeoordelingSchema) },
   });
+  await telTokens(context.ondernemingId, response.usage);
   if (response.stop_reason === "refusal") throw new Error("AI weigerde de beoordeling");
   return response.parsed_output?.beoordelingen ?? [];
 }
@@ -105,7 +107,7 @@ export type BonUitlezing = z.infer<typeof BonSchema>;
 
 type AfbeeldingType = "image/png" | "image/jpeg" | "image/webp" | "image/gif";
 
-export async function leesBon(bestand: Buffer, mimeType: string): Promise<BonUitlezing> {
+export async function leesBon(bestand: Buffer, mimeType: string, ondernemingId?: string): Promise<BonUitlezing> {
   if (viaCli()) {
     return viaClaudeCli({ schema: BonSchema, systeem: SYSTEEM, prompt: "Lees deze bon of inkoopfactuur volledig uit.", model: MODEL, bestand: { data: bestand, mimeType } });
   }
@@ -121,6 +123,7 @@ export async function leesBon(bestand: Buffer, mimeType: string): Promise<BonUit
     messages: [{ role: "user", content: [bron, { type: "text", text: "Lees deze bon of inkoopfactuur volledig uit." }] }],
     output_config: { format: zodOutputFormat(BonSchema) },
   });
+  await telTokens(ondernemingId, response.usage);
   if (response.stop_reason === "refusal" || !response.parsed_output) throw new Error("Bon kon niet worden uitgelezen");
   return response.parsed_output;
 }

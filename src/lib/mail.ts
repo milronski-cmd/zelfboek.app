@@ -31,6 +31,7 @@ export async function verstuurMail(opties: {
   if (!process.env.SMTP_HOST && process.env.NODE_ENV === "production") {
     // Nooit stilletjes "verzonden" melden: facturen en herinneringen zouden anders als verstuurd geboekt worden.
     console.error("[mail] SMTP_HOST ontbreekt");
+    await noteerMailFout(opties.aan, opties.onderwerp, "geen SMTP ingesteld");
     throw new Error("Mailen lukt nu even niet. De factuur of herinnering is niet verstuurd; probeer het later opnieuw.");
   }
   if (process.env.SMTP_HOST) {
@@ -52,6 +53,7 @@ export async function verstuurMail(opties: {
       });
     } catch (e) {
       console.error("[mail]", e);
+      await noteerMailFout(opties.aan, opties.onderwerp, String((e as Error)?.message ?? e));
       const adres = /recipient|mailbox|address|550|553/i.test(String((e as Error)?.message ?? "")) ? ` Klopt het adres ${opties.aan}?` : "";
       throw new Error(`De mail kon niet worden verstuurd.${adres} Er is niets als verstuurd gemarkeerd; probeer het later opnieuw.`);
     }
@@ -90,4 +92,18 @@ export const tekstAlsHtml = (t: string) => esc(t).replace(/\r?\n/g, "<br>");
 /** HTML-escapen van tekst die uit bankregels, AI-antwoorden of klantgegevens komt. */
 export function esc(tekst: string | null | undefined): string {
   return String(tekst ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
+}
+
+/**
+ * Een mail die niet weg kon, voor de storingenlijst in beheer (tabel CronLog, taak "mail").
+ * Inlogcodes en andere cijferreeksen in het onderwerp worden weggelaten.
+ */
+async function noteerMailFout(aan: string, onderwerp: string, reden: string) {
+  try {
+    const { db } = await import("./db");
+    const schoon = onderwerp.replace(/\d{4,}/g, "…").slice(0, 120);
+    await db.cronLog.create({ data: { taak: "mail", klaar: new Date(), resultaat: `${aan.slice(0, 120)} | ${schoon}`, fout: reden.replace(/\d{6}/g, "…").slice(0, 300) } });
+  } catch {
+    // De storingenlijst mag een mailfout nooit erger maken.
+  }
 }

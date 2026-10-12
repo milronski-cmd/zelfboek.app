@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { abonnementStatus, geenToegangTekst, huidigeOnderneming, logUit, vereisGebruiker, wisselOnderneming } from "@/lib/auth";
 import { Schil } from "@/components/Schil";
 import { openVragen } from "@/lib/vragen";
+import { isBeheerder, stopMeekijken } from "@/lib/beheer";
 
 export const instant = false;
 
@@ -24,6 +25,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     await logUit();
     redirect("/login");
   }
+  async function stopMeekijk() {
+    "use server";
+    const gebruikerId = (await vereisGebruiker()).gebruikerId;
+    await stopMeekijken();
+    redirect(`/admin/klanten/${gebruikerId}`);
+  }
   async function wissel(fd: FormData) {
     "use server";
     await wisselOnderneming(String(fd.get("id")));
@@ -38,9 +45,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       status={status}
       tellers={{ meldingen: ongelezen, bank: twijfel }}
       ingeklapt={ingeklapt}
+      beheerder={!sessie.meekijkerEmail && isBeheerder(sessie.gebruiker.email)}
       uitloggen={uitloggen}
       wissel={wissel}
     >
+      {sessie.meekijkerEmail && (
+        <div role="status" className="sticky top-14 z-[9] -mx-4 -mt-6 mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-mosterd/40 bg-mosterd-licht px-4 py-2.5 text-sm text-mosterd-tekst md:-mx-8 md:-mt-8 md:px-8">
+          <p className="min-w-0 flex-1"><strong>Je kijkt mee als {sessie.gebruiker.email}</strong> ({o.naam}). Alleen kijken: wijzigen kan niet. Alles wordt gelogd.</p>
+          <form action={stopMeekijk}><button type="submit" className="knop-licht">Stop met meekijken</button></form>
+        </div>
+      )}
       {o.demoTot && (
         <p className="mb-6 rounded-md border border-primair/40 bg-primair-licht px-4 py-3 text-sm text-primair-tekst">
           Dit is een voorbeeldomgeving: er wordt niets echt verstuurd en alles verdwijnt na 24 uur. <Link href="/login" className="font-semibold underline">Maak je eigen account</Link>.
