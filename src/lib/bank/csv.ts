@@ -129,6 +129,18 @@ export function parseBankCsv(tekst: string): ParseResultaat {
     } else if (k(/^Payee$/) && k(/^Amount$/) && k(/^Date$/)) {
       bank = "N26";
       regel = maakRegel(datum(k(/^Date$/)), getal(k(/^Amount \(EUR\)$/) || k(/^Amount$/)), k(/^Payee$/), k(/^Payment reference$/), vindIban(k(/^Account number$/)));
+    } else if (k(/kaartnummer|card ?number|^kaartlid$|^card ?member$|^rekening #$/i)) {
+      // Creditcard (ICS, American Express): aankopen staan als positief bedrag, voor ons zijn het uitgaven.
+      const amex = Boolean(k(/^kaartlid$|^card ?member$|^rekening #$/i));
+      bank = amex ? "American Express" : "ICS creditcard";
+      const kaart = (k(/kaartnummer|card ?number|^rekening #$/i).match(/(\d{4})\D*$/) ?? [])[1] ?? "kaart";
+      eigenIban ??= `CC-${amex ? "AMEX" : "ICS"}-${kaart}`;
+      let bedrag = -getal(k(/^bedrag|amount|^transactiebedrag/i));
+      const dc = k(/^debet\/credit$|^d\/c$|^credit\/debet$|^type$/i);
+      if (/^(c|credit|bij|refund|terugbetaling)/i.test(dc)) bedrag = Math.abs(bedrag);
+      else if (/^(d|debet|af)/i.test(dc)) bedrag = -Math.abs(bedrag);
+      const oms = k(/omschrijving|description|merchant|winkel/i);
+      regel = maakRegel(datum(k(/transactiedatum|^datum$|^date$/i)), bedrag, oms.replace(/\s{2,}.*/, "").slice(0, 60), oms, undefined, eigenIban);
     } else {
       const d = datum(k(/datum|^date$|boekdatum|transactiedatum/i));
       let bedrag = getal(k(/^bedrag|amount|^debet\/credit bedrag/i));

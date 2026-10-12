@@ -104,7 +104,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
             <UploadFormulier
               actie={importeerBestand}
               accept=".csv,.txt,.sta,.940,.mt940,.swi,.xml,text/csv,text/plain,application/xml,text/xml"
-              label="Afschrift van je bank (download het bij je bank als CSV, MT940 of CAMT)"
+              label="Afschrift van je bank of creditcard (download het als CSV, MT940 of CAMT; ICS en American Express werken ook)"
               knopTekst="Uploaden en boeken"
               bezigTekst="Saldoplan boekt de regels"
             />

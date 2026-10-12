@@ -81,4 +81,15 @@ const camt = `<?xml version="1.0" encoding="UTF-8"?>
 const c = parseCamt053(camt);
 check("CAMT.053", c.eigenIban === "NL11RABO0123456789" && c.bank === "Rabobank" && c.regels.length === 2 && c.regels[0].bedrag === -45.1 && c.regels[0].tegenpartij === "Albert Heijn" && c.regels[1].bedrag === 1210 && c.regels[1].tegenIban === "NL02RABO0000000002", c);
 
+
+// Creditcard: ICS (puntkomma, Debet/Credit) en American Express (aankopen positief)
+const ics = `Transactiedatum;Boekingsdatum;Omschrijving;Kaartnummer;Debet/Credit;Bedrag
+12-09-2026;13-09-2026;BOL.COM UTRECHT;**** **** **** 4821;D;24,99
+14-09-2026;15-09-2026;TERUGBETALING;**** **** **** 4821;C;10,00`;
+const ri = parseBankCsv(ics);
+check("ICS creditcard", ri.bank === "ICS creditcard" && ri.regels.length === 2 && ri.regels[0].bedrag === -24.99 && ri.regels[1].bedrag === 10 && ri.eigenIban === "CC-ICS-4821", ri);
+const amex = `Datum,Omschrijving,Kaartlid,Rekening #,Bedrag
+09/12/2026,ADOBE  *CREATIVE CLD,R DE VRIES,-71004,"65,99"`;
+const ra = parseBankCsv(amex);
+check("American Express", ra.bank === "American Express" && ra.regels.length === 1 && ra.regels[0].bedrag === -65.99 && ra.regels[0].tegenpartij === "ADOBE", ra);
 console.log("PARSERS OK");
