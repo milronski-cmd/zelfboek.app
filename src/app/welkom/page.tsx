@@ -56,6 +56,19 @@ export default async function WelkomPagina({ searchParams }: { searchParams: Pro
                 <label className="lbl" htmlFor="kvk">KvK-nummer <span className="font-normal text-tekst-3">(mag later)</span></label>
                 <input id="kvk" name="kvk" inputMode="numeric" pattern="[0-9 ]{8,9}" maxLength={9} defaultValue={o.kvk ?? ""} placeholder="8 cijfers" className="veld" />
               </div>
+              <details className="rounded-lg border border-lijn px-4 py-3">
+                <summary className="cursor-pointer text-sm font-medium">Logo en kleur voor je facturen <span className="font-normal text-tekst-3">(mag later)</span></summary>
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="lbl" htmlFor="logo">Logo (PNG of JPG)</label>
+                    <input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input id="huisstijlKleur" name="huisstijlKleur" type="color" defaultValue={o.huisstijlKleur} className="h-10 w-14 cursor-pointer rounded border border-lijn" />
+                    <label htmlFor="huisstijlKleur" className="text-sm">Kleur van je facturen</label>
+                  </div>
+                </div>
+              </details>
               <button className="knop knop-groot w-full justify-center">Volgende</button>
             </form>
           </>

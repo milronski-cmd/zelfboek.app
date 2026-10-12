@@ -26,6 +26,15 @@ export async function bedrijfOpslaan(fd: FormData): Promise<void> {
   revalidatePath("/app");
 }
 
+/** Logo uit een formulier (veld "logo"): gegevens om op te slaan, of een foutmelding. Leeg = niets. */
+async function logoUitFormulier(fd: FormData): Promise<Record<string, unknown> | string> {
+  const logo = fd.get("logo");
+  if (!(logo instanceof File) || logo.size === 0) return {};
+  if (!["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(logo.type)) return "Logo moet PNG, JPG, WEBP of SVG zijn.";
+  if (logo.size > 2 * 1024 * 1024) return "Logo groter dan 2 MB.";
+  return { logo: new Uint8Array(await logo.arrayBuffer()), logoMime: logo.type, logoPad: `db:logo.${logo.type === "image/svg+xml" ? "svg" : logo.type.split("/")[1]}` };
+}
+
 export async function facturenOpslaan(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
   const volgnr = Number(fd.get("factuurVolgnr") ?? o.factuurVolgnr);
@@ -38,14 +47,9 @@ export async function facturenOpslaan(fd: FormData): Promise<Resultaat> {
     huisstijlKleur: kleur, herinneringAuto: fd.get("herinneringAuto") === "on",
     herinneringTekst1: v(fd, "herinneringTekst1"), herinneringTekst2: v(fd, "herinneringTekst2"), herinneringTekst3: v(fd, "herinneringTekst3"),
   };
-  const logo = fd.get("logo");
-  if (logo instanceof File && logo.size > 0) {
-    if (!["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(logo.type)) return { ok: false, fout: "Logo moet PNG, JPG, WEBP of SVG zijn." };
-    if (logo.size > 2 * 1024 * 1024) return { ok: false, fout: "Logo groter dan 2 MB." };
-    data.logo = new Uint8Array(await logo.arrayBuffer());
-    data.logoMime = logo.type;
-    data.logoPad = `db:logo.${logo.type === "image/svg+xml" ? "svg" : logo.type.split("/")[1]}`;
-  }
+  const logo = await logoUitFormulier(fd);
+  if (typeof logo === "string") return { ok: false, fout: logo };
+  Object.assign(data, logo);
   await db.onderneming.update({ where: { id: o.id }, data });
   revalidatePath("/app");
   return { ok: true, melding: "Factuurinstellingen opgeslagen." };
@@ -124,7 +128,9 @@ export async function welkomOpslaan(fd: FormData): Promise<void> {
   const bedrijf = v(fd, "bedrijf");
   const kvk = v(fd, "kvk")?.replace(/\D/g, "") || null;
   if (naam) await db.gebruiker.update({ where: { id: s.gebruikerId }, data: { naam } });
-  await db.onderneming.update({ where: { id: o.id }, data: { ...(bedrijf ? { naam: bedrijf } : {}), ...(kvk && kvk.length === 8 ? { kvk } : {}) } });
+  const logo = await logoUitFormulier(fd);
+  const kleur = v(fd, "huisstijlKleur");
+  await db.onderneming.update({ where: { id: o.id }, data: { ...(bedrijf ? { naam: bedrijf } : {}), ...(kvk && kvk.length === 8 ? { kvk } : {}), ...(typeof logo === "string" ? {} : logo), ...(kleur && /^#[0-9a-fA-F]{6}$/.test(kleur) ? { huisstijlKleur: kleur } : {}) } });
   revalidatePath("/app");
   redirect("/welkom?stap=2");
 }
