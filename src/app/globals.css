@@ -16,12 +16,12 @@
   --lijn-2: #d5dbe1;
   --tekst: #1a1f36;
   --tekst-2: #4f566b;
-  --tekst-3: #8792a2;
-  --primair: #1db1df;
-  --primair-hover: #189ec7;
-  --primair-actief: #148aae;
+  --tekst-3: #646d80; /* WCAG AA: minstens 4,5:1 op wit en lichtgrijs */
+  --primair: #0a7ea3; /* knoppen met witte tekst: contrast 4,6:1 (WCAG AA); het logo houdt zijn lichte blauw */
+  --primair-hover: #086a8a;
+  --primair-actief: #075c78;
   --primair-licht: #e4f5fb;
-  --primair-tekst: #0c7f9f;
+  --primair-tekst: #08779a;
   --groen: #2b8273;
   --groen-licht: #e3f3ef;
   --groen-fel: #3aa08f;
@@ -60,10 +60,10 @@
   --lijn-2: #33405a;
   --tekst: #e7eaf1;
   --tekst-2: #aeb6c6;
-  --tekst-3: #7f8a9e;
+  --tekst-3: #8c97aa;
   --primair-licht: #0f3341;
   --primair-tekst: #67d2f0;
-  --groen: #2f9282;
+  --groen: #237567;
   --groen-licht: #0f2e29;
   --groen-tekst: #73d6c2;
   --mosterd-licht: #3a2b0d;
@@ -88,10 +88,10 @@
   --lijn-2: #33405a;
   --tekst: #e7eaf1;
   --tekst-2: #aeb6c6;
-  --tekst-3: #7f8a9e;
+  --tekst-3: #8c97aa;
   --primair-licht: #0f3341;
   --primair-tekst: #67d2f0;
-  --groen: #2f9282;
+  --groen: #237567;
   --groen-licht: #0f2e29;
   --groen-tekst: #73d6c2;
   --mosterd-licht: #3a2b0d;
@@ -241,9 +241,9 @@ label.lbl { display: block; font-size: 13px; font-weight: 500; color: var(--teks
 /* Status: gevuld afgerond label met witte tekst, zoals bij Moneybird. */
 .pil { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; line-height: 16px; color: #fff; white-space: nowrap; letter-spacing: 0.01em; }
 .pil-groen { background: var(--groen); }
-.pil-geel { background: var(--mosterd); }
+.pil-geel { background: #b45309; } /* donkerder oranje: witte tekst leesbaar (WCAG AA) */
 .pil-rood { background: var(--rood); }
-.pil-grijs { background: var(--tekst-3); }
+.pil-grijs { background: #646d80; }
 
 /* Navigatie in de zijbalk: compacte regels, de actieve gevuld in de merkkleur, subitems ingesprongen. */
 .nav-item {

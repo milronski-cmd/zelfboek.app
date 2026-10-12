@@ -90,7 +90,7 @@ export default async function Uren({ searchParams }: { searchParams: Promise<{ j
 
       <div className="kaart mt-4 px-5 py-4">
         <div className="flex justify-between text-sm"><span>Urencriterium</span><span className="tabular text-tekst-2">{totaal.toFixed(0)} van {URENCRITERIUM.toLocaleString("nl-NL")} uur</span></div>
-        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-lijn" role="progressbar" aria-valuenow={totaal} aria-valuemax={URENCRITERIUM}><div className="h-full rounded-full bg-primair" style={{ width: `${pct}%` }} /></div>
+        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-lijn" role="progressbar" aria-label="Voortgang urencriterium" aria-valuemin={0} aria-valuenow={totaal} aria-valuemax={URENCRITERIUM}><div className="h-full rounded-full bg-primair" style={{ width: `${pct}%` }} /></div>
       </div>
 
       {perKlant.size > 0 && (

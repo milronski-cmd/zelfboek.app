@@ -79,7 +79,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
           {rekeningen.map((r) => {
             const gekozen = sp.rekening === r.id;
             return (
-              <Link key={r.id} href={link({ rekening: gekozen ? undefined : r.id, p: undefined })} aria-pressed={gekozen} className={`kaart block p-4 ${gekozen ? "border-inkt" : ""}`}>
+              <Link key={r.id} href={link({ rekening: gekozen ? undefined : r.id, p: undefined })} aria-current={gekozen ? "true" : undefined} className={`kaart block p-4 ${gekozen ? "border-inkt" : ""}`}>
                 <div className="flex items-center gap-3">
                   <BankIcoon bank={r.bank} iban={r.iban} size={36} />
                   <div className="min-w-0 flex-1">
