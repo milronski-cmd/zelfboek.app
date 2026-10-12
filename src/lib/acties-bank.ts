@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, schrijfOnderneming } from "./db";
 import { btwUitInclusief, rond } from "./btw";
-import { parseBankbestand, importeerRegels, beoordeelOpenstaand as beoordeelOpen } from "./bank/importeer";
+import { parseBankbestand, importeerRegels, beoordeelOpenstaand as beoordeelOpen, pasVasteKeuzesToe, VASTE_KEUZE } from "./bank/importeer";
 import { startAutorisatie } from "./bank/enablebanking";
 import { syncAlleBanken, syncEenBron } from "./bank/sync";
 import { bewaarKoppeling, leesKoppeling, verwijderKoppeling as verwijderK, type KoppelingSoort } from "./koppelingen";
@@ -15,6 +15,7 @@ import { importeerJorttCsv } from "./import/jortt";
 import { importeerExcel } from "./import/excel";
 import { maakHash, maakRegel, type BankRegel } from "./bank/csv";
 import { verwerkAntwoord } from "./vragenmail";
+import { sluitDubbeleTaken, winkelSleutel } from "./vragen";
 import { AANBIEDERS, ingesteld, isOAuthSoort, leesState, maakState, normaalAdres, proefmodus, terugUrl } from "./koppelen";
 
 export type Resultaat = { ok: true; melding: string } | { ok: false; fout: string };
@@ -83,13 +84,24 @@ export async function wijzigTransactie(formData: FormData): Promise<void> {
   ververs();
 }
 
-/** Twijfelvraag beantwoorden met één tik: zakelijk (boeking van de bot blijft) of privé. */
+/**
+ * Vraag beantwoorden met één tik: zakelijk (boeking van de bot blijft) of privé.
+ * Geldt voor alle betalingen aan dezelfde winkel in de vraag; met "altijd" ook voor alle toekomstige.
+ */
 export async function beantwoordVraag(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
-  const id = String(formData.get("id") ?? "");
+  const ids = String(formData.get("ids") ?? formData.get("id") ?? "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 200);
   const keuze = formData.get("keuze") === "prive" ? "prive" : "zakelijk";
-  if (!(await db.transactie.findFirst({ where: { id, ondernemingId: o.id }, select: { id: true } }))) return;
-  await verwerkAntwoord(id, keuze);
+  const altijd = formData.get("altijd") === "1";
+  const eigen = await db.transactie.findMany({ where: { id: { in: ids }, ondernemingId: o.id }, select: { id: true, tegenpartij: true } });
+  if (eigen.length === 0) return;
+  for (const t of eigen) await verwerkAntwoord(t.id, keuze);
+  const sleutel = winkelSleutel(eigen[0].tegenpartij);
+  if (altijd && sleutel) {
+    await db.transactie.updateMany({ where: { id: { in: eigen.map((t) => t.id) } }, data: { uitleg: `${VASTE_KEUZE}: altijd ${keuze === "zakelijk" ? "zakelijk" : "privé"} bij ${eigen[0].tegenpartij}` } });
+    await pasVasteKeuzesToe(o.id, sleutel);
+  }
+  await sluitDubbeleTaken(o.id, sleutel);
   ververs();
 }
 

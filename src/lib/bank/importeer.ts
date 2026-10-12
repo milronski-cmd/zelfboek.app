@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { winkelSleutel } from "@/lib/vragen";
 import { beoordeelTransacties, BOT_ONBEREIKBAAR } from "@/lib/ai";
 import { btwUitInclusief } from "@/lib/btw";
 import { parseBankCsv, type BankRegel, type ParseResultaat } from "./csv";
@@ -69,7 +70,7 @@ export async function importeerRegels(
 /** Eerdere handmatige keuzes van de ondernemer, zodat de AI die volgt. */
 async function eerdereKeuzes(ondernemingId: string): Promise<string[]> {
   const rijen = await db.transactie.findMany({
-    where: { ondernemingId, bevestigd: true, uitleg: { startsWith: "Handmatig" } },
+    where: { ondernemingId, bevestigd: true, OR: [{ uitleg: { startsWith: "Handmatig" } }, { uitleg: { startsWith: "Door jou" } }, { uitleg: { startsWith: VASTE_KEUZE } }] },
     orderBy: { aangemaakt: "desc" },
     take: 30,
     select: { tegenpartij: true, categorie: true, btwCode: true, zakelijk: true },
@@ -85,15 +86,56 @@ async function eerdereKeuzes(ondernemingId: string): Promise<string[]> {
   return uit;
 }
 
+/** Uitleg-begin van een boeking die de ondernemer als vaste keuze koos ("Altijd zo voor deze winkel"). */
+export const VASTE_KEUZE = "Vaste keuze";
+
+/**
+ * "Altijd zo voor deze winkel": open en twijfelende betalingen aan een winkel met een vaste keuze
+ * meteen zo boeken, zonder AI en zonder vraag. De keuze staat in de uitleg van de gekozen boeking.
+ */
+export async function pasVasteKeuzesToe(ondernemingId: string, alleenSleutel?: string): Promise<number> {
+  const vast = await db.transactie.findMany({
+    where: { ondernemingId, uitleg: { startsWith: VASTE_KEUZE } },
+    orderBy: { datum: "desc" },
+    take: 1000,
+    select: { tegenpartij: true, zakelijk: true, categorie: true, btwCode: true },
+  });
+  const keuzes = new Map<string, (typeof vast)[number]>();
+  for (const v of vast) { const k = winkelSleutel(v.tegenpartij); if (k && !keuzes.has(k)) keuzes.set(k, v); }
+  if (keuzes.size === 0) return 0;
+  const open = await db.transactie.findMany({
+    where: { ondernemingId, OR: [{ zakelijk: null }, { bevestigd: false }] },
+    select: { id: true, tegenpartij: true, bedrag: true },
+  });
+  let n = 0;
+  for (const t of open) {
+    const k = winkelSleutel(t.tegenpartij);
+    if (alleenSleutel && k !== alleenSleutel) continue;
+    const v = keuzes.get(k);
+    if (!v || v.zakelijk === null) continue;
+    await db.transactie.update({
+      where: { id: t.id },
+      data: {
+        zakelijk: v.zakelijk, categorie: v.zakelijk ? v.categorie ?? "overig" : "prive", btwCode: v.zakelijk ? v.btwCode ?? "21" : "geen",
+        btwBedrag: v.zakelijk ? btwUitInclusief(Math.abs(t.bedrag), v.btwCode ?? "21") : 0,
+        bevestigd: true, zekerheid: 1, uitleg: `${VASTE_KEUZE}: altijd ${v.zakelijk ? "zakelijk" : "privé"} bij ${t.tegenpartij}`,
+      },
+    });
+    n++;
+  }
+  return n;
+}
+
 /** Alle nog niet beoordeelde transacties in porties van 40 door de AI halen. */
 export async function beoordeelOpenstaand(ondernemingId: string, max = 400): Promise<{ beoordeeld: number; fout?: string }> {
   const o = await db.onderneming.findUniqueOrThrow({ where: { id: ondernemingId } });
+  const vast = await pasVasteKeuzesToe(ondernemingId);
   const open = await db.transactie.findMany({
     where: { ondernemingId, zakelijk: null },
     orderBy: { datum: "asc" },
     take: max,
   });
-  if (open.length === 0) return { beoordeeld: 0 };
+  if (open.length === 0) return { beoordeeld: vast };
   const keuzes = await eerdereKeuzes(ondernemingId);
   let klaar = 0;
   try {
@@ -132,5 +174,5 @@ export async function beoordeelOpenstaand(ondernemingId: string, max = 400): Pro
     const m = e instanceof Error ? e.message : String(e);
     return { beoordeeld: klaar, fout: /api key|authentication|401/i.test(m) ? BOT_ONBEREIKBAAR : m };
   }
-  return { beoordeeld: klaar };
+  return { beoordeeld: klaar + vast };
 }

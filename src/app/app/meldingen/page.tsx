@@ -1,3 +1,4 @@
+import { isDubbeleVraag, openVragen } from "@/lib/vragen";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { db, huidigeOnderneming } from "@/lib/db";
@@ -12,10 +13,13 @@ const bronTekst: Record<string, string> = { ai: "van de bot", gebruiker: "van jo
 
 export default async function Meldingen() {
   const o = await huidigeOnderneming();
-  const [meldingen, taken] = await Promise.all([
+  const [meldingen, alleTaken, vragen] = await Promise.all([
     db.melding.findMany({ where: { ondernemingId: o.id }, orderBy: { aangemaakt: "desc" }, take: 100 }),
     db.taak.findMany({ where: { ondernemingId: o.id }, orderBy: [{ klaar: "asc" }, { deadline: "asc" }, { aangemaakt: "desc" }], take: 100 }),
+    openVragen(o.id),
   ]);
+  // Vraagt een taak hetzelfde als een open vraag ("zakelijk of privé?"), dan staat hij al bij de vragen.
+  const taken = alleTaken.filter((t) => t.klaar || !isDubbeleVraag(t.titel, vragen));
   const nu = new Date();
 
   async function gelezen(fd: FormData) {

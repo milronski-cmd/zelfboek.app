@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { abonnementStatus, huidigeOnderneming, logUit, vereisGebruiker, wisselOnderneming } from "@/lib/auth";
 import { Schil } from "@/components/Schil";
+import { openVragen } from "@/lib/vragen";
 
 export const instant = false;
 
@@ -15,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [ondernemingen, ongelezen, twijfel] = await Promise.all([
     db.lidmaatschap.findMany({ where: { gebruikerId: sessie.gebruikerId }, include: { onderneming: true } }),
     db.melding.count({ where: { ondernemingId: o.id, gelezen: false } }),
-    db.transactie.count({ where: { ondernemingId: o.id, bevestigd: false, zakelijk: { not: null } } }),
+    openVragen(o.id).then((v) => v.length),
   ]);
 
   async function uitloggen() {

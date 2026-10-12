@@ -1,3 +1,4 @@
+import { isDubbeleVraag, openVragen } from "@/lib/vragen";
 import type Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { btwAangifte, btwDeadline, kwartaalVan, periodeBereik, rond } from "@/lib/btw";
@@ -145,6 +146,8 @@ export async function voerToolUit(naam: string, input: Record<string, unknown>, 
     }
     case "maak_taak": {
       const i = input as { titel: string; deadline: string };
+      // Zakelijk of privé over een winkel waar al een vraag over openstaat: geen dubbele taak.
+      if (isDubbeleVraag(i.titel, await openVragen(o))) return JSON.stringify({ ok: true, melding: "Die vraag staat al bij de vragen op het overzicht; geen extra taak gemaakt." });
       const t = await db.taak.create({ data: { ondernemingId: o, titel: i.titel, deadline: i.deadline ? datum(i.deadline, new Date()) : null, bron: "ai" } });
       return JSON.stringify({ ok: true, id: t.id });
     }
