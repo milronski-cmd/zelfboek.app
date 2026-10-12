@@ -3,7 +3,8 @@ import { ontsleutel, versleutel } from "./crypto";
 
 export type KoppelingSoort =
   | "enablebanking" | "mollie" | "stripe" | "shopify" | "bol" | "woocommerce" | "paypal"
-  | "moneybird" | "eboekhouden" | "jortt" | "smtp" | "whatsapp";
+  | "moneybird" | "eboekhouden" | "jortt" | "smtp" | "whatsapp"
+  | "gmail" | "outlook" | "etsy" | "sumup" | "zettle" | "amazon" | "lightspeed";
 
 /** Versleutelde configuratie van een koppeling lezen. null als er geen (actieve) koppeling is. */
 export async function leesKoppeling<T = Record<string, string>>(ondernemingId: string, soort: KoppelingSoort): Promise<(T & { _id: string; _status: string }) | null> {

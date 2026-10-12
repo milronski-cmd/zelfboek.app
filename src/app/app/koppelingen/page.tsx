@@ -25,9 +25,18 @@ const MET_EEN_KLIK: { soort: OAuthSoort; kort: string; uitleg: string }[] = [
   { soort: "stripe", kort: "Uitbetalingen en Stripe-kosten.", uitleg: "Uitbetalingen worden omzet, Stripe-kosten worden kosten." },
   { soort: "shopify", kort: "Uitbetalingen van je Shopify-winkel.", uitleg: "Uitbetalingen van Shopify Payments worden omzet, kosten worden kosten." },
   { soort: "woocommerce", kort: "Bestellingen uit je WordPress-webshop.", uitleg: "Afgeronde bestellingen worden omzet. Betalen je klanten via Mollie of Stripe? Koppel dan dat, anders telt alles dubbel." },
+  { soort: "sumup", kort: "Pinbetalingen en uitbetalingen.", uitleg: "Uitbetalingen van je SumUp-pinautomaat worden omzet, de kosten worden kosten." },
+  { soort: "zettle", kort: "Pinbetalingen via Zettle (PayPal).", uitleg: "Betalingen via je Zettle-pinautomaat worden omzet, de kosten worden kosten." },
+  { soort: "lightspeed", kort: "Verkopen uit je Lightspeed-kassa.", uitleg: "Afgeronde verkopen worden omzet, met de btw uit je kassa." },
+  { soort: "etsy", kort: "Verkopen en kosten van je Etsy-winkel.", uitleg: "Verkopen worden omzet, Etsy-kosten worden kosten." },
+  { soort: "amazon", kort: "Uitbetalingen van Amazon.", uitleg: "Uitbetalingen van Amazon worden omzet (na de kosten van Amazon)." },
 ];
 
+/** Logo's die we hebben; de rest krijgt een rondje met de eerste letter. */
+const LOGOS = new Set(["ing", "rabobank", "abnamro", "bunq", "knab", "sns", "asn", "regiobank", "triodos", "revolut", "n26", "mollie", "stripe", "shopify", "bol", "woocommerce", "paypal", "moneybird", "eboekhouden", "jortt", "belastingdienst"]);
+
 function AppIcoon({ id, size = 44 }: { id: string; size?: number }) {
+  if (!LOGOS.has(id)) return <span aria-hidden className="inline-flex items-center justify-center bg-primair-licht text-[18px] font-semibold uppercase text-primair-tekst" style={{ width: size, height: size, borderRadius: Math.round(size * 0.22) }}>{id[0]}</span>;
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={`/logos/apps/${id}.png`} alt="" width={size} height={size} style={{ width: size, height: size, borderRadius: Math.round(size * 0.22) }} loading="lazy" />;
 }
@@ -234,6 +243,15 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
 
       <h2 className="mt-8 text-[15px] font-semibold">Bonnen per e-mail</h2>
       <p className="mb-3 mt-0.5 text-[13px] text-tekst-2">Stuur bonnen en inkoopfacturen als bijlage door naar je eigen adres. Saldoplan leest ze uit en hangt ze aan de juiste betaling.</p>
+      <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {klikTegel("gmail", "Bonnen uit je Gmail.", "Saldoplan kijkt elke nacht naar nieuwe mails met een factuur of bon als bijlage, en leest die uit. Je andere mail blijft privé.")}
+        {klikTegel("outlook", "Bonnen uit je Outlook.", "Saldoplan kijkt elke nacht naar nieuwe mails met een factuur of bon als bijlage, en leest die uit. Je andere mail blijft privé.")}
+        <AppTegel icoon={<Vak><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z" /></svg></Vak>} naam="WhatsApp" uitleg="Stuur een foto van je bon via WhatsApp." status={process.env.WHATSAPP_NUMMER ? <Pil kleur="groen">Klaar</Pil> : <Pil kleur="grijs">Binnenkort</Pil>} knop={process.env.WHATSAPP_NUMMER ? { tekst: "Nummer tonen", licht: true } : undefined}>
+          <p className="text-sm text-tekst-2">Sla dit nummer op en stuur er een foto van je bon naartoe. Saldoplan herkent je aan het telefoonnummer bij je bedrijfsgegevens.</p>
+          <p className="mt-3 rounded-md border border-lijn bg-papier px-3 py-2 font-mono text-[13px]">{process.env.WHATSAPP_NUMMER}</p>
+          {!o.telefoon && <p className="mt-2 text-[13px] text-mosterd-tekst">Vul eerst je mobiele nummer in bij Instellingen &gt; Bedrijf.</p>}
+        </AppTegel>
+      </div>
       <div className="kaart max-w-xl p-4">
         <p className="break-all rounded-md border border-lijn bg-papier px-3 py-2 font-mono text-[13px]">{bonAdres}</p>
         <p className="mt-2 text-[13px] text-tekst-3">Tip: zet dit adres als contact in je telefoon, dan deel je een foto in twee tikken.</p>

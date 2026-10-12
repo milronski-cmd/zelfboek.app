@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { appGeheim } from "./crypto";
 import { bewaarKoppeling, leesKoppeling } from "./koppelingen";
 import { MERK } from "./merk";
@@ -12,7 +12,7 @@ import { MERK } from "./merk";
  * zelfde stappen, met voorbeeldregels in plaats van echte gegevens.
  */
 
-export type OAuthSoort = "mollie" | "stripe" | "shopify" | "woocommerce" | "moneybird";
+export type OAuthSoort = "mollie" | "stripe" | "shopify" | "woocommerce" | "moneybird" | "gmail" | "outlook" | "etsy" | "sumup" | "zettle" | "amazon" | "lightspeed";
 
 type Aanbieder = {
   naam: string;
@@ -24,6 +24,9 @@ type Aanbieder = {
   /** Wisselt de terugkeer om in de configuratie die we (versleuteld) bewaren. */
   rondAf: (p: { query: URLSearchParams; terug: string; adres?: string }) => Promise<{ config: Record<string, string>; naam?: string }>;
 };
+
+/** PKCE-verifier afgeleid van de state met ons geheim: niet te raden, en hoeft nergens bewaard. */
+const pkce = (state: string) => createHmac("sha256", appGeheim()).update(`pkce:${state}`).digest("base64url");
 
 const basisUrl = () => (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 export const terugUrl = (soort: string) => `${basisUrl()}/api/koppelingen/${soort}/terug`;
@@ -121,6 +124,91 @@ export const AANBIEDERS: Record<OAuthSoort, Aanbieder> = {
       return { config: { token: t.access_token, refreshToken: t.refresh_token ?? "" } };
     },
   },
+  // ── Klaargezet: werkt zodra de app-registratie (env) er is. Zonder: proefmodus of "Binnenkort". ──
+  gmail: {
+    naam: "Gmail",
+    env: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+    autoriseer: ({ state, terug }) => `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID!, redirect_uri: terug, response_type: "code", state, access_type: "offline", prompt: "consent",
+      scope: "https://www.googleapis.com/auth/gmail.readonly email",
+    })}`,
+    rondAf: async ({ query, terug }) => {
+      const t = await postForm<{ access_token: string; refresh_token?: string; expires_in: number }>("https://oauth2.googleapis.com/token",
+        { grant_type: "authorization_code", code: query.get("code") ?? "", redirect_uri: terug, client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET! }, {}, "Google");
+      return { config: { accessToken: t.access_token, refreshToken: t.refresh_token ?? "", verloopt: String(Date.now() + t.expires_in * 1000) } };
+    },
+  },
+  outlook: {
+    naam: "Outlook",
+    env: ["MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET"],
+    autoriseer: ({ state, terug }) => `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${new URLSearchParams({
+      client_id: process.env.MICROSOFT_CLIENT_ID!, redirect_uri: terug, response_type: "code", state, response_mode: "query",
+      scope: "offline_access Mail.Read User.Read",
+    })}`,
+    rondAf: async ({ query, terug }) => {
+      const t = await postForm<{ access_token: string; refresh_token?: string; expires_in: number }>("https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        { grant_type: "authorization_code", code: query.get("code") ?? "", redirect_uri: terug, client_id: process.env.MICROSOFT_CLIENT_ID!, client_secret: process.env.MICROSOFT_CLIENT_SECRET!, scope: "offline_access Mail.Read User.Read" }, {}, "Microsoft");
+      return { config: { accessToken: t.access_token, refreshToken: t.refresh_token ?? "", verloopt: String(Date.now() + t.expires_in * 1000) } };
+    },
+  },
+  etsy: {
+    // Etsy gebruikt PKCE; de verifier leiden we af van de state met ons geheim (staat nooit in de URL).
+    naam: "Etsy",
+    env: ["ETSY_CLIENT_ID"],
+    autoriseer: ({ state, terug }) => `https://www.etsy.com/oauth/connect?${new URLSearchParams({
+      response_type: "code", client_id: process.env.ETSY_CLIENT_ID!, redirect_uri: terug, scope: "transactions_r shops_r", state,
+      code_challenge: createHash("sha256").update(pkce(state)).digest("base64url"), code_challenge_method: "S256",
+    })}`,
+    rondAf: async ({ query, terug }) => {
+      const t = await postForm<{ access_token: string; refresh_token: string; expires_in: number }>("https://api.etsy.com/v3/public/oauth/token",
+        { grant_type: "authorization_code", client_id: process.env.ETSY_CLIENT_ID!, redirect_uri: terug, code: query.get("code") ?? "", code_verifier: pkce(query.get("state") ?? "") }, {}, "Etsy");
+      return { config: { accessToken: t.access_token, refreshToken: t.refresh_token, verloopt: String(Date.now() + t.expires_in * 1000), gebruikerId: t.access_token.split(".")[0] } };
+    },
+  },
+  sumup: {
+    naam: "SumUp",
+    env: ["SUMUP_CLIENT_ID", "SUMUP_CLIENT_SECRET"],
+    autoriseer: ({ state, terug }) => `https://api.sumup.com/authorize?${new URLSearchParams({ response_type: "code", client_id: process.env.SUMUP_CLIENT_ID!, redirect_uri: terug, scope: "transactions.history user.profile_readonly", state })}`,
+    rondAf: async ({ query, terug }) => {
+      const t = await postForm<{ access_token: string; refresh_token: string; expires_in: number }>("https://api.sumup.com/token",
+        { grant_type: "authorization_code", code: query.get("code") ?? "", redirect_uri: terug, client_id: process.env.SUMUP_CLIENT_ID!, client_secret: process.env.SUMUP_CLIENT_SECRET! }, {}, "SumUp");
+      return { config: { accessToken: t.access_token, refreshToken: t.refresh_token, verloopt: String(Date.now() + t.expires_in * 1000) } };
+    },
+  },
+  zettle: {
+    naam: "Zettle",
+    env: ["ZETTLE_CLIENT_ID", "ZETTLE_CLIENT_SECRET"],
+    autoriseer: ({ state, terug }) => `https://oauth.zettle.com/authorize?${new URLSearchParams({ response_type: "code", client_id: process.env.ZETTLE_CLIENT_ID!, redirect_uri: terug, scope: "READ:FINANCE READ:PURCHASE", state })}`,
+    rondAf: async ({ query, terug }) => {
+      const t = await postForm<{ access_token: string; refresh_token: string; expires_in: number }>("https://oauth.zettle.com/token",
+        { grant_type: "authorization_code", code: query.get("code") ?? "", redirect_uri: terug, client_id: process.env.ZETTLE_CLIENT_ID!, client_secret: process.env.ZETTLE_CLIENT_SECRET! }, {}, "Zettle");
+      return { config: { accessToken: t.access_token, refreshToken: t.refresh_token, verloopt: String(Date.now() + t.expires_in * 1000) } };
+    },
+  },
+  amazon: {
+    // Amazon Selling Partner API: toestemming via Seller Central (EU), token via Login with Amazon.
+    naam: "Amazon",
+    env: ["AMAZON_SP_APP_ID", "AMAZON_LWA_CLIENT_ID", "AMAZON_LWA_CLIENT_SECRET"],
+    autoriseer: ({ state, terug }) => `https://sellercentral-europe.amazon.com/apps/authorize/consent?${new URLSearchParams({ application_id: process.env.AMAZON_SP_APP_ID!, state, redirect_uri: terug, version: "beta" })}`,
+    rondAf: async ({ query }) => {
+      const t = await postForm<{ access_token: string; refresh_token: string; expires_in: number }>("https://api.amazon.com/auth/o2/token",
+        { grant_type: "authorization_code", code: query.get("spapi_oauth_code") ?? "", client_id: process.env.AMAZON_LWA_CLIENT_ID!, client_secret: process.env.AMAZON_LWA_CLIENT_SECRET! }, {}, "Amazon");
+      return { config: { accessToken: t.access_token, refreshToken: t.refresh_token, verloopt: String(Date.now() + t.expires_in * 1000), verkoperId: query.get("selling_partner_id") ?? "" } };
+    },
+  },
+  lightspeed: {
+    // Lightspeed Retail (X-Series): winkelnaam invullen, dan inloggen.
+    naam: "Lightspeed",
+    env: ["LIGHTSPEED_CLIENT_ID", "LIGHTSPEED_CLIENT_SECRET"],
+    autoriseer: ({ state, terug }) => `https://secure.vendhq.com/connect?${new URLSearchParams({ response_type: "code", client_id: process.env.LIGHTSPEED_CLIENT_ID!, redirect_uri: terug, state })}`,
+    rondAf: async ({ query, terug }) => {
+      const domein = (query.get("domain_prefix") ?? "").replace(/[^a-z0-9-]/gi, "");
+      if (!domein) throw new Error("Lightspeed gaf geen winkel terug. Probeer het opnieuw.");
+      const t = await postForm<{ access_token: string; refresh_token: string; expires: number }>(`https://${domein}.vendhq.com/api/1.0/token`,
+        { grant_type: "authorization_code", code: query.get("code") ?? "", redirect_uri: terug, client_id: process.env.LIGHTSPEED_CLIENT_ID!, client_secret: process.env.LIGHTSPEED_CLIENT_SECRET! }, {}, "Lightspeed");
+      return { config: { accessToken: t.access_token, refreshToken: t.refresh_token, verloopt: String((t.expires ?? 0) * 1000), domein }, naam: domein };
+    },
+  },
 };
 
 export const isOAuthSoort = (s: string): s is OAuthSoort => s in AANBIEDERS;
@@ -177,4 +265,31 @@ export async function mollieToegang(ondernemingId: string): Promise<{ token: str
     return { token: nieuw.accessToken, profileId: k.profileId || undefined, oauth: true };
   }
   return { token: k.accessToken, profileId: k.profileId || undefined, oauth: true };
+}
+
+/** Ververs-adressen voor OAuth-tokens die na een uur verlopen. */
+const VERVERS: Partial<Record<OAuthSoort, () => { url: string; velden: Record<string, string>; kop?: Record<string, string> }>> = {
+  gmail: () => ({ url: "https://oauth2.googleapis.com/token", velden: { client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET! } }),
+  outlook: () => ({ url: "https://login.microsoftonline.com/common/oauth2/v2.0/token", velden: { client_id: process.env.MICROSOFT_CLIENT_ID!, client_secret: process.env.MICROSOFT_CLIENT_SECRET!, scope: "offline_access Mail.Read User.Read" } }),
+  etsy: () => ({ url: "https://api.etsy.com/v3/public/oauth/token", velden: { client_id: process.env.ETSY_CLIENT_ID! } }),
+  sumup: () => ({ url: "https://api.sumup.com/token", velden: { client_id: process.env.SUMUP_CLIENT_ID!, client_secret: process.env.SUMUP_CLIENT_SECRET! } }),
+  zettle: () => ({ url: "https://oauth.zettle.com/token", velden: { client_id: process.env.ZETTLE_CLIENT_ID!, client_secret: process.env.ZETTLE_CLIENT_SECRET! } }),
+  amazon: () => ({ url: "https://api.amazon.com/auth/o2/token", velden: { client_id: process.env.AMAZON_LWA_CLIENT_ID!, client_secret: process.env.AMAZON_LWA_CLIENT_SECRET! } }),
+};
+
+/** Geldig toegangstoken voor een OAuth-koppeling (zo nodig ververst), plus de rest van de configuratie. */
+export async function toegang<T extends Record<string, string> = Record<string, string>>(ondernemingId: string, soort: OAuthSoort): Promise<(T & { accessToken: string }) | null> {
+  const k = await leesKoppeling<Record<string, string>>(ondernemingId, soort as never);
+  if (!k || k.proef || !k.accessToken) return null;
+  const { _id, _status, ...cfg } = k;
+  void _id; void _status;
+  const v = VERVERS[soort];
+  if (v && cfg.refreshToken && Number(cfg.verloopt ?? 0) < Date.now() + 60_000 && ingesteld(soort)) {
+    const r = v();
+    const t = await postForm<{ access_token: string; refresh_token?: string; expires_in: number }>(r.url, { grant_type: "refresh_token", refresh_token: cfg.refreshToken, ...r.velden }, r.kop ?? {}, AANBIEDERS[soort].naam);
+    const nieuw = { ...cfg, accessToken: t.access_token, refreshToken: t.refresh_token ?? cfg.refreshToken, verloopt: String(Date.now() + t.expires_in * 1000) };
+    await bewaarKoppeling(ondernemingId, soort as never, nieuw);
+    return nieuw as unknown as T & { accessToken: string };
+  }
+  return cfg as T & { accessToken: string };
 }
