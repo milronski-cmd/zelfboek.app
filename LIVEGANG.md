@@ -11,7 +11,7 @@ Vink af wat klaar is. Alles met **[Ronnie]** vraagt een account, geld of een keu
 2. Vercel-project `saldoplan-test` met de env-variabelen uit stap 1 en het domein app.saldoplan.nl (stap 4 en 5). Het team heeft al Vercel Pro.
 3. Mail die echt aankomt: SMTP met SPF en DKIM op saldoplan.nl (stap 6). Zonder mail kan niemand inloggen.
 4. Stripe live: product van € 50 per maand, webhook (stap 1, Stripe).
-5. AI: `ANTHROPIC_API_KEY` (bonnen lezen, boeken, bot). Zonder sleutel werkt de app, maar boekt hij niets automatisch.
+5. AI: `OPENROUTER_API_KEY` (bonnen lezen, boeken, bot; model Haiku 5.5 via OpenRouter, `AI_MODEL` overschrijft). `ANTHROPIC_API_KEY` mag ook in plaats daarvan. Zonder sleutel werkt de app, maar boekt hij niets automatisch.
 6. Juridische teksten nagekeken door een jurist en de bedrijfsgegevens ingevuld (stap 8).
 7. Foutmeldingen zien (stap 7, minimaal de Vercel-logs met een melding per mail).
 
@@ -27,7 +27,7 @@ Volledige lijst met uitleg: `env.voorbeeld.txt`. Nooit in git.
 | `APP_SECRET` | ja | Zelf maken: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. **Nooit meer wijzigen**: hiermee zijn koppelingen en tweestap-geheimen versleuteld en zijn factuurlinks en bonnenadressen ondertekend. Bewaar hem ook in een wachtwoordkluis. |
 | `NEXT_PUBLIC_APP_URL` | ja | `https://app.saldoplan.nl` (ook voor passkeys: Face ID werkt alleen op dit domein) |
 | `NEXT_PUBLIC_WEBSITE_URL` | ja | `https://saldoplan.nl` |
-| `ANTHROPIC_API_KEY` | ja | console.anthropic.com **[Ronnie]** |
+| `OPENROUTER_API_KEY` | ja | openrouter.ai (limiet $ 50/maand op de sleutel) **[Ronnie, staat er]** |
 | `CRON_SECRET` | ja | Zelf maken (zoals APP_SECRET); Vercel Cron stuurt hem zelf mee |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_VAN` | ja | Mailprovider (stap 6) **[Ronnie]** |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` | ja | Stripe live-modus. Webhook naar `https://app.saldoplan.nl/api/stripe/webhook` met de events `customer.subscription.created/updated/deleted`, `invoice.paid`, `invoice.payment_failed`. Klantportaal aanzetten (opzeggen toestaan). **[Ronnie]** |
@@ -122,7 +122,7 @@ Niet zetten in productie: `STRIPE_API_BASIS` (alleen voor tests), `SALDOPLAN_PRO
 3. **[Ronnie]** Mailprovider kiezen en account (stap 6). Prijs nakijken.
 4. **[Ronnie]** Stripe live-modus: product van € 50 per maand, webhook (stap 1). Geen vaste kosten; per betaling een percentage (prijs nakijken), Billing 0,7% van het volume (nagekeken 12-10-2026).
 5. **[Ronnie]** Anthropic API-sleutel met betaalmethode (console.anthropic.com). Kosten per gebruik; per klant te volgen in /admin.
-6. Bouwer: in Vercel (Production) zetten: `NEXT_PUBLIC_APP_URL=https://app.saldoplan.nl`, `SMTP_*`, `MAIL_VAN`, `STRIPE_*`, `ANTHROPIC_API_KEY`, `ADMIN_EMAILS` (Ronnie en Daniel); **`SALDOPLAN_TESTMODUS` verwijderen**.
+6. Bouwer: in Vercel (Production) zetten: `NEXT_PUBLIC_APP_URL=https://app.saldoplan.nl`, `SMTP_*`, `MAIL_VAN`, `STRIPE_*`, `OPENROUTER_API_KEY`, `ADMIN_EMAILS` (Ronnie en Daniel); **`SALDOPLAN_TESTMODUS` verwijderen**.
 7. Bouwer: `npm run db:migreer` op de database (zie stap 2), dan deployen.
 8. Bouwer: **alle sessies wissen** (`DELETE FROM "Sessie";`). In de testmodus kon iedereen met elk adres inloggen; na de livegang moet iedereen opnieuw inloggen met een code uit de eigen mail. Gegevens en accounts blijven staan.
 9. Bouwer: in /admin nakijken dat alleen Ronnie en Daniel beheerder zijn en zelf tweestap hebben ingesteld. Staat bij een beheerdersadres tweestap aan die hij niet zelf zette, dan die in de database uitzetten (`totpAan=false`, `totpGeheim=NULL`) en opnieuw laten instellen.

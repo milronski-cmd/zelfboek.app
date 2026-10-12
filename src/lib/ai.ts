@@ -10,17 +10,25 @@ import { telTokens } from "./limiet";
 /** Wat de klant ziet als de AI niet bereikbaar is (geen sleutel, storing). Geen techniek in beeld. */
 export const BOT_ONBEREIKBAAR = testmodus() ? TESTMODUS_AI : "De bot is nu even niet bereikbaar. Probeer het over een paar minuten opnieuw; er gaat niets verloren.";
 
-const viaCli = () => !process.env.ANTHROPIC_API_KEY && cliBeschikbaar();
+/** OPENROUTER_API_KEY gaat voor: dan via OpenRouter (Anthropic-compatibel), anders direct met ANTHROPIC_API_KEY. */
+const viaOpenRouter = () => Boolean(process.env.OPENROUTER_API_KEY);
+export const aiSleutelAanwezig = () => viaOpenRouter() || Boolean(process.env.ANTHROPIC_API_KEY);
+const viaCli = () => !aiSleutelAanwezig() && cliBeschikbaar();
 
 export { BTW_CODES, CATEGORIEEN };
 
-export const MODEL = "claude-opus-5-5";
-export const MODEL_SNEL = "claude-haiku-5-5";
+/** Standaard Haiku (snel en goedkoop); AI_MODEL overschrijft. */
+export const MODEL = process.env.AI_MODEL || (viaOpenRouter() ? "anthropic/claude-haiku-5.5" : "claude-haiku-5-5");
+export const MODEL_SNEL = MODEL;
 
 let client: Anthropic | null = null;
 export function ai() {
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("api key ontbreekt op de server");
-  if (!client) client = new Anthropic({ maxRetries: 3 });
+  if (!aiSleutelAanwezig()) throw new Error("api key ontbreekt op de server");
+  if (!client) {
+    client = viaOpenRouter()
+      ? new Anthropic({ baseURL: "https://openrouter.ai/api", apiKey: null, authToken: process.env.OPENROUTER_API_KEY, maxRetries: 3 })
+      : new Anthropic({ maxRetries: 3 });
+  }
   return client;
 }
 

@@ -48,7 +48,7 @@ export async function verwerkUitlezing(bonId: string, ondernemingId: string, u: 
 
 export function bonFoutTekst(e: unknown) {
   const m = e instanceof Error ? e.message : String(e);
-  if (/api key|apiKey|ANTHROPIC_API_KEY|authentication|401|overloaded|529|rate.?limit|429|timeout/i.test(m)) return BOT_ONBEREIKBAAR;
+  if (/api key|apiKey|ANTHROPIC_API_KEY|OPENROUTER|402|authentication|401|overloaded|529|rate.?limit|429|timeout/i.test(m)) return BOT_ONBEREIKBAAR;
   return foutTekst(e);
 }
 
