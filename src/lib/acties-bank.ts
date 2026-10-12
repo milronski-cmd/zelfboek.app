@@ -80,6 +80,11 @@ export async function wijzigTransactie(formData: FormData): Promise<void> {
       where: { id },
       data: { zakelijk, categorie, btwCode, priveDeel: zakelijk ? priveDeel : 0, btwBedrag: zakelijk ? btwUitInclusief(Math.abs(t.bedrag), btwCode) : 0, bevestigd: true, zekerheid: 1, uitleg: "Handmatig bevestigd" },
     });
+    // "Altijd zo bij deze winkel": ook de volgende betalingen (met hetzelfde privédeel) zo boeken.
+    if (formData.get("altijd") === "1") {
+      await db.transactie.update({ where: { id }, data: { uitleg: `${VASTE_KEUZE}: altijd ${zakelijk ? (priveDeel > 0 ? `${Math.round((1 - priveDeel) * 100)}% zakelijk` : "zakelijk") : "privé"} bij ${t.tegenpartij}` } });
+      await pasVasteKeuzesToe(o.id, winkelSleutel(t.tegenpartij));
+    }
   }
   ververs();
 }

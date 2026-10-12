@@ -98,7 +98,7 @@ export async function pasVasteKeuzesToe(ondernemingId: string, alleenSleutel?: s
     where: { ondernemingId, uitleg: { startsWith: VASTE_KEUZE } },
     orderBy: { datum: "desc" },
     take: 1000,
-    select: { tegenpartij: true, zakelijk: true, categorie: true, btwCode: true },
+    select: { tegenpartij: true, zakelijk: true, categorie: true, btwCode: true, priveDeel: true },
   });
   const keuzes = new Map<string, (typeof vast)[number]>();
   for (const v of vast) { const k = winkelSleutel(v.tegenpartij); if (k && !keuzes.has(k)) keuzes.set(k, v); }
@@ -118,7 +118,8 @@ export async function pasVasteKeuzesToe(ondernemingId: string, alleenSleutel?: s
       data: {
         zakelijk: v.zakelijk, categorie: v.zakelijk ? v.categorie ?? "overig" : "prive", btwCode: v.zakelijk ? v.btwCode ?? "21" : "geen",
         btwBedrag: v.zakelijk ? btwUitInclusief(Math.abs(t.bedrag), v.btwCode ?? "21") : 0,
-        bevestigd: true, zekerheid: 1, uitleg: `${VASTE_KEUZE}: altijd ${v.zakelijk ? "zakelijk" : "privé"} bij ${t.tegenpartij}`,
+        priveDeel: v.zakelijk ? v.priveDeel : 0,
+        bevestigd: true, zekerheid: 1, uitleg: `${VASTE_KEUZE}: altijd ${v.zakelijk ? (v.priveDeel > 0 ? `${Math.round((1 - v.priveDeel) * 100)}% zakelijk` : "zakelijk") : "privé"} bij ${t.tegenpartij}`,
       },
     });
     n++;

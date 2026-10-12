@@ -199,6 +199,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
                             <label className="flex items-center gap-1 text-tekst-2">Privégebruik
                               <input name="priveDeel" type="number" min={0} max={100} defaultValue={Math.round(t.priveDeel * 100)} className="veld veld-klein w-16" />%
                             </label>
+                            <label className="flex items-center gap-1 text-tekst-2"><input type="checkbox" name="altijd" value="1" className="h-4 w-4" /> Altijd zo bij {t.tegenpartij || "deze winkel"}</label>
                             <label className="flex items-center gap-1 text-tekst-2">Privébedrag afsplitsen
                               <input name="splitsBedrag" type="text" inputMode="decimal" placeholder="0,00" className="veld veld-klein w-20" />
                             </label>
