@@ -10,14 +10,30 @@ datasource db {
 // ─────────────────────────── Account en toegang ───────────────────────────
 
 model Gebruiker {
-  id          String        @id @default(cuid())
-  email       String        @unique
-  naam        String?
-  aangemaakt  DateTime      @default(now())
-  laatstActief DateTime?
-  sessies     Sessie[]
-  codes       LoginCode[]
+  id              String         @id @default(cuid())
+  email           String         @unique
+  naam            String?
+  aangemaakt      DateTime       @default(now())
+  laatstActief    DateTime?
+  totpGeheim      String? // versleuteld; tweestapsverificatie met een app
+  totpAan         Boolean        @default(false)
+  passkeys        Passkey[]
+  sessies         Sessie[]
+  codes           LoginCode[]
   lidmaatschappen Lidmaatschap[]
+}
+
+/// Inloggen met Face ID, vingerafdruk of Windows Hello (WebAuthn).
+model Passkey {
+  id             String    @id @default(cuid())
+  gebruikerId    String
+  gebruiker      Gebruiker @relation(fields: [gebruikerId], references: [id], onDelete: Cascade)
+  credentialId   String    @unique
+  publicKey      String // base64url
+  teller         Int       @default(0)
+  naam           String?
+  aangemaakt     DateTime  @default(now())
+  laatstGebruikt DateTime?
 }
 
 model LoginCode {
@@ -32,12 +48,12 @@ model LoginCode {
 }
 
 model Sessie {
-  id          String    @id @default(cuid())
-  gebruikerId String
-  gebruiker   Gebruiker @relation(fields: [gebruikerId], references: [id], onDelete: Cascade)
-  tokenHash   String    @unique
-  verlooptOp  DateTime
-  aangemaakt  DateTime  @default(now())
+  id                   String    @id @default(cuid())
+  gebruikerId          String
+  gebruiker            Gebruiker @relation(fields: [gebruikerId], references: [id], onDelete: Cascade)
+  tokenHash            String    @unique
+  verlooptOp           DateTime
+  aangemaakt           DateTime  @default(now())
   actieveOndernemingId String?
 }
 
@@ -55,82 +71,103 @@ model Lidmaatschap {
 // ─────────────────────────── Onderneming ───────────────────────────
 
 model Onderneming {
-  id              String   @id @default(cuid())
-  naam            String
-  branche         String?
-  rechtsvorm      String   @default("eenmanszaak")
-  kvk             String?
-  btwNummer       String?
-  btwId           String?  // NL...B01 btw-identificatienummer
-  email           String?
-  telefoon        String?
-  iban            String?
-  adres           String?
-  postcode        String?
-  plaats          String?
-  land            String   @default("NL")
-  logoPad         String?
-  logo            Bytes?
-  logoMime        String?
-  website         String?
-  startdatum      DateTime?
-  btwTijdvak      String   @default("kwartaal") // maand | kwartaal | jaar
-  korDeelnemer    Boolean  @default(false)
-  urencriterium   Boolean  @default(true)
-  starter         Boolean  @default(false)  // startersaftrek
-  factuurPrefix   String   @default("")
-  factuurVolgnr   Int      @default(0)
-  factuurJaar     Int?     // jaar waar factuurVolgnr bij hoort
-  offertePrefix   String   @default("OFF-")
-  offerteVolgnr   Int      @default(0)
-  offerteJaar     Int?
-  betaaltermijn   Int      @default(14)
-  factuurVoettekst String?
-  huisstijlKleur  String   @default("#1c1917")
-  herinneringAuto Boolean  @default(true)
-  stripeKlantId   String?
+  id                 String    @id @default(cuid())
+  naam               String
+  branche            String?
+  rechtsvorm         String    @default("eenmanszaak")
+  kvk                String?
+  btwNummer          String?
+  btwId              String? // NL...B01 btw-identificatienummer
+  email              String?
+  telefoon           String?
+  iban               String?
+  adres              String?
+  postcode           String?
+  plaats             String?
+  land               String    @default("NL")
+  logoPad            String?
+  logo               Bytes?
+  logoMime           String?
+  website            String?
+  startdatum         DateTime?
+  btwTijdvak         String    @default("kwartaal") // maand | kwartaal | jaar
+  korDeelnemer       Boolean   @default(false)
+  urencriterium      Boolean   @default(true)
+  starter            Boolean   @default(false) // startersaftrek
+  factuurPrefix      String    @default("")
+  factuurVolgnr      Int       @default(0)
+  factuurJaar        Int? // jaar waar factuurVolgnr bij hoort
+  offertePrefix      String    @default("OFF-")
+  offerteVolgnr      Int       @default(0)
+  offerteJaar        Int?
+  betaaltermijn      Int       @default(14)
+  factuurVoettekst   String?
+  huisstijlKleur     String    @default("#1c1917")
+  herinneringAuto    Boolean   @default(true)
+  stripeKlantId      String?
   stripeAbonnementId String?
-  abonnement      String   @default("proef") // proef | actief | achterstallig | gestopt
-  proefTot        DateTime?
-  aangemaakt      DateTime @default(now())
+  abonnement         String    @default("proef") // proef | actief | achterstallig | gestopt
+  proefTot           DateTime?
+  zekerheidsgrens    Float     @default(0.85) // onder deze zekerheid vraagt Saldoplan het je
+  herinneringTekst1  String? // eigen tekst voor de 1e herinnering (leeg = standaard)
+  herinneringTekst2  String?
+  herinneringTekst3  String?
+  demoTot            DateTime? // demo-omgeving: verdwijnt na dit moment
+  verwijscode        String?   @unique
+  verwezenDoor       String? // verwijscode van wie deze klant aanbracht
+  aangemaakt         DateTime  @default(now())
 
-  leden           Lidmaatschap[]
-  bankrekeningen  Bankrekening[]
-  transacties     Transactie[]
-  bonnen          Bon[]
-  klanten         Klant[]
-  facturen        Factuur[]
-  offertes        Offerte[]
-  terugkerend     TerugkerendeFactuur[]
-  producten       Product[]
-  uren            Urenregel[]
-  kilometers      Kilometerregel[]
-  activa          Activum[]
-  koppelingen     Koppeling[]
-  memoriaal       Memoriaalboeking[]
-  aangiften       Aangifte[]
-  meldingen       Melding[]
-  gesprekken      Gesprek[]
-  regels          Boekingsregel[]
-  taken           Taak[]
+  leden          Lidmaatschap[]
+  bankrekeningen Bankrekening[]
+  transacties    Transactie[]
+  bonnen         Bon[]
+  klanten        Klant[]
+  facturen       Factuur[]
+  offertes       Offerte[]
+  terugkerend    TerugkerendeFactuur[]
+  producten      Product[]
+  uren           Urenregel[]
+  kilometers     Kilometerregel[]
+  activa         Activum[]
+  koppelingen    Koppeling[]
+  memoriaal      Memoriaalboeking[]
+  aangiften      Aangifte[]
+  meldingen      Melding[]
+  gesprekken     Gesprek[]
+  regels         Boekingsregel[]
+  taken          Taak[]
+  logboek        Logboek[]
+}
+
+/// Wie veranderde wat en wanneer (voor jezelf en je boekhouder).
+model Logboek {
+  id            String      @id @default(cuid())
+  ondernemingId String
+  onderneming   Onderneming @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
+  wie           String? // e-mail of "Saldoplan"
+  actie         String
+  onderwerp     String?
+  aangemaakt    DateTime    @default(now())
+
+  @@index([ondernemingId, aangemaakt])
 }
 
 // ─────────────────────────── Bank ───────────────────────────
 
 model Bankrekening {
-  id             String      @id @default(cuid())
-  ondernemingId  String
-  onderneming    Onderneming @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
-  naam           String
-  iban           String
-  bank           String?     // ING, Rabobank, bunq, Knab, ...
-  bron           String      @default("csv") // csv | mt940 | camt | psd2 | kanaal
-  psd2SessieId   String?
-  psd2AccountId  String?
-  psd2Verloopt   DateTime?
-  laatsteSync    DateTime?
-  saldo          Float?
-  transacties    Transactie[]
+  id            String       @id @default(cuid())
+  ondernemingId String
+  onderneming   Onderneming  @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
+  naam          String
+  iban          String
+  bank          String? // ING, Rabobank, bunq, Knab, ...
+  bron          String       @default("csv") // csv | mt940 | camt | psd2 | kanaal
+  psd2SessieId  String?
+  psd2AccountId String?
+  psd2Verloopt  DateTime?
+  laatsteSync   DateTime?
+  saldo         Float?
+  transacties   Transactie[]
 
   @@unique([ondernemingId, iban])
 }
@@ -143,7 +180,7 @@ model Transactie {
   bankrekeningId String?
   bankrekening   Bankrekening? @relation(fields: [bankrekeningId], references: [id])
   datum          DateTime
-  bedrag         Float         // positief = ontvangen, negatief = betaald
+  bedrag         Float // positief = ontvangen, negatief = betaald
   tegenpartij    String
   tegenIban      String?
   omschrijving   String
@@ -151,13 +188,14 @@ model Transactie {
   bron           String        @default("csv") // csv | mt940 | camt | psd2 | mollie | stripe | shopify | bol | woocommerce | paypal | import
   externId       String?
   categorie      String?
-  grootboek      String?       // RGS-code, bv. WOmzNopOlv
-  btwCode        String?       // 21 | 9 | 0 | vrijgesteld | geen | verlegd | eu_dienst | eu_goed | buiten_eu
+  grootboek      String? // RGS-code, bv. WOmzNopOlv
+  btwCode        String? // 21 | 9 | 0 | vrijgesteld | geen | verlegd | eu_dienst | eu_goed | buiten_eu
   btwBedrag      Float?
-  zakelijk       Boolean?      // null = nog niet beoordeeld
+  zakelijk       Boolean? // null = nog niet beoordeeld
   priveDeel      Float         @default(0) // 0..1, gemengd gebruik
   zekerheid      Float?
   uitleg         String?
+  opmerking      String? // notitie van de ondernemer of boekhouder
   bevestigd      Boolean       @default(false)
   bonId          String?       @unique
   bon            Bon?          @relation(fields: [bonId], references: [id])
@@ -179,7 +217,7 @@ model Bon {
   bestandsnaam   String
   mimeType       String
   bestandsPad    String
-  inhoud         Bytes?      // het bestand zelf (op Vercel is er geen schijf)
+  inhoud         Bytes? // het bestand zelf (op Vercel is er geen schijf)
   bron           String      @default("upload") // upload | email | whatsapp
   leverancier    String?
   leverancierBtw String?
@@ -193,7 +231,7 @@ model Bon {
   valuta         String      @default("EUR")
   zekerheid      Float?
   uitleg         String?
-  regelsJson     String?     // uitgelezen regels
+  regelsJson     String? // uitgelezen regels
   status         String      @default("nieuw") // nieuw | uitgelezen | gekoppeld | fout | handmatig
   transactie     Transactie?
   aangemaakt     DateTime    @default(now())
@@ -204,28 +242,29 @@ model Bon {
 // ─────────────────────────── Verkoop ───────────────────────────
 
 model Klant {
-  id            String      @id @default(cuid())
-  ondernemingId String
-  onderneming   Onderneming @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
-  naam          String
+  id             String                @id @default(cuid())
+  ondernemingId  String
+  onderneming    Onderneming           @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
+  naam           String
   contactpersoon String?
-  email         String?
-  telefoon      String?
-  adres         String?
-  postcode      String?
-  plaats        String?
-  land          String      @default("NL")
-  kvk           String?
-  btwNummer     String?
-  isOndernemer  Boolean     @default(true)
-  betaaltermijn Int?
-  notities      String?
-  externId      String?     // id bij Moneybird e.d.
-  facturen      Factuur[]
-  offertes      Offerte[]
-  terugkerend   TerugkerendeFactuur[]
-  uren          Urenregel[]
-  aangemaakt    DateTime    @default(now())
+  email          String?
+  telefoon       String?
+  adres          String?
+  postcode       String?
+  plaats         String?
+  land           String                @default("NL")
+  kvk            String?
+  btwNummer      String?
+  isOndernemer   Boolean               @default(true)
+  betaaltermijn  Int?
+  notities       String?
+  taal           String                @default("nl") // nl | en | de: taal van facturen en herinneringen
+  externId       String? // id bij Moneybird e.d.
+  facturen       Factuur[]
+  offertes       Offerte[]
+  terugkerend    TerugkerendeFactuur[]
+  uren           Urenregel[]
+  aangemaakt     DateTime              @default(now())
 
   @@index([ondernemingId, naam])
 }
@@ -242,40 +281,42 @@ model Product {
 }
 
 model Factuur {
-  id            String      @id @default(cuid())
-  ondernemingId String
-  onderneming   Onderneming @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
-  klantId       String
-  klant         Klant       @relation(fields: [klantId], references: [id])
-  nummer        String
-  soort         String      @default("factuur") // factuur | credit
-  datum         DateTime    @default(now())
-  vervaldatum   DateTime
-  regels        String      // JSON FactuurRegel[]
-  subtotaal     Float
-  btw           Float
-  totaal        Float
-  btwVerlegd    Boolean     @default(false)
-  valuta        String      @default("EUR")
-  referentie    String?
-  opmerking     String?
-  status        String      @default("concept") // concept | verzonden | herinnerd | aangemaand | betaald | oninbaar | gecrediteerd
-  verzondenOp   DateTime?
-  betaaldOp     DateTime?
-  betaaldBedrag Float       @default(0)
-  herinneringen Int         @default(0)
+  id                 String               @id @default(cuid())
+  ondernemingId      String
+  onderneming        Onderneming          @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
+  klantId            String
+  klant              Klant                @relation(fields: [klantId], references: [id])
+  nummer             String
+  soort              String               @default("factuur") // factuur | credit
+  datum              DateTime             @default(now())
+  vervaldatum        DateTime
+  regels             String // JSON FactuurRegel[]
+  subtotaal          Float
+  btw                Float
+  totaal             Float
+  btwVerlegd         Boolean              @default(false)
+  valuta             String               @default("EUR")
+  referentie         String?
+  opmerking          String?
+  status             String               @default("concept") // concept | verzonden | herinnerd | aangemaand | betaald | oninbaar | gecrediteerd
+  verzondenOp        DateTime?
+  betaaldOp          DateTime?
+  betaaldBedrag      Float                @default(0)
+  herinneringen      Int                  @default(0)
   laatsteHerinnering DateTime?
-  betaalLinkUrl String?
-  betaalLinkId  String?     // Mollie payment id
-  pdfPad        String?
-  ublPad        String?
+  betaalLinkUrl      String?
+  betaalLinkId       String? // Mollie payment id
+  geopendOp          DateTime? // eerste keer dat de klant de factuur opende
+  geopendKeer        Int                  @default(0)
+  pdfPad             String?
+  ublPad             String?
   gecrediteerdDoorId String?
-  terugkerendId String?
-  terugkerend   TerugkerendeFactuur? @relation(fields: [terugkerendId], references: [id])
-  offerteId     String?
-  offerte       Offerte?    @relation(fields: [offerteId], references: [id])
-  transacties   Transactie[]
-  aangemaakt    DateTime    @default(now())
+  terugkerendId      String?
+  terugkerend        TerugkerendeFactuur? @relation(fields: [terugkerendId], references: [id])
+  offerteId          String?
+  offerte            Offerte?             @relation(fields: [offerteId], references: [id])
+  transacties        Transactie[]
+  aangemaakt         DateTime             @default(now())
 
   @@unique([ondernemingId, nummer])
   @@index([ondernemingId, status])
@@ -299,6 +340,9 @@ model Offerte {
   verzondenOp   DateTime?
   besluitOp     DateTime?
   acceptToken   String      @unique @default(cuid())
+  handtekening  String? // getekende handtekening (PNG als data-URL)
+  getekendDoor  String?
+  getekendOp    DateTime?
   pdfPad        String?
   facturen      Factuur[]
 
@@ -350,26 +394,26 @@ model Kilometerregel {
   retour        Boolean     @default(false)
   doel          String
   vervoer       String      @default("prive_auto") // prive_auto | zakelijke_auto | fiets | ov
-  vergoeding    Float       // km * 0.23 bij privéauto
+  vergoeding    Float // km * 0.23 bij privéauto
 
   @@index([ondernemingId, datum])
 }
 
 model Activum {
-  id              String      @id @default(cuid())
-  ondernemingId   String
-  onderneming     Onderneming @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
-  naam            String
-  categorie       String      @default("inventaris") // inventaris | computer | auto | machine | verbouwing | overig
-  aanschafDatum   DateTime
-  aanschafBedrag  Float       // ex btw
-  restwaarde      Float       @default(0)
-  looptijdJaren   Int         @default(5)
-  kiaToegepast    Boolean     @default(false)
-  priveDeel       Float       @default(0)
-  verkochtOp      DateTime?
-  verkoopBedrag   Float?
-  transacties     Transactie[]
+  id             String       @id @default(cuid())
+  ondernemingId  String
+  onderneming    Onderneming  @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
+  naam           String
+  categorie      String       @default("inventaris") // inventaris | computer | auto | machine | verbouwing | overig
+  aanschafDatum  DateTime
+  aanschafBedrag Float // ex btw
+  restwaarde     Float        @default(0)
+  looptijdJaren  Int          @default(5)
+  kiaToegepast   Boolean      @default(false)
+  priveDeel      Float        @default(0)
+  verkochtOp     DateTime?
+  verkoopBedrag  Float?
+  transacties    Transactie[]
 }
 
 /// Handmatige boeking buiten de bank om (privégebruik, correcties, afschrijving).
@@ -410,10 +454,10 @@ model Aangifte {
   id            String      @id @default(cuid())
   ondernemingId String
   onderneming   Onderneming @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
-  soort         String      // btw | icp | ib
+  soort         String // btw | icp | ib
   jaar          Int
-  periode       Int         // kwartaal 1-4, maand 1-12, of 0 voor jaar
-  rubrieken     String      // JSON
+  periode       Int // kwartaal 1-4, maand 1-12, of 0 voor jaar
+  rubrieken     String // JSON
   bedrag        Float
   status        String      @default("concept") // concept | klaar | ingediend | betaald
   ingediendOp   DateTime?
@@ -431,9 +475,9 @@ model Koppeling {
   id            String      @id @default(cuid())
   ondernemingId String
   onderneming   Onderneming @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
-  soort         String      // enablebanking | mollie | stripe | shopify | bol | woocommerce | paypal | moneybird | eboekhouden | resend | whatsapp
+  soort         String // enablebanking | mollie | stripe | shopify | bol | woocommerce | paypal | moneybird | eboekhouden | resend | whatsapp
   naam          String?
-  configJson    String      // versleuteld JSON met tokens en instellingen
+  configJson    String // versleuteld JSON met tokens en instellingen
   status        String      @default("actief") // actief | fout | verlopen | uitgeschakeld
   laatsteSync   DateTime?
   laatsteFout   String?
@@ -448,7 +492,7 @@ model Melding {
   id            String      @id @default(cuid())
   ondernemingId String
   onderneming   Onderneming @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
-  soort         String      // deadline | herinnering | sync | ai | systeem
+  soort         String // deadline | herinnering | sync | ai | systeem
   titel         String
   tekst         String
   link          String?
@@ -476,15 +520,15 @@ model Gesprek {
   ondernemingId String
   onderneming   Onderneming @relation(fields: [ondernemingId], references: [id], onDelete: Cascade)
   titel         String?
-  berichten     String      // JSON MessageParam[]
+  berichten     String // JSON MessageParam[]
   aangemaakt    DateTime    @default(now())
   bijgewerkt    DateTime    @updatedAt
 }
 
 model CronLog {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   taak      String
-  gestart   DateTime @default(now())
+  gestart   DateTime  @default(now())
   klaar     DateTime?
   resultaat String?
   fout      String?
