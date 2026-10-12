@@ -63,6 +63,7 @@ export async function stuurHerinnering(factuurId: string, ondernemingId: string,
   await verstuurMail({
     aan: f.klant.email,
     onderwerp,
+    demo: Boolean(o.demoTot),
     antwoordAan: o.email ?? undefined,
     tekst: regels.map((r) => r.replace(/<br>/g, "\n")).join("\n\n") + (f.betaalLinkUrl ? `\n\nDirect betalen: ${f.betaalLinkUrl}` : ""),
     html: htmlMail(onderwerp, regels, f.betaalLinkUrl ? { tekst: w.directBetalen, url: f.betaalLinkUrl } : undefined),

@@ -16,8 +16,16 @@ export async function verstuurMail(opties: {
   html?: string;
   bijlagen?: Bijlage[];
   antwoordAan?: string;
+  /** Voorbeeldomgeving: nooit echt versturen, alleen in het logbestand zetten. */
+  demo?: boolean;
 }): Promise<{ verzonden: boolean; via: string }> {
   const van = process.env.MAIL_VAN || `${MERK} <noreply@localhost>`;
+  if (opties.demo) {
+    await appendFile(path.join(process.cwd(), "uploads", "outbox.log"), `
+--- ${new Date().toISOString()} (demo, niet verstuurd) aan ${opties.aan} | ${opties.onderwerp}
+`).catch(() => undefined);
+    return { verzonden: true, via: "demo" };
+  }
   if (!process.env.SMTP_HOST && process.env.NODE_ENV === "production") {
     // Nooit stilletjes "verzonden" melden: facturen en herinneringen zouden anders als verstuurd geboekt worden.
     throw new Error("E-mail staat niet ingesteld (SMTP_HOST ontbreekt).");

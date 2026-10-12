@@ -41,6 +41,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       uitloggen={uitloggen}
       wissel={wissel}
     >
+      {o.demoTot && (
+        <p className="mb-6 rounded-md border border-primair/40 bg-primair-licht px-4 py-3 text-sm text-primair-tekst">
+          Dit is een voorbeeldomgeving: er wordt niets echt verstuurd en alles verdwijnt na 24 uur. <Link href="/login" className="font-semibold underline">Maak je eigen account</Link>.
+        </p>
+      )}
       {!status.toegang && (
         <p className="mb-6 rounded-md border border-rood/30 bg-rood-licht px-4 py-3 text-sm text-rood-tekst">
           Je proefperiode is voorbij. <Link href="/app/instellingen?tab=abonnement" className="underline">Start je abonnement</Link> om verder te boeken. Bekijken kan altijd.

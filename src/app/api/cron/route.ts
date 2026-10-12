@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { controleerDeadlines, stuurWeekmail } from "@/lib/meldingen";
+import { ruimDemosOp } from "@/lib/demo-omgeving";
 import { stuurVragenMail } from "@/lib/vragenmail";
 import { geheimKlopt } from "@/lib/crypto";
 
@@ -33,7 +34,9 @@ export async function GET(req: Request) {
     import("@/lib/facturen/herinneringen").catch(() => null),
   ]);
 
-  const ondernemingen = await db.onderneming.findMany({ where: { abonnement: { in: ["proef", "actief", "achterstallig"] } }, select: { id: true, naam: true } });
+  // Verlopen voorbeeldomgevingen opruimen; demo's draaien niet mee in de nachtrun.
+  await ruimDemosOp().catch(() => 0);
+  const ondernemingen = await db.onderneming.findMany({ where: { abonnement: { in: ["proef", "actief", "achterstallig"] }, demoTot: null }, select: { id: true, naam: true } });
   const uitkomst: { onderneming: string; stappen: Stap[] }[] = [];
 
   for (const o of ondernemingen) {

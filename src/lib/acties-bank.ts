@@ -180,7 +180,7 @@ export async function startPsd2(formData: FormData): Promise<void> {
   if (!bank) redirect("/app/koppelingen?fout=" + encodeURIComponent("Kies een bank."));
   const eb = await leesKoppeling<{ appId?: string }>(o.id, "enablebanking");
   const ebIngesteld = Boolean(process.env.ENABLE_BANKING_APP_ID && process.env.ENABLE_BANKING_PRIVATE_KEY) || Boolean(eb?.appId);
-  if (!ebIngesteld && proefmodus()) redirect(`/app/koppelingen/proef?state=${encodeURIComponent(maakState({ o: o.id, s: "enablebanking", b: bank }))}`);
+  if ((!ebIngesteld && proefmodus()) || o.demoTot) redirect(`/app/koppelingen/proef?state=${encodeURIComponent(maakState({ o: o.id, s: "enablebanking", b: bank }))}`);
   const basis = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   let url: string;
   try {
@@ -211,8 +211,8 @@ export async function startKoppeling(formData: FormData): Promise<void> {
   const state = maakState({ o: o.id, s, a: adres });
   // WooCommerce stuurt de sleutels naar ons terug; dat kan alleen naar een https-adres, lokaal dus via de proefmodus.
   const wooLokaal = s === "woocommerce" && !terugUrl(s).startsWith("https://");
-  if (ingesteld(s) && !(wooLokaal && proefmodus())) redirect(a.autoriseer({ state, terug: terugUrl(s), adres }));
-  if (proefmodus()) redirect(`/app/koppelingen/proef?state=${encodeURIComponent(state)}`);
+  if (ingesteld(s) && !(wooLokaal && proefmodus()) && !o.demoTot) redirect(a.autoriseer({ state, terug: terugUrl(s), adres }));
+  if (proefmodus() || o.demoTot) redirect(`/app/koppelingen/proef?state=${encodeURIComponent(state)}`);
   terug(`fout=${encodeURIComponent(`Koppelen met ${a.naam} kan binnenkort met één klik. Upload zolang je overzicht bij Bank, dan boeken we het ook.`)}`);
 }
 
@@ -240,7 +240,7 @@ export async function proefToestaan(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
   await logNu(o.id, "Koppeling toegevoegd (proef)");
   const st = leesState(String(formData.get("state") ?? ""));
-  if (!proefmodus() || !st || st.o !== o.id) redirect(`/app/koppelingen?fout=${encodeURIComponent("Deze proefkoppeling is verlopen. Probeer het opnieuw.")}`);
+  if (!(proefmodus() || o.demoTot) || !st || st.o !== o.id) redirect(`/app/koppelingen?fout=${encodeURIComponent("Deze proefkoppeling is verlopen. Probeer het opnieuw.")}`);
   let melding: string;
   if (st.s === "enablebanking") {
     const bank = st.b ?? "Bank";

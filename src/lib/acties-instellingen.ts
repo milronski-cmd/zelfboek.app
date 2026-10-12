@@ -86,7 +86,7 @@ export async function lidToevoegen(fd: FormData): Promise<Resultaat> {
   const g = await db.gebruiker.upsert({ where: { email }, update: {}, create: { email } });
   await db.lidmaatschap.upsert({ where: { gebruikerId_ondernemingId: { gebruikerId: g.id, ondernemingId: o.id } }, update: { rol }, create: { gebruikerId: g.id, ondernemingId: o.id, rol } });
   const basis = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  await verstuurMail({ aan: email, onderwerp: `Je hebt toegang tot ${o.naam} in ${MERK}`, tekst: `Log in met dit e-mailadres op ${basis}/login om de boekhouding van ${o.naam} te bekijken.`, html: htmlMail(`Toegang tot ${o.naam}`, [`Je bent toegevoegd als ${rol}. Log in met dit e-mailadres, je krijgt een code per mail.`], { tekst: "Inloggen", url: `${basis}/login` }) });
+  await verstuurMail({ demo: Boolean(o.demoTot), aan: email, onderwerp: `Je hebt toegang tot ${o.naam} in ${MERK}`, tekst: `Log in met dit e-mailadres op ${basis}/login om de boekhouding van ${o.naam} te bekijken.`, html: htmlMail(`Toegang tot ${o.naam}`, [`Je bent toegevoegd als ${rol}. Log in met dit e-mailadres, je krijgt een code per mail.`], { tekst: "Inloggen", url: `${basis}/login` }) });
   revalidatePath("/app");
   return { ok: true, melding: `${email} toegevoegd als ${rol}.` };
 }

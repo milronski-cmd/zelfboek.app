@@ -62,7 +62,7 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
   for (const k of koppelingen) if ((await leesKoppeling<{ proef?: string }>(o.id, k.soort as never))?.proef) proef.add(k.soort);
   const psd2 = per.get("enablebanking");
   const bonAdres = `bonnen+${o.id}@${process.env.INBOUND_DOMEIN ?? "saldoplan.nl"}`;
-  const kanProef = proefmodus();
+  const kanProef = proefmodus() || Boolean(o.demoTot);
   // Bank: zonder Enable Banking-contract (en buiten de proefmodus) is er nog geen knop, wel de upload-route.
   const bankKlaar = kanProef || Boolean(process.env.ENABLE_BANKING_APP_ID && process.env.ENABLE_BANKING_PRIVATE_KEY) || Boolean((await leesKoppeling<{ appId?: string }>(o.id, "enablebanking"))?.appId);
 

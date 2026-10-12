@@ -72,7 +72,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           )}
         </div>
         <p className="mt-5 text-center text-[13px] text-tekst-3">Nieuw hier? Vul je e-mailadres in, dan maken we meteen een account aan. Dertig dagen gratis proberen.</p>
-        <p className="mt-3 text-center text-[13px] text-tekst-3"><Link href="/gegevens" className="underline">Zo bewaren we je gegevens</Link> · <Link href="/status" className="underline">Status</Link></p>
+        <p className="mt-3 text-center text-[13px] text-tekst-3"><Link href="/demo" className="underline">Eerst rondkijken zonder account</Link> · <Link href="/gegevens" className="underline">Zo bewaren we je gegevens</Link> · <Link href="/status" className="underline">Status</Link></p>
       </div>
     </main>
   );

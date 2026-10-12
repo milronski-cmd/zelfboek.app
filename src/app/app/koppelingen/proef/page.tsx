@@ -18,7 +18,7 @@ export default async function ProefKoppelen({ searchParams }: { searchParams: Pr
   const { state } = await searchParams;
   const o = await huidigeOnderneming();
   const st = leesState(state);
-  if (!proefmodus() || !st || st.o !== o.id) redirect("/app/koppelingen");
+  if (!(proefmodus() || o.demoTot) || !st || st.o !== o.id) redirect("/app/koppelingen");
 
   const bank = st.s === "enablebanking";
   const naam = bank ? (st.b ?? "je bank") : isOAuthSoort(st.s) ? AANBIEDERS[st.s].naam : st.s;

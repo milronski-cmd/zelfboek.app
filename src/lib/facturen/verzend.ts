@@ -42,6 +42,7 @@ export async function verzendFactuur(factuurId: string, ondernemingId: string, o
   await verstuurMail({
     aan,
     onderwerp,
+    demo: Boolean(o.demoTot),
     antwoordAan: o.email ?? undefined,
     tekst: regels.map((r) => r.replace(/<br>/g, "\n").replace(/<[^>]+>/g, "")).join("\n\n") + `\n\n${w.bekijkOnline}: ${factuurUrl(vers.id)}` + (betaalLink ? `\n${w.directBetalen}: ${betaalLink}` : ""),
     html: htmlMail(onderwerp, regels, betaalLink ? { tekst: w.directBetalen, url: betaalLink } : { tekst: w.bekijkOnline, url: factuurUrl(vers.id) }),
@@ -76,6 +77,7 @@ export async function verzendOfferte(offerteId: string, ondernemingId: string, o
   await verstuurMail({
     aan,
     onderwerp,
+    demo: Boolean(o.demoTot),
     antwoordAan: o.email ?? undefined,
     tekst: regels.map((r) => r.replace(/<br>/g, "\n")).join("\n\n") + `\n\n${w.mailOfferteKnop}: ${link}`,
     html: htmlMail(onderwerp, regels, { tekst: w.mailOfferteKnop, url: link }),

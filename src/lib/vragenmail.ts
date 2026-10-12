@@ -89,7 +89,7 @@ export async function stuurVragenMail(ondernemingId: string): Promise<{ verstuur
     [`Alles is geboekt. Alleen deze ${vragen.length === 1 ? "regel weet ik" : "regels weet ik"} niet zeker. Tik op een knop, meer hoef je niet te doen.`, ...regels],
     { tekst: "Open mijn overzicht", url: `${BASIS()}/app` },
   );
-  const r = await verstuurMail({ aan: ontvanger, onderwerp: `${vragen.length === 1 ? "Eén vraag" : `${vragen.length} vragen`} van ${MERK}, elk één tik`, tekst, html });
+  const r = await verstuurMail({ demo: Boolean(o.demoTot), aan: ontvanger, onderwerp: `${vragen.length === 1 ? "Eén vraag" : `${vragen.length} vragen`} van ${MERK}, elk één tik`, tekst, html });
   await db.melding.create({ data: { ondernemingId, soort: "ai", titel: "Vragenmail verstuurd", tekst: `${vragen.length} vragen gemaild naar ${ontvanger}.`, gelezen: true, gemaild: r.verzonden } });
   return { verstuurd: r.verzonden, vragen: vragen.length };
 }
