@@ -126,23 +126,27 @@ export async function stuurWeekmail(ondernemingId: string): Promise<boolean> {
 
   const eind = new Date(); eind.setHours(0, 0, 0, 0);
   const start = new Date(eind.getTime() - 7 * 864e5);
-  const [rows, open, twijfel, bonnen, ongelezen] = await Promise.all([
+  const [rows, open, bonnen] = await Promise.all([
     db.transactie.findMany({ where: { ondernemingId, zakelijk: true, datum: { gte: start, lt: eind } } }),
     db.factuur.findMany({ where: { ondernemingId, status: { in: ["verzonden", "herinnerd", "aangemaand"] } } }),
-    db.transactie.count({ where: { ondernemingId, zakelijk: { not: null }, bevestigd: false } }),
     db.bon.count({ where: { ondernemingId, status: "uitgelezen" } }),
-    db.melding.findMany({ where: { ondernemingId, gelezen: false }, orderBy: { aangemaakt: "desc" }, take: 5 }),
   ]);
   const omzet = rows.filter((t) => t.bedrag > 0).reduce((s, t) => s + (t.bedrag - (t.btwBedrag ?? 0)) * (1 - t.priveDeel), 0);
   const kosten = rows.filter((t) => t.bedrag < 0).reduce((s, t) => s + (Math.abs(t.bedrag) - (t.btwBedrag ?? 0)) * (1 - t.priveDeel), 0);
   const openBedrag = open.reduce((s, f) => s + f.totaal - f.betaaldBedrag, 0);
   const basis = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+  // Drie zinnen, meer niet: hoe het ging, wat je kunt uitgeven, wat er van je gevraagd wordt.
+  const { geldVooruit } = await import("@/lib/geld");
+  const { openVragen } = await import("@/lib/vragen");
+  const [g, vragen] = await Promise.all([geldVooruit(o), openVragen(ondernemingId)]);
+  const actie = vragen.length || bonnen
+    ? `Er ${vragen.length + bonnen === 1 ? "wacht 1 ding" : `wachten ${vragen.length + bonnen} dingen`} op je: ${[vragen.length ? `${vragen.length} ${vragen.length === 1 ? "vraag" : "vragen"} (zakelijk of privé)` : "", bonnen ? `${bonnen} ${bonnen === 1 ? "bon" : "bonnen"} zonder betaling` : ""].filter(Boolean).join(" en ")}.`
+    : "Er wacht niets op je.";
   const regels = [
-    `<strong>Vorige week:</strong> omzet ${euro(rond(omzet))}, kosten ${euro(rond(kosten))}, resultaat ${euro(rond(omzet - kosten))} (ex btw).`,
-    `<strong>Open facturen:</strong> ${open.length} stuks, samen ${euro(rond(openBedrag))}.`,
-    `<strong>Wat de AI van je wil weten:</strong> ${twijfel} twijfelregel${twijfel === 1 ? "" : "s"}, ${bonnen} bon${bonnen === 1 ? "" : "nen"} zonder bankregel.`,
-    ...(ongelezen.length ? [`<strong>Meldingen:</strong><br>${ongelezen.map((m) => `• ${m.titel}`).join("<br>")}`] : []),
+    `Vorige week verdiende je ${euro(rond(omzet))} en gaf je ${euro(rond(kosten))} uit (zonder btw)${open.length ? `; klanten moeten je nog ${euro(rond(openBedrag))} betalen` : ""}.`,
+    g.vrij != null ? `Vrij te besteden na btw en inkomstenbelasting: ${euro(g.vrij)}; je geld reikt tot ${g.reiktTekst}.` : "Koppel je bank, dan zie je hier wat je echt kunt uitgeven.",
+    actie,
   ];
   const tekst = regels.map((r) => r.replace(/<[^>]+>/g, "")).join("\n");
   for (const aan of ontvangers) {
