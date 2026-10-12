@@ -231,3 +231,66 @@ export async function ibInstellingenOpslaan(fd: FormData): Promise<void> {
   revalidatePath("/app/ib");
   revalidatePath("/app/btw");
 }
+
+// ─────────────── Uit je agenda (.ics) ───────────────
+
+export type AgendaResultaat = { ok: true; melding: string } | { ok: false; fout: string };
+
+async function agendaUitFormulier(fd: FormData) {
+  const f = fd.get("agenda");
+  if (!(f instanceof File) || f.size === 0) throw new Error("Kies een agendabestand (.ics).");
+  if (f.size > 10 * 1024 * 1024) throw new Error("Bestand groter dan 10 MB.");
+  const { leesAgenda } = await import("./agenda");
+  return leesAgenda(Buffer.from(await f.arrayBuffer()).toString("utf8"));
+}
+
+/** Urencriterium schatten uit je agenda; met "overnemen" komen de afspraken als uren in je urenlijst. */
+export async function urenUitAgenda(fd: FormData): Promise<AgendaResultaat> {
+  try {
+    const o = await schrijfOnderneming();
+    const { urenVan } = await import("./agenda");
+    const jaar = new Date().getFullYear();
+    const afspraken = (await agendaUitFormulier(fd)).filter((a) => a.start.getFullYear() === jaar && urenVan(a) > 0);
+    const totaal = afspraken.reduce((t, a) => t + urenVan(a), 0);
+    if (fd.get("overnemen") === "ja") {
+      let nieuw = 0;
+      for (const a of afspraken) {
+        const omschrijving = (a.titel || "Afspraak uit agenda").slice(0, 120);
+        const bestaat = await db.urenregel.findFirst({ where: { ondernemingId: o.id, datum: a.start, omschrijving } });
+        if (bestaat) continue;
+        await db.urenregel.create({ data: { ondernemingId: o.id, datum: a.start, uren: Math.round(urenVan(a) * 4) / 4, omschrijving, soort: "indirect" } });
+        nieuw++;
+      }
+      await logNu(o.id, "Uren uit agenda overgenomen", `${nieuw} afspraken`);
+      revalidatePath("/app/uren");
+      return { ok: true, melding: `${nieuw} afspraken als uren toegevoegd (samen ${Math.round(totaal)} uur). Controleer ze in de lijst en zet klantwerk op declarabel.` };
+    }
+    const perWeek = totaal / Math.max(1, (Date.now() - new Date(jaar, 0, 1).getTime()) / (7 * 864e5));
+    return { ok: true, melding: `In je agenda staan dit jaar ${afspraken.length} afspraken, samen ${Math.round(totaal)} uur (${perWeek.toFixed(1).replace(".", ",")} uur per week). ${perWeek * 52 >= 1225 ? "In dat tempo haal je het urencriterium." : "In dat tempo haal je de 1.225 uur niet; tel ook administratie en acquisitie mee."}` };
+  } catch (e) { return { ok: false, fout: e instanceof Error ? e.message : String(e) }; }
+}
+
+/** Ritten uit je agenda: afspraken met een plaats worden ritten; km uit een eerdere rit naar dezelfde plaats. */
+export async function rittenUitAgenda(fd: FormData): Promise<AgendaResultaat> {
+  try {
+    const o = await schrijfOnderneming();
+    const van = String(fd.get("van") ?? "").trim() || (o.plaats ?? "Thuis");
+    const vanaf = new Date(Date.now() - 92 * 864e5);
+    const afspraken = (await agendaUitFormulier(fd)).filter((a) => a.locatie && a.start >= vanaf && a.start <= new Date());
+    const eerder = await db.kilometerregel.findMany({ where: { ondernemingId: o.id }, orderBy: { datum: "desc" }, select: { naar: true, km: true, retour: true } });
+    const kmNaar = (plaats: string) => { const r = eerder.find((x) => x.naar.toLowerCase() === plaats.toLowerCase()); return r ? (r.retour ? r.km / 2 : r.km) : null; };
+    let nieuw = 0, zonderKm = 0;
+    for (const a of afspraken) {
+      const naar = a.locatie.split(",")[0].trim().slice(0, 80);
+      const km = kmNaar(naar);
+      if (!km) { zonderKm++; continue; }
+      const bestaat = await db.kilometerregel.findFirst({ where: { ondernemingId: o.id, datum: a.start, naar } });
+      if (bestaat) continue;
+      await db.kilometerregel.create({ data: { ondernemingId: o.id, datum: a.start, van, naar, km: km * 2, retour: true, doel: (a.titel || "Afspraak").slice(0, 120), vervoer: "prive_auto", vergoeding: rond(km * 2 * KM_VERGOEDING) } });
+      nieuw++;
+    }
+    await logNu(o.id, "Ritten uit agenda overgenomen", `${nieuw} ritten`);
+    revalidatePath("/app/kilometers");
+    return { ok: true, melding: `${nieuw} ritten toegevoegd (heen en terug, met de afstand van een eerdere rit naar dezelfde plaats).${zonderKm ? ` ${zonderKm} afspraken met een nieuwe plaats: vul die één keer zelf in, daarna gaat het vanzelf.` : ""}` };
+  } catch (e) { return { ok: false, fout: e instanceof Error ? e.message : String(e) }; }
+}

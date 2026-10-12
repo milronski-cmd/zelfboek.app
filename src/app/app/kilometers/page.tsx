@@ -2,7 +2,9 @@ import { connection } from "next/server";
 import { db, huidigeOnderneming } from "@/lib/db";
 import { datumKort, euro, isoDatum } from "@/lib/btw";
 import { KM_VERGOEDING } from "@/lib/fiscaal/constanten-2026";
-import { kilometersToevoegen, kilometersVerwijderen } from "@/lib/acties-fiscaal";
+import { kilometersToevoegen, kilometersVerwijderen, rittenUitAgenda } from "@/lib/acties-fiscaal";
+import { ResultaatFormulier } from "../koppelingen/Formulier";
+import { Bestandskiezer } from "@/components/Bestandskiezer";
 import { Cijferband, Kop, Leeg, Tegel } from "@/components/ui";
 
 export const instant = false;
@@ -23,6 +25,17 @@ export default async function Kilometers() {
   return (
     <>
       <Kop titel={`Kilometers ${jaar}`} sub={`Zakelijke ritten met je eigen auto of fiets leveren € ${KM_VERGOEDING.toFixed(2).replace(".", ",")} per kilometer aftrek op. Saldoplan telt het mee in je inkomstenbelasting.`} />
+
+      <details className="kaart mb-4 px-5 py-3">
+        <summary className="cursor-pointer text-sm font-medium">Ritten uit je agenda halen</summary>
+        <div className="mt-3 text-sm">
+          <ResultaatFormulier actie={rittenUitAgenda} knopTekst="Agenda inlezen" bezigTekst="Lezen">
+            <p className="text-[13px] text-tekst-2">Afspraken van de laatste drie maanden met een plaats worden ritten (heen en terug). De afstand nemen we over van een eerdere rit naar dezelfde plaats; een nieuwe plaats vul je één keer zelf in.</p>
+            <input name="van" placeholder={`Vertrek vanaf (bijvoorbeeld ${o.plaats ?? "Groningen"})`} defaultValue={o.plaats ?? ""} className="veld" aria-label="Vertrekplaats" />
+            <Bestandskiezer name="agenda" accept=".ics,text/calendar" required />
+          </ResultaatFormulier>
+        </div>
+      </details>
 
       <form action={kilometersToevoegen} className="kaart grid gap-2 px-4 py-3 sm:grid-cols-[auto_1fr_1fr_auto_auto_auto_auto] sm:items-center">
         <input name="datum" type="date" defaultValue={isoDatum(new Date())} aria-label="Datum" className="veld veld-klein" />

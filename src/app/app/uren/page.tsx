@@ -3,7 +3,9 @@ import { connection } from "next/server";
 import { db, huidigeOnderneming } from "@/lib/db";
 import { datumKort, euro, isoDatum } from "@/lib/btw";
 import { URENCRITERIUM } from "@/lib/fiscaal/constanten-2026";
-import { urenToevoegen, urenVerwijderen } from "@/lib/acties-fiscaal";
+import { urenToevoegen, urenUitAgenda, urenVerwijderen } from "@/lib/acties-fiscaal";
+import { ResultaatFormulier } from "../koppelingen/Formulier";
+import { Bestandskiezer } from "@/components/Bestandskiezer";
 import { Cijferband, Kaart, Kop, Leeg, Tegel } from "@/components/ui";
 
 export const instant = false;
@@ -15,10 +17,15 @@ export default async function Uren({ searchParams }: { searchParams: Promise<{ j
   const jaar = Number(sp.j) || new Date().getFullYear();
   const start = new Date(jaar, 0, 1);
   const eind = new Date(jaar + 1, 0, 1);
-  const [regels, klanten] = await Promise.all([
+  const [regels, klanten, facturen] = await Promise.all([
     db.urenregel.findMany({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, orderBy: { datum: "desc" }, include: { klant: true } }),
     db.klant.findMany({ where: { ondernemingId: o.id }, orderBy: { naam: "asc" } }),
+    db.factuur.findMany({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind }, soort: "factuur", status: { not: "concept" } }, select: { regels: true } }),
   ]);
+  // Schatting uit je facturen: alle regels met eenheid "uur" (en "dag" als 8 uur).
+  const urenOpFacturen = facturen.reduce((t, f) => {
+    try { return t + (JSON.parse(f.regels) as { aantal?: number; eenheid?: string }[]).reduce((u, r) => u + (r.eenheid === "uur" ? Number(r.aantal) || 0 : r.eenheid === "dag" ? (Number(r.aantal) || 0) * 8 : 0), 0); } catch { return t; }
+  }, 0);
   const totaal = regels.reduce((s, r) => s + r.uren, 0);
   const declarabel = regels.filter((r) => r.soort === "declarabel").reduce((s, r) => s + r.uren, 0);
   const pct = Math.min(100, Math.round((totaal / URENCRITERIUM) * 100));
@@ -43,6 +50,18 @@ export default async function Uren({ searchParams }: { searchParams: Promise<{ j
         <Link href={`/app/uren?j=${jaar - 1}`} className="knop-licht">{jaar - 1}</Link>
         <Link href={`/app/uren?j=${jaar + 1}`} className="knop-licht">{jaar + 1}</Link>
       </Kop>
+
+      <details className="kaart mb-6 px-5 py-3">
+        <summary className="cursor-pointer text-sm font-medium">Geen zin om uren bij te houden? Schat ze uit je facturen of agenda</summary>
+        <div className="mt-3 space-y-3 text-sm">
+          <p className="text-tekst-2">{urenOpFacturen > 0 ? `Op je facturen van ${jaar} staan ${Math.round(urenOpFacturen).toLocaleString("nl-NL")} uur gefactureerd werk.` : `Op je facturen van ${jaar} staan nog geen uren (eenheid "uur" of "dag").`} Daar komt nog werk bij dat je niet factureert, zoals administratie en acquisitie.</p>
+          <ResultaatFormulier actie={urenUitAgenda} knopTekst="Agenda inlezen" bezigTekst="Lezen">
+            <p className="text-[13px] text-tekst-2">Exporteer je agenda als .ics (Google Agenda: Instellingen, Importeren en exporteren; Outlook: Agenda opslaan) en kies het bestand.</p>
+            <Bestandskiezer name="agenda" accept=".ics,text/calendar" required />
+            <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" name="overnemen" value="ja" /> Zet de afspraken ook als uren in mijn lijst</label>
+          </ResultaatFormulier>
+        </div>
+      </details>
 
       {/* Snel invoeren: één rij. */}
       <form action={urenToevoegen} className="kaart grid gap-2 px-4 py-3 sm:grid-cols-[auto_auto_1fr_auto_auto_auto_auto] sm:items-center">
