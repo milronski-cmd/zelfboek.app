@@ -75,7 +75,7 @@ Open http://localhost:3000. Zonder SMTP-instellingen komt de inlogcode in `uploa
 
 Lokaal werkt elke koppelknop in de proefmodus met voorbeeldgegevens. Demo-gegevens in je lokale database (één onderneming met een jaar aan bankregels, facturen, bonnen en klanten): `npm run demo [e-mailadres]`. Werkt alleen op een database op localhost en wist eerst de gegevens van die onderneming.
 
-Tests: `npx tsx test/parsers.ts`, `test/importeer.ts`, `test/facturen.ts`, `test/fiscaal.ts`, `test/exports-db.ts`, `test/d-moduleD.ts`.
+Tests: `npx tsx test/parsers.ts`, `test/importeer.ts`, `test/facturen.ts`, `test/fiscaal.ts`, `test/exports-db.ts`, `test/d-moduleD.ts`, `test/ronde3.ts`.
 
 ## Ontwerp
 
