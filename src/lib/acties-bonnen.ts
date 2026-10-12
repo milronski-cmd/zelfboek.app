@@ -1,4 +1,5 @@
 "use server";
+import { logNu } from "./logboek";
 
 import { revalidatePath } from "next/cache";
 import { readFile, unlink } from "fs/promises";
@@ -14,6 +15,7 @@ export async function uploadBonnen(formData: FormData): Promise<Resultaat> {
   const bestanden = formData.getAll("bestand").filter((b): b is File => b instanceof File && b.size > 0);
   if (bestanden.length === 0) return { ok: false, fout: "Geen bestand gekozen." };
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Bonnen geüpload");
   const meldingen: string[] = [];
   let fouten = 0;
   for (const bestand of bestanden) {
@@ -47,6 +49,7 @@ export async function bonOpnieuwLezen(formData: FormData): Promise<void> {
 
 export async function bonWijzigen(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Bon gewijzigd");
   const bon = await db.bon.findFirst({ where: { id: String(formData.get("id")), ondernemingId: o.id }, include: { transactie: true } });
   if (!bon) return;
   const v = (k: string) => String(formData.get(k) ?? "").trim();
@@ -66,6 +69,7 @@ export async function bonWijzigen(formData: FormData): Promise<void> {
 
 export async function bonKoppelen(formData: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Bon aan betaling gekoppeld");
   const bon = await db.bon.findFirst({ where: { id: String(formData.get("id")), ondernemingId: o.id } });
   const t = await db.transactie.findFirst({ where: { id: String(formData.get("transactieId")), ondernemingId: o.id } });
   if (!bon || !t) return { ok: false, fout: "Bon of bankregel niet gevonden." };
@@ -86,6 +90,7 @@ export async function bonOntkoppelen(formData: FormData): Promise<void> {
 
 export async function bonVerwijderen(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Bon verwijderd");
   const bon = await db.bon.findFirst({ where: { id: String(formData.get("id")), ondernemingId: o.id } });
   if (!bon) return;
   await db.transactie.updateMany({ where: { bonId: bon.id }, data: { bonId: null } });

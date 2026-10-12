@@ -1,4 +1,5 @@
 "use server";
+import { logNu } from "./logboek";
 import { MERK } from "@/lib/merk";
 
 import { revalidatePath } from "next/cache";
@@ -13,6 +14,7 @@ const v = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim() || null;
 
 export async function bedrijfOpslaan(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Bedrijfsgegevens gewijzigd");
   const start = v(fd, "startdatum");
   await db.onderneming.update({
     where: { id: o.id },
@@ -37,6 +39,7 @@ async function logoUitFormulier(fd: FormData): Promise<Record<string, unknown> |
 
 export async function facturenOpslaan(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Factuurinstellingen gewijzigd");
   const volgnr = Number(fd.get("factuurVolgnr") ?? o.factuurVolgnr);
   const kleur = v(fd, "huisstijlKleur") ?? "#1c1917";
   if (!/^#[0-9a-fA-F]{6}$/.test(kleur)) return { ok: false, fout: "Kleur moet een hex-code zijn, zoals #1c1917." };
@@ -57,6 +60,7 @@ export async function facturenOpslaan(fd: FormData): Promise<Resultaat> {
 
 export async function fiscaalOpslaan(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Belastinginstellingen gewijzigd");
   const tijdvak = v(fd, "btwTijdvak");
   await db.onderneming.update({
     where: { id: o.id },
@@ -70,6 +74,7 @@ export async function fiscaalOpslaan(fd: FormData): Promise<void> {
 
 export async function lidToevoegen(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Iemand uitgenodigd");
   const s = await vereisGebruiker();
   const mijnRol = await db.lidmaatschap.findUnique({ where: { gebruikerId_ondernemingId: { gebruikerId: s.gebruikerId, ondernemingId: o.id } } });
   if (mijnRol?.rol !== "eigenaar") return { ok: false, fout: "Alleen de eigenaar kan leden toevoegen." };
@@ -87,6 +92,7 @@ export async function lidToevoegen(fd: FormData): Promise<Resultaat> {
 
 export async function lidVerwijderen(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Toegang ingetrokken");
   const s = await vereisGebruiker();
   const id = String(fd.get("id"));
   const mijnRol = await db.lidmaatschap.findUnique({ where: { gebruikerId_ondernemingId: { gebruikerId: s.gebruikerId, ondernemingId: o.id } } });

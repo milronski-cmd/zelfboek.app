@@ -1,4 +1,5 @@
 "use server";
+import { logNu } from "./logboek";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -82,6 +83,7 @@ export async function kilometersVerwijderen(fd: FormData): Promise<void> {
 
 export async function activumToevoegen(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Grote aankoop toegevoegd");
   const bedrag = n(fd, "aanschafBedrag");
   if (bedrag < INVESTERINGSGRENS) return;
   const a = await db.activum.create({
@@ -137,6 +139,7 @@ export async function boekAlsInvestering(fd: FormData): Promise<void> {
 
 export async function activumVerkopen(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Grote aankoop verkocht");
   await db.activum.updateMany({
     where: { id: s(fd, "id"), ondernemingId: o.id },
     data: { verkochtOp: d(fd, "verkochtOp"), verkoopBedrag: n(fd, "verkoopBedrag") },
@@ -164,6 +167,7 @@ export async function afschrijvingenBijwerken(): Promise<void> {
 
 export async function memoriaalToevoegen(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Correctie geboekt");
   const bedrag = n(fd, "bedrag");
   if (!bedrag) return;
   await db.memoriaalboeking.create({
@@ -185,6 +189,7 @@ export async function memoriaalToevoegen(fd: FormData): Promise<void> {
 
 export async function aangifteOpslaan(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Btw-aangifte bijgewerkt");
   const soort = s(fd, "soort") === "icp" ? "icp" : "btw";
   const jaar = Math.round(n(fd, "jaar"));
   const periode = Math.round(n(fd, "periode"));
@@ -213,6 +218,7 @@ export async function aangifteOpslaan(fd: FormData): Promise<void> {
 
 export async function ibInstellingenOpslaan(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Instellingen inkomstenbelasting gewijzigd");
   await db.onderneming.update({
     where: { id: o.id },
     data: {

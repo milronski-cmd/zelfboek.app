@@ -1,4 +1,5 @@
 "use server";
+import { logNu } from "./logboek";
 import { taalVoorLand } from "./facturen/taal";
 
 import { willekeurigToken } from "./crypto";
@@ -28,6 +29,7 @@ function ververs() {
 
 export async function klantOpslaan(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Klant opgeslagen");
   const naam = s(fd, "naam");
   if (!naam) return { ok: false, fout: "Naam is verplicht." };
   const id = sOfNull(fd, "id");
@@ -61,6 +63,7 @@ export async function klantOpslaan(fd: FormData): Promise<Resultaat> {
 
 export async function klantVerwijderen(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Klant verwijderd");
   const id = s(fd, "id");
   const gebruikt = await db.factuur.count({ where: { klantId: id, ondernemingId: o.id } });
   if (gebruikt > 0) redirect(`/app/klanten/${id}?fout=${encodeURIComponent("Klant heeft facturen en kan niet worden verwijderd.")}`);
@@ -122,6 +125,7 @@ async function klantUitFormulier(fd: FormData, ondernemingId: string) {
 /** Factuur opslaan als concept (of bijwerken zolang het een concept is). Met actie=verzenden direct mailen. */
 export async function factuurOpslaan(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Factuur opgeslagen");
   try {
     const klant = await klantUitFormulier(fd, o.id);
     const regels = regelsUitFormData(fd);
@@ -165,6 +169,7 @@ export async function factuurOpslaan(fd: FormData): Promise<Resultaat> {
 
 export async function factuurVerzenden(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Factuur verzonden");
   try {
     await verzendFactuur(s(fd, "id"), o.id, { aan: sOfNull(fd, "aan") ?? undefined, tekst: sOfNull(fd, "tekst") ?? undefined });
     ververs();
@@ -176,6 +181,7 @@ export async function factuurVerzenden(fd: FormData): Promise<Resultaat> {
 
 export async function factuurBetaald(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Factuur als betaald gemarkeerd");
   const bedrag = s(fd, "bedrag") ? Number(s(fd, "bedrag").replace(",", ".")) : undefined;
   const datum = s(fd, "datum") ? new Date(s(fd, "datum")) : new Date();
   await markeerBetaald(s(fd, "id"), o.id, bedrag, datum);
@@ -184,6 +190,7 @@ export async function factuurBetaald(fd: FormData): Promise<void> {
 
 export async function factuurAfletteren(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Betaling aan factuur gekoppeld");
   await letterAf(s(fd, "transactieId"), s(fd, "id"), o.id);
   ververs();
   revalidatePath("/app/bank");
@@ -199,6 +206,7 @@ export async function factuurStatus(fd: FormData): Promise<void> {
 
 export async function factuurVerwijderen(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Factuur verwijderd");
   const f = await db.factuur.findFirst({ where: { id: s(fd, "id"), ondernemingId: o.id } });
   if (f?.status === "concept") await db.factuur.delete({ where: { id: f.id } });
   ververs();
@@ -207,6 +215,7 @@ export async function factuurVerwijderen(fd: FormData): Promise<void> {
 
 export async function factuurHerinnering(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Herinnering verstuurd");
   try {
     const trap = await stuurHerinnering(s(fd, "id"), o.id);
     ververs();
@@ -230,6 +239,7 @@ export async function factuurBetaallink(fd: FormData): Promise<Resultaat> {
 /** Creditfactuur: zelfde regels met negatieve aantallen, verwijst naar de oorspronkelijke factuur. */
 export async function factuurCrediteren(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Creditfactuur gemaakt");
   try {
     const orig = await db.factuur.findFirstOrThrow({ where: { id: s(fd, "id"), ondernemingId: o.id }, include: { klant: true } });
     const regels: FactuurRegel[] = parseRegels(orig.regels).map((r) => ({ ...r, aantal: -Math.abs(r.aantal) }));
@@ -309,6 +319,7 @@ export async function urenNaarFactuur(fd: FormData): Promise<Resultaat> {
 
 export async function offerteOpslaan(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Offerte opgeslagen");
   try {
     const klant = await klantUitFormulier(fd, o.id);
     const regels = regelsUitFormData(fd);
@@ -344,6 +355,7 @@ export async function offerteOpslaan(fd: FormData): Promise<Resultaat> {
 
 export async function offerteVerzenden(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Offerte verzonden");
   try {
     await verzendOfferte(s(fd, "id"), o.id);
     ververs();
@@ -379,6 +391,7 @@ export async function offerteBesluit(token: string, besluit: "geaccepteerd" | "a
 
 export async function offerteNaarFactuur(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Offerte omgezet in factuur");
   try {
     const of = await db.offerte.findFirstOrThrow({ where: { id: s(fd, "id"), ondernemingId: o.id }, include: { klant: true } });
     const regels = parseRegels(of.regels);

@@ -168,6 +168,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
                       <div className="font-medium">{t.tegenpartij || "Onbekend"}</div>
                       <div className="max-w-xs truncate text-[13px] text-tekst-3" title={t.omschrijving}>{t.omschrijving}</div>
                       {t.uitleg && <div className="mt-1 max-w-xs text-[13px] text-tekst-2"><span className="text-tekst-3">Waarom zo: </span>{t.uitleg}</div>}
+                      {t.opmerking && <div className="mt-1 max-w-xs rounded bg-mosterd-licht px-2 py-1 text-[13px] text-mosterd-tekst">Opmerking: {t.opmerking}</div>}
                     </td>
                     <td className={`num ${t.bedrag > 0 ? "text-groen-tekst" : ""}`}>
                       {euro(t.bedrag)}
@@ -194,12 +195,15 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
                           <button className={twijfelt ? "knop knop-klein" : "knop-licht knop-klein"}>{twijfelt ? "Bevestig" : "OK"}</button>
                         </div>
                         <details className="text-[13px]">
-                          <summary className="cursor-pointer text-tekst-3 hover:text-tekst">Deels privé of splitsen</summary>
+                          <summary className="cursor-pointer text-tekst-3 hover:text-tekst">Deels privé, splitsen of opmerking</summary>
                           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                             <label className="flex items-center gap-1 text-tekst-2">Privégebruik
                               <input name="priveDeel" type="number" min={0} max={100} defaultValue={Math.round(t.priveDeel * 100)} className="veld veld-klein w-16" />%
                             </label>
                             <label className="flex items-center gap-1 text-tekst-2"><input type="checkbox" name="altijd" value="1" className="h-4 w-4" /> Altijd zo bij {t.tegenpartij || "deze winkel"}</label>
+                            <label className="flex w-full flex-col gap-1 text-tekst-2">Opmerking (voor jezelf of je boekhouder)
+                              <textarea name="opmerking" rows={2} defaultValue={t.opmerking ?? ""} className="veld veld-klein" />
+                            </label>
                             <label className="flex items-center gap-1 text-tekst-2">Privébedrag afsplitsen
                               <input name="splitsBedrag" type="text" inputMode="decimal" placeholder="0,00" className="veld veld-klein w-20" />
                             </label>

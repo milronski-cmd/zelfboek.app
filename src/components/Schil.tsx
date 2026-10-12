@@ -86,6 +86,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
         { href: "/app/assistent", label: "Vraag het Saldoplan" },
         { href: "/app/bank/rekeningen", label: "Rekeningen" },
         { href: "/app/importeren", label: "Overstappen" },
+        { href: "/app/logboek", label: "Logboek" },
         { href: "/app/instellingen", label: "Instellingen" },
       ],
     },

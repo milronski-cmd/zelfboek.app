@@ -1,4 +1,5 @@
 "use server";
+import { logNu } from "./logboek";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -30,6 +31,7 @@ export async function importeerBestand(formData: FormData): Promise<Resultaat> {
   if (bestand.size > 25 * 1024 * 1024) return { ok: false, fout: "Bestand groter dan 25 MB." };
   try {
     const o = await schrijfOnderneming();
+  await logNu(o.id, "Afschrift geüpload");
     const tekst = Buffer.from(await bestand.arrayBuffer()).toString("utf8");
     const p = parseBankbestand(tekst, bestand.name);
     if (p.regels.length === 0) return { ok: false, fout: "Geen bankregels herkend. Ondersteund: CSV van ING, Rabobank, ABN AMRO, bunq, Knab, SNS/ASN/RegioBank, Triodos, Revolut, N26, en MT940 of CAMT.053." };
@@ -55,6 +57,7 @@ export async function beoordeelOpenstaandFormulier(): Promise<void> { await beoo
 /** Boeking wijzigen, ook privédeel (gemengd gebruik) of volledig splitsen in een zakelijk en een privé deel. */
 export async function wijzigTransactie(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Boeking gewijzigd");
   const id = String(formData.get("id"));
   const t = await db.transactie.findFirst({ where: { id, ondernemingId: o.id } });
   if (!t) return;
@@ -63,6 +66,8 @@ export async function wijzigTransactie(formData: FormData): Promise<void> {
   const btwCode = String(formData.get("btwCode") ?? t.btwCode ?? "21");
   const priveDeel = Math.min(1, Math.max(0, Number(formData.get("priveDeel") ?? 0) / 100 || 0));
   const splitsBedrag = Number(String(formData.get("splitsBedrag") ?? "").replace(",", ".")) || 0;
+  // Opmerking voor jezelf of je boekhouder; alleen bijwerken als het veld in het formulier zat.
+  if (formData.has("opmerking")) await db.transactie.update({ where: { id }, data: { opmerking: String(formData.get("opmerking") ?? "").trim().slice(0, 500) || null } });
 
   if (splitsBedrag > 0 && splitsBedrag < Math.abs(t.bedrag)) {
     // Splitsen: deze regel wordt het zakelijke deel, een nieuwe regel het privédeel.
@@ -95,6 +100,7 @@ export async function wijzigTransactie(formData: FormData): Promise<void> {
  */
 export async function beantwoordVraag(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Vraag van Saldoplan beantwoord");
   const ids = String(formData.get("ids") ?? formData.get("id") ?? "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 200);
   const keuze = formData.get("keuze") === "prive" ? "prive" : "zakelijk";
   const altijd = formData.get("altijd") === "1";
@@ -112,12 +118,14 @@ export async function beantwoordVraag(formData: FormData): Promise<void> {
 
 export async function bevestigAlles(): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Alle twijfelvragen goedgekeurd");
   await db.transactie.updateMany({ where: { ondernemingId: o.id, zakelijk: { not: null }, bevestigd: false }, data: { bevestigd: true } });
   ververs();
 }
 
 export async function verwijderTransactie(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Betaling verwijderd");
   await db.transactie.deleteMany({ where: { id: String(formData.get("id")), ondernemingId: o.id, bron: { in: ["csv", "mt940", "camt", "import"] } } });
   ververs();
 }
@@ -136,6 +144,7 @@ const SOORTEN: KoppelingSoort[] = ["enablebanking", "mollie", "stripe", "shopify
 export async function koppelingOpslaan(formData: FormData): Promise<Resultaat> {
   try {
     const o = await schrijfOnderneming();
+  await logNu(o.id, "Koppeling toegevoegd");
     const soort = String(formData.get("soort")) as KoppelingSoort;
     if (!SOORTEN.includes(soort)) return { ok: false, fout: "Onbekende koppeling." };
     const config: Record<string, string> = {};
@@ -157,6 +166,7 @@ export async function koppelingOpslaan(formData: FormData): Promise<Resultaat> {
 
 export async function koppelingVerwijderen(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Koppeling verwijderd");
   const soort = String(formData.get("soort")) as KoppelingSoort;
   await verwijderK(o.id, soort);
   if (soort === "enablebanking") await db.bankrekening.updateMany({ where: { ondernemingId: o.id, bron: "psd2" }, data: { psd2SessieId: null, psd2AccountId: null, psd2Verloopt: null } });
@@ -228,6 +238,7 @@ function proefBankRegels(iban: string): BankRegel[] {
 /** Proefmodus: de klant zegt "Toestaan" op het voorbeeld-inlogscherm. Werkt met voorbeeldgegevens, nooit in productie. */
 export async function proefToestaan(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
+  await logNu(o.id, "Koppeling toegevoegd (proef)");
   const st = leesState(String(formData.get("state") ?? ""));
   if (!proefmodus() || !st || st.o !== o.id) redirect(`/app/koppelingen?fout=${encodeURIComponent("Deze proefkoppeling is verlopen. Probeer het opnieuw.")}`);
   let melding: string;
@@ -275,6 +286,7 @@ export async function syncNuFormulier(formData: FormData): Promise<void> {
 export async function importeerVanPakket(formData: FormData): Promise<Resultaat> {
   try {
     const o = await schrijfOnderneming();
+  await logNu(o.id, "Gegevens overgenomen uit ander pakket");
     const pakket = String(formData.get("pakket"));
     const bestand = formData.get("bestand");
     const tekst = async () => (bestand instanceof File && bestand.size > 0 ? Buffer.from(await bestand.arrayBuffer()).toString("utf8") : "");
