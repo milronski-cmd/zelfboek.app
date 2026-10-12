@@ -49,6 +49,10 @@ Dit is de webapp (inloggen, boekhouding, API's, webhooks, cron), bedoeld voor `a
 - Probeer zonder aanmelden (`/demo`, verdwijnt na 24 uur), `/gegevens` en `/status`.
 - Urencriterium en kilometers uit je agenda (.ics), jaar afsluiten met één knop, inkomstenbelasting per maand, creditcard (ICS, American Express).
 
+**Beheer en feedback (ronde 5)**
+- `/admin` voor Saldoplan zelf (alleen `ADMIN_EMAILS`, tweestap verplicht): klanten zoeken en bekijken zonder bankregels, proef verlengen, blokkeren, meekijken als klant (alleen kijken, 1 uur, balk bovenaan), cijfers (aanmeldingen, actief, proef naar betaald, opzeggingen, MRR, AI-gebruik en daglimiet per klant), feedback, storingen en een logboek van elke beheeractie. Code: `src/lib/beheer.ts`, `src/app/admin`.
+- Knop "Feedback geven" in de webapp en de mobiele app, met optionele schermafbeelding; pagina, toestel en tijd gaan mee (`src/lib/feedback.ts`).
+
 **Niets meer hoeven doen**
 - Dagelijkse vragenmail: elke twijfelregel met twee knoppen (Zakelijk / Privé). De ondertekende link boekt zonder inloggen via `/antwoord`.
 - Bonnen per e-mail: doorsturen naar `bonnen+<ondernemingId>@jouwdomein.nl`; inbound-webhook op `/api/inbound/bon?secret=INBOUND_SECRET` (Resend, Postmark, Mailgun of multipart).

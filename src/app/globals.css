@@ -362,6 +362,16 @@ label.lbl { display: block; font-size: 13px; font-weight: 500; color: var(--teks
   .tabel-stapel td:empty { display: none; }
   .tabel-stapel td.num { text-align: left; }
   .tabel-stapel td[data-label]::before { content: attr(data-label) " "; color: var(--tekst-3); }
+  /* Bank: naam en bedrag op één regel, daaronder datum, boeking en status. */
+  .bank-stapel tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "partij bedrag" "datum datum" "boeking boeking" "status status"; gap: 4px 12px; }
+  .bank-stapel td:nth-child(1) { grid-area: datum; font-size: 13px; }
+  .bank-stapel td:nth-child(1) > div { display: inline; }
+  .bank-stapel td:nth-child(1) > div::before { content: " · "; }
+  .bank-stapel td:nth-child(2) { grid-area: partij; min-width: 0; }
+  .bank-stapel td:nth-child(3) { grid-area: bedrag; text-align: right; }
+  .bank-stapel td:nth-child(4) { grid-area: boeking; }
+  .bank-stapel td:nth-child(5) { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; white-space: normal; }
+  .bank-stapel td:nth-child(5) > * { margin-top: 0; }
 }
 
 /* Telefoon en tablet: knoppen en tikvlakken minstens 44 px hoog, zodat je niet mis tikt. */

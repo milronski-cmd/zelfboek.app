@@ -89,7 +89,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
                     <p className="truncate text-[13px] text-tekst-3">{r.iban}</p>
                   </div>
                 </div>
-                <p className="cijfer mt-3 text-[22px] font-semibold">{r.saldo != null ? euro(r.saldo) : "–"}</p>
+                {r.saldo != null ? <p className="cijfer mt-3 text-[22px] font-semibold">{euro(r.saldo)}</p> : <p className="mt-3 text-[15px] text-tekst-3" title="Het afschrift had geen saldo; met een bankkoppeling staat hier je saldo.">Saldo nog onbekend</p>}
                 <p className="text-[13px] text-tekst-2">
                   {r.bron === "psd2" ? "Automatisch" : bronLabel[r.bron] ?? r.bron}, {r.laatsteSync ? `bijgewerkt ${wanneerNl(r.laatsteSync)}` : "nog niet bijgewerkt"}
                   {r.psd2Verloopt && r.psd2Verloopt < nu && <span className="ml-1 text-rood-tekst">toestemming verlopen</span>}
@@ -143,7 +143,7 @@ export default async function Bank({ searchParams }: { searchParams: Promise<Zoe
         </div>
       ) : (
         <div className="kaart mt-4 overflow-x-auto">
-          <table className="tabel tabel-stapel">
+          <table className="tabel tabel-stapel bank-stapel">
             <thead>
               <tr>
                 <th>Datum</th>

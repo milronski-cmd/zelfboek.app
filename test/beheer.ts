@@ -2,7 +2,7 @@
  * Beheer (/admin): wie erin mag, dat acties gelogd worden en dat meekijken alleen kijken is.
  *
  * Deel 1 (altijd): code nalopen en de functies tegen de testdatabase (DATABASE_URL).
- * Deel 2 (met BASIS=http://127.0.0.1:3012 en een server met ADMIN_EMAILS=beheer-test@saldoplan.nl):
+ * Deel 2 (met BASIS=http://127.0.0.1:3012 en een server met ADMIN_EMAILS=beheer-test@saldoplan.nl,ander@voorbeeld.nl):
  *   echte verzoeken als gewone klant, als beheerder zonder en met tweestap, en als meekijkende beheerder.
  */
 import { readFileSync, readdirSync, statSync } from "fs";
@@ -38,6 +38,12 @@ const auth = readFileSync("src/lib/auth.ts", "utf8");
 check("schrijfOnderneming weigert een meekijksessie", /schrijfOnderneming[\s\S]{0,200}if \(s\.meekijkerEmail\) throw/.test(auth));
 check("eigenaarOnderneming weigert een meekijksessie", /eigenaarOnderneming\(\)[\s\S]{0,120}if \(s\.meekijkerEmail\) throw/.test(auth));
 check("geen beheerdersadres in de code", !bestanden("src").some((f) => /ADMIN_EMAILS\s*=|isBeheerder\([^)]*@/.test(readFileSync(f, "utf8"))));
+
+// Migraties draaien op de live-database (de vroegere testdatabase): nooit iets weggooien.
+for (const m of readdirSync("prisma/migrations").filter((n) => n !== "0_basis" && statSync(join("prisma/migrations", n)).isDirectory())) {
+  const sql = readFileSync(join("prisma/migrations", m, "migration.sql"), "utf8");
+  check(`migratie ${m} gooit geen tabel of kolom weg`, !/DROP\s+(TABLE|COLUMN)|TRUNCATE|DELETE\s+FROM/i.test(sql));
+}
 
 // ───────────── Deel 1b: de functies ─────────────
 const ADMIN = "beheer-test@saldoplan.nl";
@@ -126,7 +132,9 @@ async function deel2(c: { db: PrismaClient; klantToken: string; meeToken: string
     const r = await web(pad, c.klantToken);
     const t = await r.text();
     const m = t.match(/Meekijken als|>Cijfers<|>Storingen<|>Logboek<|>Klanten</);
-    check(`gewone klant op ${pad}: 404 en niets van beheer`, r.status === 404 && !m, { status: r.status, gevonden: m ? t.slice(Math.max(0, m.index! - 200), m.index! + 40) : null });
+    // In de productiebuild streamt Next de pagina al, dan wordt het een "zachte" 404 (status 200 met de niet-gevonden-pagina).
+    const nietGevonden = r.status === 404 || /Deze pagina bestaat niet|Niet gevonden/.test(t);
+    check(`gewone klant op ${pad}: niet gevonden en niets van beheer`, nietGevonden && !m, { status: r.status, gevonden: m ? t.slice(Math.max(0, m.index! - 200), m.index! + 40) : null });
   }
   const zonderTotp = await web("/admin/klanten", await sessie(c.beheerZonderId));
   const zt = await zonderTotp.text();
@@ -136,7 +144,8 @@ async function deel2(c: { db: PrismaClient; klantToken: string; meeToken: string
   check("beheerder met tweestap ziet de klanten", lijst.status === 200 && (await lijst.text()).includes(c.klantId), lijst.status);
   const voor = await c.db.beheerLog.count({ where: { gebruikerId: c.klantId, actie: "Klant bekeken" } });
   const detail = await web(`/admin/klanten/${c.klantId}`, beheerToken);
-  check("klantpagina opent voor de beheerder", detail.status === 200, detail.status);
+  check("klantpagina opent voor de beheerder", detail.status === 200 && (await detail.text()).includes("Acties"), detail.status);
+  await new Promise((r) => setTimeout(r, 1000));
   check("klant bekijken wordt gelogd", (await c.db.beheerLog.count({ where: { gebruikerId: c.klantId, actie: "Klant bekeken" } })) === voor + 1);
 
   // Meekijken: de balk staat er, wijzigen en de mobiele API kunnen niet, en beheer zelf is dicht tijdens het meekijken.
@@ -148,7 +157,9 @@ async function deel2(c: { db: PrismaClient; klantToken: string; meeToken: string
   const mob = await fetch(BASIS + "/api/mobiel/overzicht", { headers: { authorization: `Bearer ${c.meeToken}` } });
   check("meekijken: mobiele API weigert de meekijksessie", mob.status === 401, mob.status);
   const adm = await web("/admin", c.meeToken);
-  check("meekijken: /admin met de meekijksessie gaat terug naar de app", adm.status === 307 || adm.status === 303 || adm.status === 404, adm.status);
+  const admTekst = await adm.text();
+  // In de productiebuild is dit een doorverwijzing binnen de pagina (status 200 met NEXT_REDIRECT naar /app).
+  check("meekijken: /admin met de meekijksessie gaat terug naar de app", [303, 307, 404].includes(adm.status) || (/NEXT_REDIRECT|\/app/.test(admTekst) && !/>Cijfers<|>Klanten</.test(admTekst)), adm.status);
 
   // Feedback van de klant zelf komt aan met pagina en toestel.
   const f = new FormData();

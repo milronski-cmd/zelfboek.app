@@ -82,7 +82,36 @@ export async function bonUploaden(ondernemingId: string, bestand: { naam: string
     return { bonId: bon.id, ok: true as const, gekoppeld, uitlezing: u, melding: `${u.leverancier} ${(!u.valuta || u.valuta === "EUR") ? euro(u.totaal) : `${u.totaal.toFixed(2).replace(".", ",")} ${u.valuta}`}: ${gekoppeld ? "gelezen en aan de betaling gehangen" : "gelezen; de betaling zien we nog niet bij de bank"}` };
   } catch (e) {
     const fout = bonFoutTekst(e);
+    // Bot even niet bereikbaar of daglimiet op: de bon is niet onleesbaar. Bewaren als "nog niet gelezen";
+    // de dagtaak (of "Opnieuw lezen") leest hem later.
+    if (fout === BOT_ONBEREIKBAAR || fout === AI_OP) {
+      await db.bon.update({ where: { id: bon.id }, data: { status: "nieuw", uitleg: LATER_LEZEN } });
+      return { bonId: bon.id, ok: true as const, gekoppeld: false, uitlezing: null, melding: `${bestand.naam}: bewaard. ${LATER_LEZEN}` };
+    }
     await db.bon.update({ where: { id: bon.id }, data: { status: "fout", uitleg: fout } });
     return { bonId: bon.id, ok: false as const, gekoppeld: false, uitlezing: null, melding: `${bestand.naam}: ${fout}` };
   }
+}
+
+export const LATER_LEZEN = "Lezen lukt nu even niet; Saldoplan doet het later vanzelf.";
+
+/** Bonnen die nog niet gelezen zijn (bot was onbereikbaar) opnieuw proberen; voor de dagtaak. Stopt bij de eerste storing. */
+export async function leesOpenBonnen(ondernemingId: string, max = 20): Promise<{ gelezen: number; open: number }> {
+  const open = await db.bon.findMany({ where: { ondernemingId, status: "nieuw", aangemaakt: { lt: new Date(Date.now() - 10 * 60_000) } }, orderBy: { aangemaakt: "asc" }, take: max });
+  const o = await db.onderneming.findUnique({ where: { id: ondernemingId }, select: { demoTot: true } });
+  let gelezen = 0;
+  for (const bon of open) {
+    if (!bon.inhoud) continue;
+    try {
+      if (!(await aiTegoed(ondernemingId, Boolean(o?.demoTot)))) break;
+      const u = await leesBon(Buffer.from(bon.inhoud), bon.mimeType, ondernemingId);
+      await verwerkUitlezing(bon.id, ondernemingId, u);
+      gelezen++;
+    } catch (e) {
+      const fout = bonFoutTekst(e);
+      if (fout === BOT_ONBEREIKBAAR) break;
+      await db.bon.update({ where: { id: bon.id }, data: { status: "fout", uitleg: fout } });
+    }
+  }
+  return { gelezen, open: open.length - gelezen };
 }

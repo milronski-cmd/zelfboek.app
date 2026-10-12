@@ -51,13 +51,16 @@ function vandaag(): Date {
 export async function telAi(ondernemingId: string | null | undefined, n: { verzoeken?: number; invoerTokens?: number; uitvoerTokens?: number; limietGeraakt?: number }) {
   if (!ondernemingId) return;
   const inc = { verzoeken: n.verzoeken ?? 0, invoerTokens: n.invoerTokens ?? 0, uitvoerTokens: n.uitvoerTokens ?? 0, limietGeraakt: n.limietGeraakt ?? 0 };
-  await db.aiVerbruik
-    .upsert({
+  // try om alles heen: het tellen mag de AI nooit tegenhouden (ook niet met een oude databaseclient).
+  try {
+    await db.aiVerbruik.upsert({
       where: { ondernemingId_dag: { ondernemingId, dag: vandaag() } },
       create: { ondernemingId, dag: vandaag(), ...inc },
       update: { verzoeken: { increment: inc.verzoeken }, invoerTokens: { increment: inc.invoerTokens }, uitvoerTokens: { increment: inc.uitvoerTokens }, limietGeraakt: { increment: inc.limietGeraakt } },
-    })
-    .catch((e) => console.error("[ai-verbruik]", e instanceof Error ? e.message : e));
+    });
+  } catch (e) {
+    console.error("[ai-verbruik]", e instanceof Error ? e.message : e);
+  }
 }
 
 /** Tokens uit een AI-antwoord (usage) bijschrijven. Cache-tokens tellen als invoer. */

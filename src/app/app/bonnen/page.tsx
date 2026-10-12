@@ -9,7 +9,7 @@ import { bonAdres } from "@/lib/bonnen/adres";
 
 export const instant = false;
 
-const statusTekst: Record<string, string> = { nieuw: "wordt gelezen", uitgelezen: "nog geen betaling", gekoppeld: "gekoppeld", fout: "niet leesbaar", handmatig: "handmatig" };
+const statusTekst: Record<string, string> = { nieuw: "nog niet gelezen", uitgelezen: "nog geen betaling", gekoppeld: "gekoppeld", fout: "niet leesbaar", handmatig: "handmatig" };
 const statusKleur: Record<string, "groen" | "geel" | "rood" | "grijs"> = { gekoppeld: "groen", handmatig: "groen", fout: "rood", uitgelezen: "geel", nieuw: "grijs" };
 
 async function koppelMetMelding(fd: FormData) {
@@ -37,7 +37,7 @@ export default async function Bonnen({ searchParams }: { searchParams: Promise<{
       <Kop titel="Bonnen" sub="Maak een foto of sleep een PDF. Saldoplan leest het bedrag en hangt de bon aan de betaling." />
       <BonUpload actie={uploadBonnen} />
       <p className="mt-3 text-sm text-tekst-2">
-        Of mail je bonnen naar <span className="rounded bg-white px-2 py-0.5 font-medium text-tekst ring-1 ring-lijn">{bonAdres(o.id)}</span>. Stuur de bon als bijlage door, Saldoplan doet de rest.
+        Of mail je bonnen naar <span className="break-all rounded bg-white px-2 py-0.5 font-medium text-tekst ring-1 ring-lijn">{bonAdres(o.id)}</span>. Stuur de bon als bijlage door, Saldoplan doet de rest.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">

@@ -51,7 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {sessie.meekijkerEmail && (
         <div role="status" className="sticky top-14 z-[9] -mx-4 -mt-6 mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-mosterd/40 bg-mosterd-licht px-4 py-2.5 text-sm text-mosterd-tekst md:-mx-8 md:-mt-8 md:px-8">
-          <p className="min-w-0 flex-1"><strong>Je kijkt mee als {sessie.gebruiker.email}</strong> ({o.naam}). Alleen kijken: wijzigen kan niet. Alles wordt gelogd.</p>
+          <p className="min-w-0 flex-1 basis-60"><strong className="break-all">Je kijkt mee als {sessie.gebruiker.email}</strong> ({o.naam}). Alleen kijken: wijzigen kan niet. Alles wordt gelogd.</p>
           <form action={stopMeekijk}><button type="submit" className="knop-licht">Stop met meekijken</button></form>
         </div>
       )}

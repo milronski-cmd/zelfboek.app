@@ -62,7 +62,7 @@ export async function controleerDeadlines(ondernemingId: string): Promise<number
   if (o.abonnement === "proef" && o.proefTot) {
     const d = dagenTot(o.proefTot);
     if ([7, 3, 1, 0].includes(d)) {
-      await nieuw("systeem", d === 0 ? "Je proefperiode eindigt vandaag" : `Je proefperiode eindigt over ${d} dag${d === 1 ? "" : "en"}`, "Start je abonnement om te blijven boeken. Bekijken blijft altijd kunnen.", "/app/instellingen#abonnement");
+      await nieuw("systeem", d === 0 ? "Je proefperiode eindigt vandaag" : `Je proefperiode eindigt over ${d} dag${d === 1 ? "" : "en"}`, "Start je abonnement om te blijven boeken. Bekijken blijft altijd kunnen.", "/app/instellingen?tab=abonnement");
     }
   }
 

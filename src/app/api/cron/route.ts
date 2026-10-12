@@ -30,10 +30,11 @@ export async function GET(req: Request) {
   const maandag = new Date().getDay() === 1;
   const forceerWeekmail = url.searchParams.get("weekmail") === "1";
 
-  const [bank, terugkerend, herinneringen] = await Promise.all([
+  const [bank, terugkerend, herinneringen, bonnen] = await Promise.all([
     import("@/lib/bank/sync").catch(() => null),
     import("@/lib/facturen/terugkerend").catch(() => null),
     import("@/lib/facturen/herinneringen").catch(() => null),
+    import("@/lib/bonnen/verwerk").catch(() => null),
   ]);
 
   // Verlopen voorbeeldomgevingen opruimen; demo's draaien niet mee in de nachtrun.
@@ -57,6 +58,7 @@ export async function GET(req: Request) {
     else stappen.push({ stap: "bank", fout: "module niet beschikbaar" });
     if (terugkerend?.maakTerugkerendeFacturen) await stap("terugkerend", () => terugkerend.maakTerugkerendeFacturen(o.id), stappen);
     if (herinneringen?.verstuurHerinneringen) await stap("herinneringen", () => herinneringen.verstuurHerinneringen(o.id), stappen);
+    if (bonnen?.leesOpenBonnen) await stap("bonnen", () => bonnen.leesOpenBonnen(o.id), stappen);
     await stap("deadlines", () => controleerDeadlines(o.id), stappen);
     await stap("vragenmail", () => stuurVragenMail(o.id), stappen);
     if (maandag || forceerWeekmail) await stap("weekmail", () => stuurWeekmail(o.id), stappen);

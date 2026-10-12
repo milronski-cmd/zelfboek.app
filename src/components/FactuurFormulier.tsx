@@ -114,17 +114,17 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
           {regels.map((r, i) => (
             <div key={i} className="mt-2 grid grid-cols-12 gap-2">
               <input name={`oms${i}`} value={r.omschrijving} onChange={(e) => zet(i, { omschrijving: e.target.value })} placeholder="Omschrijving" aria-label="Omschrijving" className={`${veld} col-span-12 sm:col-span-5`} />
-              <div className="col-span-6 flex gap-1 sm:col-span-2">
+              <div className="col-span-7 flex gap-1 sm:col-span-2">
                 <input name={`aantal${i}`} type="number" step="0.01" value={r.aantal} onChange={(e) => zet(i, { aantal: Number(e.target.value) })} aria-label="Aantal" className={veld} />
                 <select name={`eenheid${i}`} value={r.eenheid ?? "stuk"} onChange={(e) => zet(i, { eenheid: e.target.value })} aria-label="Eenheid" className="veld veld-klein w-auto">
                   {["stuk", "uur", "dag", "km", "maand"].map((e) => <option key={e}>{e}</option>)}
                 </select>
               </div>
-              <input name={`prijs${i}`} type="text" inputMode="decimal" value={prijsTekst[i] ?? String(r.prijs).replace(".", ",")} onChange={(e) => { setPrijsTekst((p) => ({ ...p, [i]: e.target.value })); zet(i, { prijs: parseBedrag(e.target.value) }); }} aria-label="Prijs" className={`${veld} col-span-3 sm:col-span-2`} />
-              <select name={`btw${i}`} value={r.btw} onChange={(e) => zet(i, { btw: Number(e.target.value) })} disabled={totalen.btwVerlegd || korDeelnemer} aria-label="Btw-tarief" className={`${veld} col-span-2 sm:col-span-2`}>
+              <input name={`prijs${i}`} type="text" inputMode="decimal" value={prijsTekst[i] ?? String(r.prijs).replace(".", ",")} onChange={(e) => { setPrijsTekst((p) => ({ ...p, [i]: e.target.value })); zet(i, { prijs: parseBedrag(e.target.value) }); }} placeholder="Prijs zonder btw" aria-label="Prijs zonder btw" className={`${veld} order-last col-span-11 sm:order-none sm:col-span-2`} />
+              <select name={`btw${i}`} value={r.btw} onChange={(e) => zet(i, { btw: Number(e.target.value) })} disabled={totalen.btwVerlegd || korDeelnemer} aria-label="Btw-tarief" className={`${veld} col-span-5 sm:col-span-2`}>
                 <option value={21}>21%</option><option value={9}>9%</option><option value={0}>0%</option>
               </select>
-              <button type="button" onClick={() => { setPrijsTekst({}); setRegels((x) => x.filter((_, j) => j !== i)); }} className="col-span-1 text-tekst-3 hover:text-rood-tekst" aria-label="Regel verwijderen">×</button>
+              <button type="button" onClick={() => { setPrijsTekst({}); setRegels((x) => x.filter((_, j) => j !== i)); }} className="order-last col-span-1 text-tekst-3 hover:text-rood-tekst sm:order-none" aria-label="Regel verwijderen">×</button>
             </div>
           ))}
           <button type="button" onClick={() => setRegels((r) => [...r, leeg()])} className="knop-licht knop-klein mt-3">Regel toevoegen</button>

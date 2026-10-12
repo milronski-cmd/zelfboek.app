@@ -9,7 +9,7 @@ const OPEN = "saldoplan-feedback";
 /** Knop die het feedbackvenster opent (in de zijbalk, het accountmenu of waar dan ook). */
 export function FeedbackKnop({ className = "", children }: { className?: string; children?: React.ReactNode }) {
   return (
-    <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN))} className={className} aria-haspopup="dialog">
+    <button type="button" onClick={(e) => { e.currentTarget.closest("details")?.removeAttribute("open"); window.dispatchEvent(new Event(OPEN)); }} className={className} aria-haspopup="dialog">
       {children ?? <><Icoon naam="feedback" size={18} /><span>Feedback</span></>}
     </button>
   );

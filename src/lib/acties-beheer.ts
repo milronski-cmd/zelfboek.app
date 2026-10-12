@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { db } from "./db";
 import { beheerLog, nodigeReden, startMeekijken, vereisBeheerder, verlengProef, zetBlokkade } from "./beheer";
 import { foutTekst } from "./fout";
@@ -8,6 +9,7 @@ import { foutTekst } from "./fout";
 /** Terug naar de klantpagina met een melding (ok of fout) in de adresbalk. */
 function terug(gebruikerId: string, r: { ok?: string; fout?: string }): never {
   const q = new URLSearchParams(r.ok ? { ok: r.ok } : { fout: r.fout ?? "" });
+  revalidatePath("/admin", "layout");
   redirect(`/admin/klanten/${encodeURIComponent(gebruikerId)}?${q}`);
 }
 
@@ -60,5 +62,6 @@ export async function feedbackStatusActie(fd: FormData) {
   const f = await db.feedback.update({ where: { id }, data: { status, ...(notitie !== undefined ? { notitie } : {}) } });
   await beheerLog(beheerder, `Feedback op "${status}"`, { gebruikerId: f.gebruikerId, ondernemingId: f.ondernemingId, doel: f.email });
   const filter = String(fd.get("filter") ?? "");
+  revalidatePath("/admin", "layout");
   redirect(`/admin/feedback${filter ? `?status=${encodeURIComponent(filter)}` : ""}#f-${id}`);
 }
