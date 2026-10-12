@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { ThemaKiezer } from "@/components/ThemaKiezer";
+import { AccountInstellingen } from "@/components/AccountInstellingen";
 import { Bestandskiezer } from "@/components/Bestandskiezer";
 import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
@@ -35,7 +35,7 @@ function Vinkje({ naam, label, uitleg, aan }: { naam: string; label: string; uit
   );
 }
 
-export default async function Instellingen({ searchParams }: { searchParams: Promise<{ tab?: string; stripe?: string }> }) {
+export default async function Instellingen({ searchParams }: { searchParams: Promise<{ tab?: string; stripe?: string; tweestap?: string }> }) {
   const sp = await searchParams;
   const tab = tabs.some((t) => t.k === sp.tab) ? sp.tab! : "bedrijf";
   const o = await huidigeOnderneming();
@@ -58,11 +58,7 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
       {sp.stripe === "gelukt" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: true, melding: "Je abonnement is gestart." }} /></div>}
       {sp.stripe === "niet-ingesteld" && <div className="mb-4 max-w-2xl"><Melding r={{ ok: false, fout: process.env.NODE_ENV === "production" ? "Afrekenen voor je abonnement staat nog niet aan. We laten het je weten zodra het kan; je proefperiode loopt gewoon door." : "Afrekenen staat nog niet aan op deze server (STRIPE_SECRET_KEY en STRIPE_PRICE_ID ontbreken)." }} /></div>}
 
-      {tab === "account" && (
-        <div className={kaart}>
-          <ThemaKiezer huidig={(await cookies()).get("sp_thema")?.value ?? "auto"} />
-        </div>
-      )}
+      {tab === "account" && <AccountInstellingen gebruikerId={s.gebruikerId} thema={(await cookies()).get("sp_thema")?.value ?? "auto"} koppel={sp.tweestap === "koppel"} />}
 
       {tab === "bedrijf" && (
         <form action={bedrijfOpslaan} className={kaart}>

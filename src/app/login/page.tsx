@@ -1,7 +1,8 @@
 import { MERK, WEBSITE_URL } from "@/lib/merk";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { huidigeSessie, logInMetCode, stuurLoginCode } from "@/lib/auth";
+import { heeftTweestap, huidigeSessie, logInMetCode, stuurLoginCode } from "@/lib/auth";
+import { PasskeyLogin } from "@/components/Passkey";
 import { Melding, knop, knopTekst, veld } from "@/components/ui";
 import { Woordmerk } from "@/components/Merk";
 
@@ -10,6 +11,7 @@ export const instant = false;
 export default async function Login({ searchParams }: { searchParams: Promise<{ email?: string; m?: string; fout?: string }> }) {
   if (await huidigeSessie()) redirect("/app");
   const sp = await searchParams;
+  const tweestap = sp.email ? await heeftTweestap(sp.email) : false;
 
   async function stap1(fd: FormData) {
     "use server";
@@ -21,7 +23,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   async function stap2(fd: FormData) {
     "use server";
     const email = String(fd.get("email") ?? "");
-    const r = await logInMetCode(email, String(fd.get("code") ?? ""));
+    const r = await logInMetCode(email, String(fd.get("code") ?? ""), String(fd.get("appCode") ?? "") || undefined);
     if (!r.ok) redirect(`/login?email=${encodeURIComponent(email)}&fout=${encodeURIComponent(r.melding)}`);
     redirect(r.nieuw ? "/welkom" : "/app");
   }
@@ -43,6 +45,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
                 </div>
                 <button className={`${knop} knop-groot w-full`}>Stuur mij een code</button>
               </form>
+              <PasskeyLogin />
             </>
           ) : (
             <>
@@ -56,6 +59,12 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
                   <label className="lbl" htmlFor="code">Code uit de e-mail</label>
                   <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required placeholder="000000" autoFocus className={`${veld} cijfer text-center text-[26px] tracking-[0.4em]`} />
                 </div>
+                {tweestap && (
+                  <div>
+                    <label className="lbl" htmlFor="appCode">Code uit je authenticator-app</label>
+                    <input id="appCode" name="appCode" inputMode="numeric" autoComplete="one-time-code" maxLength={7} required placeholder="000000" className={`${veld} cijfer text-center text-[20px] tracking-[0.3em]`} />
+                  </div>
+                )}
                 <button className={`${knop} knop-groot w-full`}>Inloggen</button>
                 <Link href="/login" className={`${knopTekst} w-full justify-center`}>Ander e-mailadres</Link>
               </form>

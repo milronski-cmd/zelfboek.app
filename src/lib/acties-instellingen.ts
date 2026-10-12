@@ -145,3 +145,41 @@ export async function welkomVragen(fd: FormData): Promise<void> {
   revalidatePath("/app");
   redirect("/welkom?stap=3");
 }
+
+// ─────────────── Tweestap en passkeys ───────────────
+
+/** Tweestap aanzetten, stap 1: nieuw geheim (versleuteld bewaard, nog niet actief). */
+export async function tweestapStart(): Promise<void> {
+  const s = await vereisGebruiker();
+  const { nieuwGeheim } = await import("./tweestap");
+  const { versleutel } = await import("./crypto");
+  await db.gebruiker.update({ where: { id: s.gebruikerId }, data: { totpGeheim: versleutel(nieuwGeheim()), totpAan: false } });
+  redirect("/app/instellingen?tab=account&tweestap=koppel");
+}
+
+/** Tweestap aanzetten, stap 2: de eerste code uit de app controleren. */
+export async function tweestapAan(fd: FormData): Promise<Resultaat> {
+  const s = await vereisGebruiker();
+  const g = await db.gebruiker.findUniqueOrThrow({ where: { id: s.gebruikerId } });
+  if (!g.totpGeheim) return { ok: false, fout: "Begin opnieuw met Tweestap aanzetten." };
+  const { controleerCode } = await import("./tweestap");
+  const { ontsleutel } = await import("./crypto");
+  if (!controleerCode(ontsleutel(g.totpGeheim), String(fd.get("code") ?? ""))) return { ok: false, fout: "Die code klopt niet. Kijk of de tijd op je telefoon goed staat en probeer de nieuwste code." };
+  await db.gebruiker.update({ where: { id: g.id }, data: { totpAan: true } });
+  if (s.actieveOndernemingId) await (await import("./logboek")).logboek(s.actieveOndernemingId, g.email, "Tweestapsverificatie aangezet");
+  revalidatePath("/app/instellingen");
+  return { ok: true, melding: "Tweestapsverificatie staat aan. Bij inloggen vragen we voortaan ook de code uit je app." };
+}
+
+export async function tweestapUit(): Promise<void> {
+  const s = await vereisGebruiker();
+  await db.gebruiker.update({ where: { id: s.gebruikerId }, data: { totpAan: false, totpGeheim: null } });
+  if (s.actieveOndernemingId) await (await import("./logboek")).logboek(s.actieveOndernemingId, s.gebruiker.email, "Tweestapsverificatie uitgezet");
+  revalidatePath("/app/instellingen");
+}
+
+export async function passkeyVerwijderen(fd: FormData): Promise<void> {
+  const s = await vereisGebruiker();
+  await db.passkey.deleteMany({ where: { id: String(fd.get("id") ?? ""), gebruikerId: s.gebruikerId } });
+  revalidatePath("/app/instellingen");
+}

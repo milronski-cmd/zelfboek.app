@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { timingSafeEqual } from "crypto";
 import { db } from "./db";
-import { hash, willekeurigToken, zesCijfers } from "./crypto";
+import { hash, ontsleutel, willekeurigToken, zesCijfers } from "./crypto";
+import { controleerCode } from "./tweestap";
 import { htmlMail, verstuurMail } from "./mail";
 
 const COOKIE = "bb_sessie";
@@ -33,8 +34,29 @@ export async function stuurLoginCode(email: string): Promise<{ ok: boolean; meld
   return { ok: true, melding: `Code verstuurd naar ${e}.${extra}` };
 }
 
-/** Stap 2: code controleren en sessie aanmaken. */
-export async function logInMetCode(email: string, code: string): Promise<{ ok: boolean; melding: string; nieuw?: boolean }> {
+/** Sessie aanmaken en de cookie zetten (na e-mailcode, of na Face ID/vingerafdruk). */
+export async function maakSessie(gebruikerId: string): Promise<{ nieuw: boolean }> {
+  const gebruiker = await db.gebruiker.findUniqueOrThrow({ where: { id: gebruikerId } });
+  const token = willekeurigToken();
+  const lid = await db.lidmaatschap.findFirst({ where: { gebruikerId } });
+  await db.sessie.create({
+    data: { gebruikerId, tokenHash: hash(token), verlooptOp: new Date(Date.now() + SESSIE_DAGEN * 864e5), actieveOndernemingId: lid?.ondernemingId ?? null },
+  });
+  const nieuw = !gebruiker.laatstActief;
+  await db.gebruiker.update({ where: { id: gebruikerId }, data: { laatstActief: new Date() } });
+  const jar = await cookies();
+  jar.set(COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: SESSIE_DAGEN * 86400 });
+  return { nieuw };
+}
+
+/** Heeft deze gebruiker tweestapsverificatie aan? (Dan vraagt het inlogscherm ook de code uit de app.) */
+export async function heeftTweestap(email: string): Promise<boolean> {
+  const g = await db.gebruiker.findUnique({ where: { email: email.trim().toLowerCase() }, select: { totpAan: true } });
+  return Boolean(g?.totpAan);
+}
+
+/** Stap 2: code controleren en sessie aanmaken. Met tweestap aan ook de code uit de authenticator-app. */
+export async function logInMetCode(email: string, code: string, appCode?: string): Promise<{ ok: boolean; melding: string; nieuw?: boolean }> {
   const e = email.trim().toLowerCase();
   const gebruiker = await db.gebruiker.findUnique({ where: { email: e } });
   if (!gebruiker) return { ok: false, melding: "Onbekend e-mailadres." };
@@ -50,22 +72,15 @@ export async function logInMetCode(email: string, code: string): Promise<{ ok: b
     const over = 4 - open.pogingen;
     return { ok: false, melding: `Code onjuist. Nog ${over} ${over === 1 ? "poging" : "pogingen"}.` };
   }
+  if (gebruiker.totpAan && gebruiker.totpGeheim) {
+    // Tweestap: de app-code moet ook kloppen; een foute app-code telt als foute poging.
+    if (!appCode || !controleerCode(ontsleutel(gebruiker.totpGeheim), appCode)) {
+      await db.loginCode.update({ where: { id: open.id }, data: { pogingen: { increment: 1 } } });
+      return { ok: false, melding: appCode ? "De code uit je authenticator-app klopt niet." : "Vul ook de code uit je authenticator-app in." };
+    }
+  }
   await db.loginCode.update({ where: { id: open.id }, data: { gebruiktOp: new Date() } });
-
-  const token = willekeurigToken();
-  const lid = await db.lidmaatschap.findFirst({ where: { gebruikerId: gebruiker.id } });
-  await db.sessie.create({
-    data: {
-      gebruikerId: gebruiker.id,
-      tokenHash: hash(token),
-      verlooptOp: new Date(Date.now() + SESSIE_DAGEN * 864e5),
-      actieveOndernemingId: lid?.ondernemingId ?? null,
-    },
-  });
-  const nieuw = !gebruiker.laatstActief; // eerste keer ingelogd: welkomstanimatie
-  await db.gebruiker.update({ where: { id: gebruiker.id }, data: { laatstActief: new Date() } });
-  const jar = await cookies();
-  jar.set(COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: SESSIE_DAGEN * 86400 });
+  const { nieuw } = await maakSessie(gebruiker.id);
   return { ok: true, melding: "Ingelogd.", nieuw };
 }
 
