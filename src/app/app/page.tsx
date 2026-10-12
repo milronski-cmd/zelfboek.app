@@ -2,21 +2,39 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
 import { vereisGebruiker } from "@/lib/auth";
-import { btwDeadline, datumNl, periodeBereik, rond } from "@/lib/btw";
+import { btwDeadline, datumNl, euro, euroHeel, periodeBereik, rond } from "@/lib/btw";
+import { geldVooruit, type GeldVooruit } from "@/lib/geld";
 import { CATEGORIE_INFO } from "@/lib/categorieen";
 import { huidigTijdvak } from "@/lib/assistent/tools";
 import { statusPil, statusTekst } from "@/lib/facturen/status";
-import { Bedrag, Kaart, Kop, Pil } from "@/components/ui";
+import { Bedrag, Kaart, Kop, Pil, Waarom } from "@/components/ui";
 import { BankIcoon, DocumentIcoon } from "@/components/BankIcoon";
 import { OmzetGrafiek } from "@/components/OmzetGrafiek";
 import { EersteStappen } from "@/components/EersteStappen";
+import { Vragen } from "@/components/Vragen";
+import { isDubbeleVraag, naarKaarten, openVragen } from "@/lib/vragen";
+import { beantwoordVraag } from "@/lib/acties-bank";
 
 export const instant = false;
 
 type Actie = { tekst: string; href: string; knop: string };
 
 /** Eén duidelijke volgende stap met een grote knop; wat daarna komt staat klein eronder. */
-function VolgendeStap({ acties }: { acties: Actie[] }) {
+function VolgendeStap({ acties, klein = false }: { acties: Actie[]; klein?: boolean }) {
+  if (klein) {
+    return (
+      <ul className="kaart mb-6 divide-y divide-lijn overflow-hidden">
+        {acties.slice(0, 4).map((a) => (
+          <li key={a.href + a.tekst}>
+            <Link href={a.href} className="flex items-center gap-3 px-5 py-2.5 text-sm text-tekst-2 hover:bg-[#fafbfc]">
+              <span className="min-w-0 flex-1">{a.tekst}</span>
+              <Chevron />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   const [eerst, ...rest] = acties;
   if (!eerst) {
     return (
@@ -83,24 +101,73 @@ function AiBalk() {
   );
 }
 
+/** Saldo vooruit: wat je echt kunt uitgeven, hoe lang je geld reikt en wat je opzij zet. Drie tegels, elk met "Waarom?". */
+function SaldoVooruit({ g }: { g: GeldVooruit }) {
+  if (g.banksaldo == null || g.vrij == null) {
+    return (
+      <section className="kaart mb-6 flex flex-wrap items-center gap-4 px-5 py-4">
+        <div className="min-w-0 flex-1 basis-[220px]">
+          <p className="text-[15px] font-semibold">Zie wat je echt kunt uitgeven</p>
+          <p className="text-[13px] text-tekst-2">Koppel je bank, dan rekent Saldoplan uit wat er vrij te besteden is na btw en inkomstenbelasting.</p>
+        </div>
+        <Link href="/app/koppelingen" className="knop">Bank koppelen</Link>
+      </section>
+    );
+  }
+  const datum = (d: Date) => d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", timeZone: "Europe/Amsterdam" });
+  const opzij = g.potjePerMaand.btw + g.potjePerMaand.ib;
+  return (
+    <section aria-label="Saldo vooruit" className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="kaart px-5 py-4">
+        <p className="text-[13px] font-medium text-tekst-2">Vrij te besteden</p>
+        <p className={`cijfer mt-1 text-[26px] font-semibold leading-tight ${g.vrij < 0 ? "text-rood-tekst" : "text-groen-tekst"}`}>{euroHeel(g.vrij)}</p>
+        <p className="text-[13px] text-tekst-3">na btw en inkomstenbelasting</p>
+        <Waarom regels={[["Op de bank", euro(g.banksaldo)], ["Btw die je nog betaalt", euro(-g.btwTeBetalen)], [g.ibBetaald > 0 ? "Inkomstenbelasting tot nu, min wat je al betaalde" : "Inkomstenbelasting tot nu", euro(-g.ibOpzij)], ["Vrij te besteden", euro(g.vrij)]]} slot={`De btw betaal je uiterlijk ${datum(g.btwDeadline)}. De inkomstenbelasting is een schatting over je winst van dit jaar tot nu.`} />
+      </div>
+      <div className="kaart px-5 py-4">
+        <p className="text-[13px] font-medium text-tekst-2">Je geld reikt tot</p>
+        <p className={`cijfer mt-1 text-[26px] font-semibold leading-tight ${g.krap ? "text-rood-tekst" : ""}`}>{g.reiktTekst}</p>
+        <p className="text-[13px] text-tekst-3">met je vaste lasten en wat klanten nog betalen</p>
+        <Waarom
+          regels={[
+            ["Vrij te besteden nu", euro(g.vrij)],
+            ["Klanten betalen nog", euro(g.teOntvangen)],
+            ["Vaste lasten per maand", euro(-g.vasteLastenPerMaand)],
+            ["Privé-uitgaven per maand (gemiddeld)", euro(-g.priveGemiddeld)],
+            ...g.vasteLasten.slice(0, 4).map((l): [string, string] => [`${l.naam}, volgende ${datum(l.volgende)}`, euro(-l.bedrag)]),
+          ]}
+          slot={g.vasteLasten.length ? "Vaste lasten herkent Saldoplan zelf: dezelfde ontvanger elke maand, ongeveer hetzelfde bedrag. Nieuwe omzet telt pas mee als je hem factureert." : "Nog geen vaste lasten herkend; daarvoor zijn minstens drie maanden bankregels nodig."}
+        />
+      </div>
+      <div className="kaart px-5 py-4">
+        <p className="text-[13px] font-medium text-tekst-2">Zet per maand opzij</p>
+        <p className="cijfer mt-1 text-[26px] font-semibold leading-tight">{euroHeel(opzij)}</p>
+        <p className="text-[13px] text-tekst-3">voor btw en inkomstenbelasting</p>
+        <Waarom regels={[["Btw (gemiddeld per maand)", euro(g.potjePerMaand.btw)], ["Inkomstenbelasting (wat nog openstaat, per resterende maand)", euro(g.potjePerMaand.ib)], ["Samen per maand", euro(opzij)]]} slot="Zet dit op een aparte spaarrekening. Dan zijn de aangifte en de aanslag nooit een verrassing." />
+      </div>
+    </section>
+  );
+}
+
 const kortDatum = (d: Date) => d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" }).replace(".", "");
 
 export default async function Overzicht() {
   await connection();
   const [o, sessie] = await Promise.all([huidigeOnderneming(), vereisGebruiker()]);
+  const geld = await geldVooruit(o);
   const nu = new Date();
   const jaar = nu.getFullYear();
   const tv = huidigTijdvak(o.btwTijdvak);
   const { eind } = periodeBereik(o.btwTijdvak, tv.jaar, tv.periode || 1);
   const twaalfTerug = new Date(nu.getFullYear(), nu.getMonth() - 11, 1);
 
-  const [regels, twijfelTotaal, onbeoordeeld, openFacturen, bonnenLos, taken, recentBank, recentFacturen, aantalTransacties, aantalBonnen, aantalFacturen, aantalKoppelingen] = await Promise.all([
+  const [regels, vragen, onbeoordeeld, openFacturen, bonnenLos, taken, recentBank, recentFacturen, aantalTransacties, aantalBonnen, aantalFacturen, aantalKoppelingen] = await Promise.all([
     db.transactie.findMany({ where: { ondernemingId: o.id, zakelijk: true, datum: { gte: new Date(Math.min(twaalfTerug.getTime(), new Date(jaar, 0, 1).getTime())) } } }),
-    db.transactie.count({ where: { ondernemingId: o.id, bevestigd: false, zakelijk: { not: null } } }),
+    openVragen(o.id),
     db.transactie.count({ where: { ondernemingId: o.id, zakelijk: null } }),
     db.factuur.findMany({ where: { ondernemingId: o.id, status: { in: ["verzonden", "herinnerd", "aangemaand"] } }, select: { totaal: true, betaaldBedrag: true, vervaldatum: true } }),
     db.bon.count({ where: { ondernemingId: o.id, status: "uitgelezen" } }),
-    db.taak.findMany({ where: { ondernemingId: o.id, klaar: false }, orderBy: [{ deadline: "asc" }, { aangemaakt: "desc" }], take: 2 }),
+    db.taak.findMany({ where: { ondernemingId: o.id, klaar: false }, orderBy: [{ deadline: "asc" }, { aangemaakt: "desc" }], take: 5 }),
     db.transactie.findMany({ where: { ondernemingId: o.id }, orderBy: { datum: "desc" }, take: 8, include: { bankrekening: { select: { bank: true, iban: true } } } }),
     db.factuur.findMany({ where: { ondernemingId: o.id, status: { in: ["verzonden", "herinnerd", "aangemaand", "betaald"] } }, orderBy: { datum: "desc" }, take: 5, include: { klant: { select: { naam: true } } } }),
     db.transactie.count({ where: { ondernemingId: o.id } }),
@@ -139,13 +206,13 @@ export default async function Overzicht() {
 
   // Wat om een actie vraagt, belangrijkste eerst. De eerste wordt de grote "volgende stap".
   const balken: Actie[] = [];
-  if (twijfelTotaal > 0) balken.push({ tekst: `${twijfelTotaal} ${twijfelTotaal === 1 ? "betaling wacht" : "betalingen wachten"} op je antwoord: zakelijk of privé?`, href: "/app/bank?filter=twijfel", knop: "Beantwoorden" });
   if (dagenTotDeadline <= 14) balken.push({ tekst: `Btw-aangifte ${tijdvakNaam}: uiterlijk ${datumNl(deadline)} doen en betalen (nog ${dagenTotDeadline} dagen)`, href: "/app/btw", knop: "Naar de aangifte" });
   if (onbeoordeeld > 0) balken.push({ tekst: `${onbeoordeeld} nieuwe ${onbeoordeeld === 1 ? "betaling staat" : "betalingen staan"} klaar om te boeken`, href: "/app/bank?filter=open", knop: "Laten boeken" });
   if (bonnenLos > 0) balken.push({ tekst: `${bonnenLos === 1 ? "1 bon hoort" : `${bonnenLos} bonnen horen`} nog bij een betaling`, href: "/app/bonnen?status=uitgelezen", knop: "Bonnen bekijken" });
   if (teLaat.length > 0) balken.push({ tekst: `${teLaat.length} ${teLaat.length === 1 ? "factuur is" : "facturen zijn"} te laat betaald. De bot stuurt zelf herinneringen.`, href: "/app/facturen?filter=telaat", knop: "Bekijken" });
   if (dagenTotDeadline > 14 && dagenTotDeadline <= 30) balken.push({ tekst: `Btw-aangifte ${tijdvakNaam}: uiterlijk ${datumNl(deadline)} (nog ${dagenTotDeadline} dagen)`, href: "/app/btw", knop: "Naar de aangifte" });
-  for (const t of taken) balken.push({ tekst: t.titel, href: "/app/meldingen", knop: "Bekijken" });
+  // Een taak die hetzelfde vraagt als een open vraag tonen we niet nog eens.
+  for (const t of taken.filter((t) => !isDubbeleVraag(t.titel, vragen)).slice(0, 2)) balken.push({ tekst: t.titel, href: "/app/meldingen", knop: "Bekijken" });
   const nieuwAccount = stappen.some((s) => !s.klaar);
 
   // Recent verwerkt: bankregels en facturen door elkaar, nieuwste eerst.
@@ -192,7 +259,23 @@ export default async function Overzicht() {
     <>
       <Kop titel={`${groet} ${naam}!`} />
       {/* Nieuw account: de checklist is de volgende stap. Daarna: één ding tegelijk. */}
-      {nieuwAccount ? <EersteStappen stappen={stappen} /> : <VolgendeStap acties={balken} />}
+      {nieuwAccount ? <EersteStappen stappen={stappen} /> : vragen.length > 0 ? (
+        <>
+          <section className="kaart mb-4 overflow-hidden">
+            <header className="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-4">
+              <div>
+                <p className="text-[12px] font-semibold uppercase tracking-[.05em] text-primair-tekst">Volgende stap</p>
+                <p className="mt-0.5 text-[16px] font-semibold leading-snug">De bot heeft {vragen.length === 1 ? "1 vraag" : `${vragen.length} vragen`} voor je: zakelijk of privé?</p>
+              </div>
+              {vragen.length > 3 && <Link href="/app/bank" className="knop-tekst knop-klein">Alle {vragen.length} vragen</Link>}
+            </header>
+            <Vragen vragen={naarKaarten(vragen.slice(0, 3))} actie={beantwoordVraag} compact />
+          </section>
+          {balken.length > 0 && <VolgendeStap acties={balken} klein />}
+        </>
+      ) : <VolgendeStap acties={balken} />}
+
+      {!nieuwAccount && <SaldoVooruit g={geld} />}
 
       <AiBalk />
 
@@ -225,11 +308,11 @@ export default async function Overzicht() {
         </ul>
       )}
 
-      <Kaart className="mt-8" titel="Omzet en kosten, laatste 12 maanden" actie={<Link href="/app/jaarrekening" className="knop-tekst knop-klein">Jaarrekening</Link>}>
+      {maanden.filter((m) => m.omzet > 0 || m.kosten > 0).length >= 3 && <Kaart className="mt-8" titel="Omzet en kosten, laatste 12 maanden" actie={<Link href="/app/jaarrekening" className="knop-tekst knop-klein">Jaarrekening</Link>}>
         <div className="px-5 pb-5 pt-4">
           <OmzetGrafiek data={maanden.map((m) => ({ label: m.label, omzet: rond(m.omzet), kosten: rond(m.kosten) }))} />
         </div>
-      </Kaart>
+      </Kaart>}
     </>
   );
 }

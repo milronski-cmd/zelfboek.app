@@ -20,9 +20,6 @@ const kies = <T,>(xs: T[]) => xs[Math.floor(rnd() * xs.length)];
 const bedrag2 = (n: number) => Math.round(n * 100) / 100;
 
 const KOSTEN: { naam: string; omschrijving: string; cat: string; btw: string; min: number; max: number; uitleg: string }[] = [
-  { naam: "Google Ireland", omschrijving: "Google Workspace", cat: "software", btw: "verlegd", min: 14, max: 14, uitleg: "Vast softwareabonnement, btw verlegd (EU-dienst)." },
-  { naam: "Adobe Systems", omschrijving: "Creative Cloud", cat: "software", btw: "verlegd", min: 65, max: 65, uitleg: "Maandabonnement ontwerpsoftware." },
-  { naam: "KPN", omschrijving: "Zakelijk internet en mobiel", cat: "telefoon_internet", btw: "21", min: 58, max: 62, uitleg: "Vaste zakelijke telecomkosten." },
   { naam: "NS Zakelijk", omschrijving: "Treinreizen", cat: "reiskosten", btw: "9", min: 18, max: 95, uitleg: "Reiskosten OV, laag tarief." },
   { naam: "Coolblue", omschrijving: "Toetsenbord en monitorarm", cat: "apparatuur", btw: "21", min: 89, max: 420, uitleg: "Apparatuur onder € 450, direct als kosten." },
   { naam: "Albert Heijn", omschrijving: "Boodschappen", cat: "representatie", btw: "9", min: 12, max: 48, uitleg: "Kan privé zijn: geen zakelijk kenmerk in de omschrijving." },
@@ -31,7 +28,6 @@ const KOSTEN: { naam: string; omschrijving: string; cat: string; btw: string; mi
   { naam: "Q-Park", omschrijving: "Parkeren", cat: "parkeren", btw: "21", min: 4, max: 22, uitleg: "Parkeerkosten bij klantbezoek." },
   { naam: "Meta Platforms", omschrijving: "Advertenties", cat: "marketing", btw: "verlegd", min: 50, max: 250, uitleg: "Advertentiekosten, btw verlegd." },
   { naam: "ABN AMRO", omschrijving: "Kosten zakelijke rekening", cat: "bankkosten", btw: "geen", min: 9.95, max: 9.95, uitleg: "Bankkosten, vrijgesteld van btw." },
-  { naam: "Interpolis", omschrijving: "Beroepsaansprakelijkheid", cat: "verzekering", btw: "geen", min: 31.5, max: 31.5, uitleg: "Zakelijke verzekering, vrijgesteld." },
   { naam: "Bol.com", omschrijving: "Vakliteratuur", cat: "opleiding", btw: "9", min: 24, max: 60, uitleg: "Vakboek, laag tarief." },
 ];
 const KLANTEN = [
@@ -68,7 +64,7 @@ async function main() {
   });
 
   const nu = new Date();
-  const ing = await db.bankrekening.create({ data: { ondernemingId: oid, naam: "ING Zakelijk", iban: "NL69INGB0001234567", bank: "ING", bron: "psd2", psd2AccountId: "demo-ing", psd2Verloopt: new Date(nu.getTime() + 80 * 864e5), laatsteSync: nu, saldo: 8432.17 } });
+  const ing = await db.bankrekening.create({ data: { ondernemingId: oid, naam: "ING Zakelijk", iban: "NL69INGB0001234567", bank: "ING", bron: "psd2", psd2AccountId: "demo-ing", psd2Verloopt: new Date(nu.getTime() + 80 * 864e5), laatsteSync: nu, saldo: 18432.17 } });
   const revolut = await db.bankrekening.create({ data: { ondernemingId: oid, naam: "Revolut Business", iban: "NL39REVO0012345678", bank: "Revolut", bron: "psd2", psd2AccountId: "demo-revolut", psd2Verloopt: new Date(nu.getTime() + 62 * 864e5), laatsteSync: nu, saldo: 2140.55 } });
   const rek = ing;
   // De demobanken staan als gekoppeld in de proefmodus: "Nu ophalen" geeft dan geen foutmelding.
@@ -101,6 +97,27 @@ async function main() {
       const twijfel = laatsteMaand && k.cat === "representatie";
       regels.push({ ondernemingId: oid, bankrekeningId: btwCode === "verlegd" ? revolut.id : ing.id, tegenIban: IBANS[k.naam], datum: new Date(jaar, maand, 1 + Math.floor(rnd() * 27)), bedrag: -bedrag, tegenpartij: k.naam, omschrijving: `${k.omschrijving} ${jaar}`, hash: `demo-uit-${m}-${i}`, bron: "csv", categorie: k.cat, btwCode, btwBedrag: btw, zakelijk: true, zekerheid: twijfel ? bedrag2(0.52 + rnd() * 0.3) : 0.96, uitleg: k.uitleg, bevestigd: !twijfel });
     }
+  }
+  // Vaste lasten: elke maand dezelfde ontvanger op dezelfde dag (herkent Saldoplan als vaste last).
+  const VAST = [
+    { naam: "Google Ireland", omschrijving: "Google Workspace", cat: "software", btw: "verlegd", bedrag: 14, dag: 14, uitleg: "Vast softwareabonnement, btw verlegd (EU-dienst)." },
+    { naam: "Adobe Systems", omschrijving: "Creative Cloud", cat: "software", btw: "verlegd", bedrag: 65.99, dag: 3, uitleg: "Maandabonnement ontwerpsoftware." },
+    { naam: "KPN", omschrijving: "Zakelijk internet en mobiel", cat: "telefoon_internet", btw: "21", bedrag: 59.95, dag: 20, uitleg: "Vaste zakelijke telecomkosten." },
+    { naam: "Interpolis", omschrijving: "Beroepsaansprakelijkheid", cat: "verzekering", btw: "geen", bedrag: 31.5, dag: 1, uitleg: "Zakelijke verzekering, vrijgesteld." },
+  ];
+  for (let m = 11; m >= 0; m--) {
+    for (const v of VAST) {
+      const datum = new Date(nu.getFullYear(), nu.getMonth() - m, v.dag);
+      if (datum > nu) continue;
+      const btw = v.btw === "21" ? bedrag2(v.bedrag - v.bedrag / 1.21) : 0;
+      regels.push({ ondernemingId: oid, bankrekeningId: v.btw === "verlegd" ? revolut.id : ing.id, tegenIban: IBANS[v.naam], datum, bedrag: -v.bedrag, tegenpartij: v.naam, omschrijving: `${v.omschrijving} ${datum.getFullYear()}`, hash: `demo-vast-${v.naam}-${m}`, bron: "csv", categorie: v.cat, btwCode: v.btw, btwBedrag: btw, zakelijk: true, zekerheid: 0.97, uitleg: v.uitleg, bevestigd: true });
+    }
+  }
+  // Voorlopige aanslag inkomstenbelasting: elke maand van dit jaar.
+  for (let m = 0; m <= nu.getMonth(); m++) {
+    const datum = new Date(nu.getFullYear(), m, 25);
+    if (datum > nu) continue;
+    regels.push({ ondernemingId: oid, bankrekeningId: ing.id, tegenIban: IBANS["Belastingdienst"], datum, bedrag: -650, tegenpartij: "Belastingdienst", omschrijving: `Voorlopige aanslag inkomstenbelasting ${nu.getFullYear()}`, hash: `demo-ib-${m}`, bron: "csv", categorie: "belasting", btwCode: "geen", btwBedrag: 0, zakelijk: false, zekerheid: 0.99, uitleg: "Termijn voorlopige aanslag inkomstenbelasting (privé).", bevestigd: true });
   }
   // Privé en nog niet beoordeeld.
   regels.push({ ondernemingId: oid, bankrekeningId: rek.id, datum: new Date(nu.getFullYear(), nu.getMonth(), 2), bedrag: -1250, tegenpartij: "D. Jansen", omschrijving: "Privéopname", hash: "demo-prive-1", bron: "csv", categorie: "prive", btwCode: "geen", zakelijk: false, zekerheid: 0.99, uitleg: "Overboeking naar eigen privérekening.", bevestigd: true });

@@ -105,3 +105,16 @@ export const knopGroen = "knop knop-groen";
 export const knopLicht = "knop-licht";
 export const knopTekst = "knop-tekst";
 export const veld = "veld";
+
+/** "Waarom?" onder een bedrag: klapt de berekening in gewone woorden open. regels: [omschrijving, bedrag-tekst]. */
+export function Waarom({ regels, slot, label = "Waarom?" }: { regels: [string, string][]; slot?: string; label?: string }) {
+  return (
+    <details className="waarom mt-1.5 text-[13px]">
+      <summary className="cursor-pointer select-none text-primair-tekst">{label}</summary>
+      <dl className="mt-2 space-y-1 rounded-md bg-papier px-3 py-2">
+        {regels.map(([l, b]) => <div key={l} className="flex justify-between gap-3"><dt className="text-tekst-2">{l}</dt><dd className="cijfer shrink-0 text-tekst">{b}</dd></div>)}
+      </dl>
+      {slot && <p className="mt-1.5 text-tekst-3">{slot}</p>}
+    </details>
+  );
+}

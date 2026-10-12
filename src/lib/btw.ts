@@ -130,3 +130,6 @@ export const datumNl = (d: Date) =>
 /** Datum als JJJJ-MM-DD in Nederlandse tijd (voor datumvelden; toISOString geeft 's nachts nog gisteren). */
 export const isoDatum = (d: Date = new Date()) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Amsterdam" });
 
+
+/** Bedrag in hele euro's voor tegels (centen pas in de details): € 1.235. */
+export const euroHeel = (n: number) => `${n < 0 ? "−" : ""}€ ${Math.abs(Math.round(n)).toLocaleString("nl-NL")}`;

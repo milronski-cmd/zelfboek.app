@@ -1,9 +1,8 @@
 import { connection } from "next/server";
 import Link from "next/link";
-import { db, huidigeOnderneming } from "@/lib/db";
-import { btwAangifte, euro } from "@/lib/btw";
-import { winstVerlies } from "@/lib/fiscaal/winst";
-import { berekenIb } from "@/lib/fiscaal/ib";
+import { huidigeOnderneming } from "@/lib/db";
+import { ibIndicatie } from "@/lib/geld";
+import { euro } from "@/lib/btw";
 import { korCheck } from "@/lib/fiscaal/kor";
 import * as C from "@/lib/fiscaal/constanten-2026";
 import { ibInstellingenOpslaan } from "@/lib/acties-fiscaal";
@@ -15,32 +14,8 @@ export default async function Ib({ searchParams }: { searchParams: Promise<{ j?:
   await connection();
   const sp = await searchParams;
   const o = await huidigeOnderneming();
-  const nu = new Date();
-  const jaar = Number(sp.j) || nu.getFullYear();
-  const start = new Date(jaar, 0, 1);
-  const eind = new Date(jaar + 1, 0, 1);
-  const maanden = jaar === nu.getFullYear() ? nu.getMonth() + 1 : 12;
-
-  const [wv, uren, km, activa, aov, alleRegels] = await Promise.all([
-    winstVerlies(o.id, start, eind),
-    db.urenregel.aggregate({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, _sum: { uren: true } }),
-    db.kilometerregel.aggregate({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, _sum: { vergoeding: true } }),
-    db.activum.findMany({ where: { ondernemingId: o.id, aanschafDatum: { gte: start, lt: eind }, kiaToegepast: true } }),
-    db.transactie.aggregate({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind }, categorie: "aov" }, _sum: { bedrag: true } }),
-    db.transactie.findMany({ where: { ondernemingId: o.id, datum: { gte: start, lt: eind } }, select: { bedrag: true, btwCode: true, btwBedrag: true, zakelijk: true, categorie: true, priveDeel: true } }),
-  ]);
-  const urenTotaal = uren._sum.uren ?? 0;
-  const ib = berekenIb({
-    fiscaleWinst: wv.fiscaleWinst,
-    uren: urenTotaal,
-    urenCriteriumGehaald: o.urencriterium ? true : undefined,
-    starter: o.starter,
-    investeringen: activa.reduce((s, a) => s + a.aanschafBedrag * (1 - a.priveDeel), 0),
-    kilometerVergoeding: km._sum.vergoeding ?? 0,
-    aovPremie: Math.abs(aov._sum.bedrag ?? 0),
-    maandenVerstreken: maanden,
-  });
-  const btwJaar = btwAangifte(alleRegels);
+  const jaar = Number(sp.j) || new Date().getFullYear();
+  const { maanden, wv, ib, ibJaar, verwachteWinst, btwJaar } = await ibIndicatie(o, jaar);
   const kor = korCheck({
     omzetJaar: wv.omzet,
     maandenVerstreken: maanden,
@@ -48,8 +23,6 @@ export default async function Ib({ searchParams }: { searchParams: Promise<{ j?:
     btwSaldoJaar: btwJaar["5c_te_betalen"],
     voorbelasting: btwJaar["5b_voorbelasting"],
   });
-  const verwachteWinst = Math.round((wv.fiscaleWinst / maanden) * 12);
-  const ibJaar = maanden < 12 ? berekenIb({ fiscaleWinst: verwachteWinst, uren: Math.round((urenTotaal / maanden) * 12), urenCriteriumGehaald: o.urencriterium ? true : undefined, starter: o.starter, investeringen: 0, kilometerVergoeding: ((km._sum.vergoeding ?? 0) / maanden) * 12 }) : ib;
   const korGoedNieuws = kor.komtInAanmerking && kor.voordeel > 250 && !kor.deelnemer;
 
   return (
