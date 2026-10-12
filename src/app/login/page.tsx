@@ -7,11 +7,13 @@ import { PasskeyLogin } from "@/components/Passkey";
 import { VerwijsCookie } from "@/components/VerwijsCookie";
 import { Melding, knop, knopTekst, veld } from "@/components/ui";
 import { Woordmerk } from "@/components/Merk";
+import { testmodus } from "@/lib/testmodus";
 
 export const instant = false;
 
-async function meld(ok: boolean, tekst: string) {
-  (await cookies()).set("sp_melding", JSON.stringify({ ok, tekst }), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/login", maxAge: 20 });
+async function meld(ok: boolean, tekst: string, testCode?: string) {
+  // In de testversie blijft de code 10 minuten zichtbaar (zo lang is hij geldig); anders is de melding kort.
+  (await cookies()).set("sp_melding", JSON.stringify({ ok, tekst, testCode }), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/login", maxAge: testCode ? 600 : 20 });
 }
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ email?: string; m?: string; fout?: string; ref?: string }> }) {
@@ -20,14 +22,15 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   const tweestap = sp.email ? await heeftTweestap(sp.email) : false;
   // Meldingen komen uit een kortlevende cookie, niet uit de link: zo kan niemand eigen tekst op deze pagina zetten.
   const jar = await cookies();
-  let flits: { ok: boolean; tekst: string } | null = null;
+  let flits: { ok: boolean; tekst: string; testCode?: string } | null = null;
+  const test = testmodus();
   try { flits = JSON.parse(jar.get("sp_melding")?.value ?? "null"); } catch { flits = null; }
 
   async function stap1(fd: FormData) {
     "use server";
     const email = String(fd.get("email") ?? "");
     const r = await stuurLoginCode(email);
-    await meld(r.ok, r.melding);
+    await meld(r.ok, r.melding, r.testCode);
     if (!r.ok) redirect("/login");
     redirect(`/login?email=${encodeURIComponent(email)}`);
   }
@@ -48,7 +51,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           {!sp.email ? (
             <>
               <h1 className="text-[24px] font-semibold">Inloggen</h1>
-              <p className="mt-1 text-sm text-tekst-2">Geen wachtwoord nodig. Je krijgt een code per e-mail.</p>
+              <p className="mt-1 text-sm text-tekst-2">{test ? "Geen wachtwoord nodig. In de testversie krijg je de code meteen op het scherm; er gaat geen mail de deur uit." : "Geen wachtwoord nodig. Je krijgt een code per e-mail."}</p>
               {flits && !flits.ok && <div className="mt-4"><Melding r={{ ok: false, fout: flits.tekst }} /></div>}
               <form action={stap1} className="mt-5 space-y-3">
                 <div>
@@ -62,12 +65,18 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           ) : (
             <>
               <h1 className="text-[24px] font-semibold">Vul je code in</h1>
-              <p className="mt-1 text-sm text-tekst-2">Verstuurd naar {sp.email}. De code is tien minuten geldig.</p>
+              <p className="mt-1 text-sm text-tekst-2">{test ? `Inloggen als ${sp.email}.` : `Verstuurd naar ${sp.email}.`} De code is tien minuten geldig.</p>
               {flits && <div className="mt-4"><Melding r={flits.ok ? { ok: true, melding: flits.tekst } : { ok: false, fout: flits.tekst }} /></div>}
+              {test && flits?.testCode && (
+                <div className="mt-3 rounded-lg border border-lijn-2 bg-primair-licht px-4 py-3 text-center">
+                  <p className="text-[13px] text-tekst-2">Je inlogcode (testversie)</p>
+                  <p data-testcode className="cijfer mt-1 text-[30px] font-semibold tracking-[0.3em]">{flits.testCode}</p>
+                </div>
+              )}
               <form action={stap2} className="mt-5 space-y-3">
                 <input type="hidden" name="email" value={sp.email} />
                 <div>
-                  <label className="lbl" htmlFor="code">Code uit de e-mail</label>
+                  <label className="lbl" htmlFor="code">{test ? "Code" : "Code uit de e-mail"}</label>
                   <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required placeholder="000000" autoFocus className={`${veld} cijfer text-center text-[26px] tracking-[0.4em]`} />
                 </div>
                 {tweestap && (

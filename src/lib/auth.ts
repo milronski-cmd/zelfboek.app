@@ -8,12 +8,13 @@ import { hash, ontsleutel, willekeurigToken, zesCijfers } from "./crypto";
 import { welkeStap } from "./tweestap";
 import { htmlMail, verstuurMail } from "./mail";
 import { binnenLimiet, DAG, klantIp, UUR } from "./limiet";
+import { testmodus } from "./testmodus";
 
 const COOKIE = "bb_sessie";
 const SESSIE_DAGEN = 30;
 
 /** Stap 1: code per e-mail. Maakt de gebruiker aan als die nog niet bestaat. */
-export async function stuurLoginCode(email: string, ip?: string): Promise<{ ok: boolean; melding: string }> {
+export async function stuurLoginCode(email: string, ip?: string): Promise<{ ok: boolean; melding: string; testCode?: string }> {
   const e = email.trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) || e.length > 200) return { ok: false, melding: "Ongeldig e-mailadres." };
   // Per IP hooguit 10 codes per uur (tegen massaal aanvragen en als mailbom).
@@ -31,6 +32,8 @@ export async function stuurLoginCode(email: string, ip?: string): Promise<{ ok: 
   await db.loginCode.create({
     data: { gebruikerId: gebruiker.id, codeHash: hash(code), verlooptOp: new Date(Date.now() + 10 * 60_000) },
   });
+  // Testversie: geen mail, de code staat op het scherm. De limieten hierboven blijven gewoon gelden.
+  if (testmodus()) return { ok: true, melding: "Testversie: er gaat geen mail de deur uit. Je code staat hieronder.", testCode: code };
   let r: { verzonden: boolean };
   try {
     r = await verstuurMail({

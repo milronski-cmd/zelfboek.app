@@ -2,6 +2,7 @@ import { MERK } from "@/lib/merk";
 import nodemailer from "nodemailer";
 import { appendFile, mkdir } from "fs/promises";
 import path from "path";
+import { testmodus } from "./testmodus";
 
 export type Bijlage = { filename: string; content: Buffer; contentType?: string };
 
@@ -20,7 +21,8 @@ export async function verstuurMail(opties: {
   demo?: boolean;
 }): Promise<{ verzonden: boolean; via: string }> {
   const van = process.env.MAIL_VAN || `${MERK} <noreply@localhost>`;
-  if (opties.demo) {
+  // Testversie: nooit echt mailen (proefgebruikers vullen willekeurige adressen in).
+  if (opties.demo || testmodus()) {
     await appendFile(path.join(process.cwd(), "uploads", "outbox.log"), `
 --- ${new Date().toISOString()} (demo, niet verstuurd) aan ${opties.aan} | ${opties.onderwerp}
 `).catch(() => undefined);

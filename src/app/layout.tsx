@@ -2,6 +2,7 @@ import { MERK } from "@/lib/merk";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { testmodus } from "@/lib/testmodus";
 
 const inter = Inter({ variable: "--font-body", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
@@ -20,7 +21,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="nl" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
       <head><script dangerouslySetInnerHTML={{ __html: THEMA_SCRIPT }} /></head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {testmodus() && (
+          <div role="note" className="bg-amber-300 px-4 py-1.5 text-center text-[13px] font-semibold text-black">
+            Testversie – gebruik geen echte gegevens
+          </div>
+        )}
+        {children}
+      </body>
     </html>
   );
 }

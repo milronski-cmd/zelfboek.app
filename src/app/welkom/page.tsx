@@ -4,6 +4,7 @@ import { huidigeOnderneming, huidigeSessie, vereisGebruiker } from "@/lib/auth";
 import { welkomOpslaan, welkomVragen } from "@/lib/acties-instellingen";
 import { MERK } from "@/lib/merk";
 import { Woordmerk } from "@/components/Merk";
+import { testmodus } from "@/lib/testmodus";
 
 export const instant = false;
 
@@ -56,6 +57,7 @@ export default async function WelkomPagina({ searchParams }: { searchParams: Pro
                 <label className="lbl" htmlFor="kvk">KvK-nummer <span className="font-normal text-tekst-3">(mag later)</span></label>
                 <input id="kvk" name="kvk" inputMode="numeric" pattern="[0-9 ]{8,9}" maxLength={9} defaultValue={o.kvk ?? ""} placeholder="8 cijfers" className="veld" />
               </div>
+              {testmodus() && <Keuze naam="start" vraag="Waarmee wil je beginnen?" uitleg="Testversie: met voorbeeldgegevens zie je meteen hoe alles werkt (betalingen, bonnen, facturen). Je bedrijfsnaam hierboven blijft staan." opties={[["voorbeeld", "Met voorbeeldgegevens"], ["leeg", "Leeg beginnen"]]} standaard="voorbeeld" />}
               <details className="rounded-lg border border-lijn px-4 py-3">
                 <summary className="cursor-pointer text-sm font-medium">Logo en kleur voor je facturen <span className="font-normal text-tekst-3">(mag later)</span></summary>
                 <div className="mt-3 space-y-3">

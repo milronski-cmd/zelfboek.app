@@ -9,6 +9,7 @@ import { logUit, vereisGebruiker } from "./auth";
 import { esc, htmlMail, verstuurMail } from "./mail";
 import { binnenLimiet, DAG } from "./limiet";
 import { foutTekst } from "@/lib/fout";
+import { testmodus } from "./testmodus";
 
 export type Resultaat = { ok: true; melding: string } | { ok: false; fout: string };
 
@@ -157,6 +158,11 @@ export async function welkomOpslaan(fd: FormData): Promise<void> {
   const bedrijf = v(fd, "bedrijf");
   const kvk = v(fd, "kvk")?.replace(/\D/g, "") || null;
   if (naam) await db.gebruiker.update({ where: { id: s.gebruikerId }, data: { naam } });
+  // Testversie: op verzoek beginnen met voorbeeldgegevens (een jaar aan betalingen, bonnen en facturen).
+  // Alleen in een nog lege administratie, zodat er nooit iets wordt overschreven.
+  if (testmodus() && fd.get("start") === "voorbeeld" && !(await db.transactie.count({ where: { ondernemingId: o.id } })) && !(await db.factuur.count({ where: { ondernemingId: o.id } }))) {
+    await (await import("./demo")).vulDemo(db, o.id);
+  }
   const logo = await logoUitFormulier(fd);
   const kleur = v(fd, "huisstijlKleur");
   // Met een KvK-sleutel vullen we adres, branche en startdatum zelf in uit het Handelsregister.

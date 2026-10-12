@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { appGeheim } from "./crypto";
 import { bewaarKoppeling, leesKoppeling } from "./koppelingen";
 import { MERK } from "./merk";
+import { testmodus } from "./testmodus";
 
 /**
  * Koppelen met één knop: de klant logt in bij de partij zelf (OAuth) en komt terug met "Gekoppeld".
@@ -217,7 +218,7 @@ export const isOAuthSoort = (s: string): s is OAuthSoort => s in AANBIEDERS;
 export const ingesteld = (soort: OAuthSoort) => AANBIEDERS[soort].env.every((e) => Boolean(process.env[e]));
 
 /** Proefmodus: knoppen werken zonder platform-account, met voorbeeldgegevens. Nooit in productie, tenzij expliciet aangezet. */
-export const proefmodus = () => process.env.SALDOPLAN_PROEFMODUS === "1" || (process.env.NODE_ENV !== "production" && process.env.SALDOPLAN_PROEFMODUS !== "0");
+export const proefmodus = () => process.env.SALDOPLAN_PROEFMODUS === "1" || testmodus() || (process.env.NODE_ENV !== "production" && process.env.SALDOPLAN_PROEFMODUS !== "0");
 
 // ─────────────── Ondertekende state (geen sessie nodig bij de terugkeer van de partij) ───────────────
 

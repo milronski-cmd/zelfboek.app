@@ -3,10 +3,11 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { BTW_CODES, CATEGORIEEN, CATEGORIE_INFO } from "./categorieen";
 import { cliBeschikbaar, viaClaudeCli } from "./ai-cli";
+import { testmodus, TESTMODUS_AI } from "./testmodus";
 
 /** Geen API-sleutel maar wel de Claude Code-CLI op deze pc: dan via het abonnement (alleen lokaal). */
 /** Wat de klant ziet als de AI niet bereikbaar is (geen sleutel, storing). Geen techniek in beeld. */
-export const BOT_ONBEREIKBAAR = "De bot is nu even niet bereikbaar. Probeer het over een paar minuten opnieuw; er gaat niets verloren.";
+export const BOT_ONBEREIKBAAR = testmodus() ? TESTMODUS_AI : "De bot is nu even niet bereikbaar. Probeer het over een paar minuten opnieuw; er gaat niets verloren.";
 
 const viaCli = () => !process.env.ANTHROPIC_API_KEY && cliBeschikbaar();
 
