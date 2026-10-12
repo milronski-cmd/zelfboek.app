@@ -41,6 +41,14 @@ Dit is de webapp (inloggen, boekhouding, API's, webhooks, cron), bedoeld voor `a
 - Jaarrekening: winst-en-verliesrekening, balans, kengetallen, PDF.
 - Exports: Excel (9 tabbladen), XML Auditfile XAF 3.2, SBR/XBRL voor de btw-aangifte, ICP-CSV.
 
+**Ronde 3**
+- Donkere modus (volgt de telefoon, of kies bij Instellingen), toegankelijk volgens WCAG 2.1 AA (gecontroleerd met axe).
+- Facturen, offertes en herinneringen in het Nederlands, Engels of Duits (per klant), eigen herinneringsteksten, melding als de klant de factuur opent, delen via WhatsApp of een link (`/factuur/<token>`).
+- Offerte digitaal ondertekenen, bonfoto bijsnijden met scherpte-check, logo en kleur bij aanmelden.
+- Inloggen met Face ID of vingerafdruk (passkeys), optionele tweestapsverificatie, logboek, opmerkingen bij boekingen, instelbaar hoe vaak Saldoplan vraagt.
+- Probeer zonder aanmelden (`/demo`, verdwijnt na 24 uur), `/gegevens` en `/status`.
+- Urencriterium en kilometers uit je agenda (.ics), jaar afsluiten met één knop, inkomstenbelasting per maand, creditcard (ICS, American Express).
+
 **Niets meer hoeven doen**
 - Dagelijkse vragenmail: elke twijfelregel met twee knoppen (Zakelijk / Privé). De ondertekende link boekt zonder inloggen via `/antwoord`.
 - Bonnen per e-mail: doorsturen naar `bonnen+<ondernemingId>@jouwdomein.nl`; inbound-webhook op `/api/inbound/bon?secret=INBOUND_SECRET` (Resend, Postmark, Mailgun of multipart).
@@ -93,6 +101,32 @@ Next.js 16 (App Router, server actions, proxy), Prisma 6 op SQLite (voor product
 | Indienen | Wij zetten de SBR-XBRL klaar; indienen via Digipoort vereist een PKIoverheid-certificaat of een hub-partij. De klant kan de rubrieken ook zelf overnemen in Mijn Belastingdienst Zakelijk |
 | Hosting | Vercel of eigen server met Postgres, `uploads/` naar S3-achtige opslag verplaatsen |
 | Juridisch | Nooit "accountant" noemen. Zodra je zelf indient of adviseert: beroepsaansprakelijkheidsverzekering en Wwft-procedures (BFT) |
+
+## Klaargezet: aan met één env-variabele (stand 12-10-2026)
+
+Alles hieronder is gebouwd en gaat vanzelf aan zodra de genoemde variabelen in de omgeving staan. Zonder variabelen: lokaal de proefmodus (voorbeeldgegevens), in productie "Binnenkort" met de handmatige route. Kosten en voorwaarden zijn online nagekeken op 12-10-2026; controleer ze bij het aanvragen opnieuw.
+
+| Partij | Wat aanvragen | Env-variabelen | Kosten (12-10-2026) | Bron |
+|---|---|---|---|---|
+| KvK (gegevens bij aanmelden, klant opzoeken) | Abonnement KvK API via het Developer Portal | `KVK_API_KEY` | € 6,40 per maand; Zoeken gratis, Basisprofiel € 0,02 per bevraging | developers.kvk.nl/nl/pricing |
+| Enable Banking (bank) | Account; voor een publieke app een contract en bedrijfscontrole (KYB) | `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY` | Op offerte, prijs naar volume met een minimum per maand; sandbox gratis | enablebanking.com/docs/faq |
+| Mollie Connect | OAuth-app in het Mollie-dashboard (Developers, Your apps) met terugkeer-URL `/api/koppelingen/mollie/terug` | `MOLLIE_CLIENT_ID`, `MOLLIE_CLIENT_SECRET` | Geen platformkosten vermeld | docs.mollie.com/docs/connect-overview |
+| Stripe Connect | Connect aanzetten in het eigen Stripe-account | `STRIPE_CONNECT_CLIENT_ID`, `STRIPE_SECRET_KEY` | Geen kosten als Stripe de prijs met de klant regelt | stripe.com/connect/pricing |
+| Shopify | Partner-account en een publieke app | `SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET` | Partner-account eenmalig $ 19; scope `read_shopify_payments_payouts` zonder aparte goedkeuring | shopify.dev/docs/api/usage/access-scopes |
+| Moneybird | App registreren op moneybird.com/user/applications/new | `MONEYBIRD_CLIENT_ID`, `MONEYBIRD_CLIENT_SECRET` | Niet vermeld | developer.moneybird.com/authentication |
+| Gmail (bonnen uit mail) | Google Cloud-project, OAuth-verificatie en jaarlijkse CASA-toets (scope gmail.readonly) | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google zelf: niet vermeld; CASA-toets bij een derde partij ca. $ 540 tot $ 6.000 per jaar | support.google.com/cloud/answer/13465431 |
+| Outlook (bonnen uit mail) | Entra-app met Mail.Read, publisher verification (Microsoft AI Cloud Partner Program, eigen domein) | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | Gratis | learn.microsoft.com/…/publisher-verification-overview |
+| WhatsApp (bonnen) | Meta Business-account, WhatsApp Business Platform-nummer, webhook `/api/inbound/whatsapp` | `WHATSAPP_TOKEN`, `WHATSAPP_TELEFOON_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_NUMMER` | Per bericht; antwoorden binnen het klantenservicevenster gratis | developers.facebook.com/docs/whatsapp/pricing |
+| Peppol (e-factuur versturen) | Access point, bijvoorbeeld e-invoice.be | `PEPPOL_API_URL`, `PEPPOL_API_KEY` | e-invoice.be € 0,25 per factuur (Pro) of € 0,18 (Enterprise); andere aanbieders op offerte | e-invoice.be/en/pricing |
+| Digipoort (btw indienen) | Aanmelden als softwareontwikkelaar bij de Belastingdienst (gratis), dan een hub/intermediair of eigen aansluiting met PKIoverheid-certificaat | `DIGIPOORT_HUB_URL`, `DIGIPOORT_HUB_KEY` | Hub: op offerte. Eigen certificaat ca. € 449 excl. btw voor 2 jaar (reseller) | odb.belastingdienst.nl |
+| Amazon | Developer-registratie Selling Partner API, app in Seller Central | `AMAZON_SP_APP_ID`, `AMAZON_LWA_CLIENT_ID`, `AMAZON_LWA_CLIENT_SECRET` | Aangekondigde fee van $ 1.400 per jaar is volgens een derde partij geschrapt (12-05-2026) | novadata.io (Amazon-pagina gaf 404) |
+| Etsy | Personal App, daarna Commercial Access (handmatige beoordeling) | `ETSY_CLIENT_ID` | Niet vermeld | developers.etsy.com/documentation |
+| Lightspeed (X-Series) | Ontwikkelaarsaccount en app; publieke app na goedkeuring | `LIGHTSPEED_CLIENT_ID`, `LIGHTSPEED_CLIENT_SECRET` | Niet gevonden | x-series-api.lightspeedhq.com/docs |
+| SumUp | OAuth-app in een SumUp-account | `SUMUP_CLIENT_ID`, `SUMUP_CLIENT_SECRET` | Niet gevonden | developer.sumup.com/docs/register-app |
+| Zettle | Partner-hosted app (OAuth) | `ZETTLE_CLIENT_ID`, `ZETTLE_CLIENT_SECRET` | Niet gevonden | developer.zettle.com |
+| Stripe Billing (jaarabonnement, kortingscodes, verwijzing) | Prijzen en coupons aanmaken in Stripe; Saldoplan kiest geen prijzen zelf | `STRIPE_PRICE_ID_JAAR`, `PRIJS_JAAR_TEKST` (alleen tekst), `STRIPE_COUPON_VERWIJZING`, `STRIPE_COUPON_NIEUWE_KLANT` | Billing 0,7% van het volume; kortingen geen extra kosten | stripe.com/billing/pricing |
+
+Terugkeer-URL voor elke OAuth-app: `https://app.saldoplan.nl/api/koppelingen/<partij>/terug` (partij = mollie, stripe, shopify, moneybird, gmail, outlook, etsy, sumup, zettle, amazon, lightspeed). Niet getest met echte sleutels: de adapters van Etsy, SumUp, Zettle, Amazon, Lightspeed, Gmail, Outlook, WhatsApp, Peppol en de Digipoort-hub volgen de openbare documentatie en moeten bij de eerste echte sleutel één keer worden nagelopen; voor Peppol en de hub moet het berichtformaat op de gekozen aanbieder worden afgestemd (zie `src/lib/indienen.ts`).
 
 ## Nog te valideren vóór echt gebruik
 
