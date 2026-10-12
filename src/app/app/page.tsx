@@ -308,7 +308,7 @@ export default async function Overzicht() {
         </ul>
       )}
 
-      {maanden.filter((m) => m.omzet > 0 || m.kosten > 0).length >= 3 && <Kaart className="mt-8" titel="Omzet en kosten, laatste 12 maanden" actie={<Link href="/app/jaarrekening" className="knop-tekst knop-klein">Jaarrekening</Link>}>
+      {maanden.filter((m) => m.omzet > 0 || m.kosten > 0).length >= 3 && <Kaart className="mt-8" titel="Omzet en kosten, laatste 12 maanden" actie={<Link href="/app/jaarrekening" className="knop-tekst knop-klein">Jaaroverzicht</Link>}>
         <div className="px-5 pb-5 pt-4">
           <OmzetGrafiek data={maanden.map((m) => ({ label: m.label, omzet: rond(m.omzet), kosten: rond(m.kosten) }))} />
         </div>
