@@ -1,33 +1,14 @@
 import { connection } from "next/server";
-import { db } from "@/lib/db";
 import { MERK } from "@/lib/merk";
-import { cliBeschikbaar } from "@/lib/ai-cli";
+import { controleerStatus } from "@/lib/status";
 import { Woordmerk } from "@/components/Merk";
 
 export const instant = false;
 
-type Status = { naam: string; ok: boolean | null; tekst: string };
-
 /** Openbare statuspagina: werkt alles? Bij een storing zie je hier wat er speelt. */
 export default async function StatusPagina() {
   await connection();
-  const s: Status[] = [];
-  const t0 = Date.now();
-  try {
-    await db.$queryRaw`SELECT 1`;
-    s.push({ naam: "App en gegevens", ok: true, tekst: `Werkt (antwoord in ${Date.now() - t0} ms)` });
-  } catch {
-    s.push({ naam: "App en gegevens", ok: false, tekst: "Storing: we zijn ermee bezig." });
-  }
-  const cron = await db.cronLog.findFirst({ orderBy: { gestart: "desc" } }).catch(() => null);
-  const uur = cron ? (Date.now() - cron.gestart.getTime()) / 36e5 : null;
-  s.push({ naam: "Nachtelijk ophalen en boeken", ok: uur == null ? null : uur < 30 && !cron?.fout, tekst: uur == null ? "Nog niet gedraaid" : `Laatst ${cron!.gestart.toLocaleString("nl-NL", { timeZone: "Europe/Amsterdam", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}${cron?.fout ? ", met een fout" : ""}` });
-  const ai = Boolean(process.env.ANTHROPIC_API_KEY) || cliBeschikbaar();
-  s.push({ naam: "Automatisch boeken en bonnen lezen", ok: ai, tekst: ai ? "Werkt" : "Even niet beschikbaar; je betalingen worden later geboekt." });
-  const bank = Boolean(process.env.ENABLE_BANKING_APP_ID && process.env.ENABLE_BANKING_PRIVATE_KEY);
-  s.push({ naam: "Bankkoppeling", ok: bank ? true : null, tekst: bank ? "Werkt" : "Nog niet beschikbaar; afschrift uploaden werkt wel." });
-  const mail = Boolean(process.env.SMTP_HOST);
-  s.push({ naam: "E-mail (facturen en inlogcodes)", ok: mail ? true : null, tekst: mail ? "Werkt" : "Nog niet ingesteld" });
+  const s = await controleerStatus();
   const alles = s.every((x) => x.ok !== false);
 
   return (
