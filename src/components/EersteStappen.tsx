@@ -8,7 +8,7 @@ export function EersteStappen({ stappen }: { stappen: Stap[] }) {
   if (klaar === stappen.length) return null;
   const volgende = stappen.find((s) => !s.klaar);
   return (
-    <section className="kaart mb-6 overflow-hidden">
+    <section data-tour="eerste-stappen" className="kaart mb-6 overflow-hidden">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-lijn px-5 py-3">
         <div>
           <h2 className="text-[15px] font-semibold">Welkom. Nog {stappen.length - klaar} {stappen.length - klaar === 1 ? "stap" : "stappen"} en Saldoplan neemt het over.</h2>

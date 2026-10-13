@@ -10,6 +10,7 @@ import { esc, htmlMail, verstuurMail } from "./mail";
 import { binnenLimiet, DAG } from "./limiet";
 import { foutTekst } from "@/lib/fout";
 import { testmodus } from "./testmodus";
+import { huisstijlUitFormulier } from "./facturen/huisstijl-formulier";
 
 export type Resultaat = { ok: true; melding: string } | { ok: false; fout: string };
 
@@ -42,8 +43,8 @@ export async function bedrijfOpslaan(fd: FormData): Promise<void> {
 async function logoUitFormulier(fd: FormData): Promise<Record<string, unknown> | string> {
   const logo = fd.get("logo");
   if (!(logo instanceof File) || logo.size === 0) return {};
-  // Geen SVG: daar kan code in staan.
-  if (!["image/png", "image/jpeg", "image/webp"].includes(logo.type)) return "Logo moet PNG, JPG of WEBP zijn.";
+  // Alleen PNG en JPG (die kunnen in de PDF). Geen SVG: daar kan code in staan.
+  if (!["image/png", "image/jpeg"].includes(logo.type)) return "Logo moet PNG of JPG zijn.";
   if (logo.size > 2 * 1024 * 1024) return "Logo groter dan 2 MB.";
   return { logo: new Uint8Array(await logo.arrayBuffer()), logoMime: logo.type, logoPad: `db:logo.${logo.type.split("/")[1]}` };
 }
@@ -52,21 +53,29 @@ export async function facturenOpslaan(fd: FormData): Promise<Resultaat> {
   const o = await schrijfOnderneming();
   await logNu(o.id, "Factuurinstellingen gewijzigd");
   const volgnr = Number(fd.get("factuurVolgnr") ?? o.factuurVolgnr);
-  const kleur = v(fd, "huisstijlKleur") ?? "#1c1917";
-  if (!/^#[0-9a-fA-F]{6}$/.test(kleur)) return { ok: false, fout: "Kleur moet een hex-code zijn, zoals #1c1917." };
-  const data: Record<string, unknown> = {
-    factuurPrefix: v(fd, "factuurPrefix") ?? "", offertePrefix: v(fd, "offertePrefix") ?? "OFF-",
-    factuurVolgnr: Number.isFinite(volgnr) ? Math.max(o.factuurVolgnr, volgnr) : o.factuurVolgnr,
-    betaaltermijn: Number(fd.get("betaaltermijn") ?? 14) || 14, factuurVoettekst: v(fd, "factuurVoettekst"),
-    huisstijlKleur: kleur, herinneringAuto: fd.get("herinneringAuto") === "on",
-    herinneringTekst1: v(fd, "herinneringTekst1"), herinneringTekst2: v(fd, "herinneringTekst2"), herinneringTekst3: v(fd, "herinneringTekst3"),
-  };
-  const logo = await logoUitFormulier(fd);
-  if (typeof logo === "string") return { ok: false, fout: logo };
-  Object.assign(data, logo);
-  await db.onderneming.update({ where: { id: o.id }, data });
+  // Logo, kleuren, lettertype, lay-out en voettekst horen bij de huisstijl (huisstijlOpslaan).
+  await db.onderneming.update({
+    where: { id: o.id },
+    data: {
+      factuurPrefix: v(fd, "factuurPrefix") ?? "", offertePrefix: v(fd, "offertePrefix") ?? "OFF-",
+      factuurVolgnr: Number.isFinite(volgnr) ? Math.max(o.factuurVolgnr, volgnr) : o.factuurVolgnr,
+      betaaltermijn: Number(fd.get("betaaltermijn") ?? 14) || 14, herinneringAuto: fd.get("herinneringAuto") === "on",
+      herinneringTekst1: v(fd, "herinneringTekst1"), herinneringTekst2: v(fd, "herinneringTekst2"), herinneringTekst3: v(fd, "herinneringTekst3"),
+    },
+  });
   revalidatePath("/app");
   return { ok: true, melding: "Factuurinstellingen opgeslagen." };
+}
+
+/** Instellingen > Huisstijl: lay-out, kleuren, lettertype, logo en voettekst van facturen en offertes. */
+export async function huisstijlOpslaan(fd: FormData): Promise<Resultaat> {
+  const o = await schrijfOnderneming();
+  const r = await huisstijlUitFormulier(fd);
+  if (typeof r === "string") return { ok: false, fout: r };
+  await db.onderneming.update({ where: { id: o.id }, data: r.data });
+  await logNu(o.id, "Huisstijl gewijzigd", `lay-out ${r.stijl.layout}, lettertype ${r.stijl.letter}`);
+  revalidatePath("/app");
+  return { ok: true, melding: "Huisstijl opgeslagen. Facturen en offertes gebruiken hem meteen, ook als je een oudere opnieuw downloadt." };
 }
 
 export async function fiscaalOpslaan(fd: FormData): Promise<void> {

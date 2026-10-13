@@ -84,7 +84,7 @@ function Chevron() {
 function AiBalk() {
   const voorbeelden = ["Hoeveel btw moet ik dit kwartaal betalen?", "Welke facturen staan open?", "Wat was mijn grootste kostenpost vorige maand?"];
   return (
-    <section className="ai-balk" aria-label="Vraag het Saldoplan">
+    <section className="ai-balk" aria-label="Vraag het Saldoplan" data-tour="vraag">
       <div className="ai-balk-binnen">
         <form action="/app/assistent" method="get" className="flex items-center gap-3 px-4 py-3 sm:px-5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center text-primair" aria-hidden>

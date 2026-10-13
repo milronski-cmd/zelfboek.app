@@ -68,14 +68,14 @@ export function BotPaneel({ dicht, verborgen }: { dicht: boolean; verborgen: boo
   if (verborgen) return paneel;
   return (
     <>
-      <div className={`bot-mini mb-2 ${dicht ? "md:hidden" : ""}`}>
+      <div data-tour="bot" className={`bot-mini mb-2 ${dicht ? "md:hidden" : ""}`}>
         <button type="button" onClick={toon} className="bot-mini-vak" aria-haspopup="dialog" aria-expanded={open}>
           <span className="shrink-0 text-primair"><Sterretje size={18} /></span>
           <span className="min-w-0 flex-1 truncate font-medium">Vraag het Saldoplan</span>
           <kbd className="rounded border border-lijn-2 bg-papier px-1 font-sans text-[10px] leading-[16px] text-tekst-3">⌘K</kbd>
         </button>
       </div>
-      <div className={`bot-mini mb-2 ${dicht ? "hidden md:flex md:justify-center" : "hidden"}`}>
+      <div data-tour="bot" className={`bot-mini mb-2 ${dicht ? "hidden md:flex md:justify-center" : "hidden"}`}>
         <button type="button" onClick={toon} className="bot-mini-vak bot-mini-rond" aria-label="Vraag het Saldoplan" title="Vraag het Saldoplan (⌘K)" aria-haspopup="dialog" aria-expanded={open}>
           <span className="text-primair"><Sterretje size={18} /></span>
         </button>

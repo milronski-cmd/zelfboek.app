@@ -63,7 +63,7 @@ export default async function WelkomPagina({ searchParams }: { searchParams: Pro
                 <div className="mt-3 space-y-3">
                   <div>
                     <label className="lbl" htmlFor="logo">Logo (PNG of JPG)</label>
-                    <input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm" />
+                    <input id="logo" name="logo" type="file" accept="image/png,image/jpeg" className="block w-full text-sm" />
                   </div>
                   <div className="flex items-center gap-3">
                     <input id="huisstijlKleur" name="huisstijlKleur" type="color" defaultValue={o.huisstijlKleur} className="h-10 w-14 cursor-pointer rounded border border-lijn" />

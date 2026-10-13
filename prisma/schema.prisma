@@ -20,7 +20,10 @@ model Gebruiker {
   totpLaatsteStap Int? // laatst gebruikte tijdstap: dezelfde app-code werkt maar één keer
   geblokkeerd     Boolean        @default(false) // door een beheerder: niet meer inloggen, sessies weg
   geblokkeerdOm   String? // reden (alleen voor beheer)
+  introKeuze      String? // welkomstvenster na het aanmaken van een account: call | tour | zelf (leeg = nog niet gezien)
+  introOp         DateTime?
   passkeys        Passkey[]
+  belafspraken    Belafspraak[]
   sessies         Sessie[]
   codes           LoginCode[]
   lidmaatschappen Lidmaatschap[]
@@ -112,6 +115,9 @@ model Onderneming {
   betaaltermijn      Int       @default(14)
   factuurVoettekst   String?
   huisstijlKleur     String    @default("#1c1917")
+  huisstijlKleur2    String? // tweede kleur (tabelkop, lijnen); leeg = hoofdkleur
+  huisstijlLetter    String    @default("helvetica") // helvetica | times
+  factuurLayout      String    @default("klassiek") // klassiek | modern | minimaal | accent; geldt voor facturen én offertes
   herinneringAuto    Boolean   @default(true)
   stripeKlantId      String?
   stripeAbonnementId String?
@@ -579,6 +585,26 @@ model BeheerLog {
 }
 
 /// Feedback uit de app (knop "Feedback" op pc, telefoon en in de mobiele app).
+/// Een nieuwe klant wil gebeld worden (welkomstvenster, "Plan een call"). Beheer ziet ze onder /admin/afspraken.
+model Belafspraak {
+  id            String     @id @default(cuid())
+  gebruikerId   String?
+  gebruiker     Gebruiker? @relation(fields: [gebruikerId], references: [id], onDelete: SetNull)
+  ondernemingId String?
+  email         String
+  naam          String?
+  onderneming   String?
+  telefoon      String?
+  gewenstOp     DateTime // gekozen datum en tijd
+  opmerking     String?
+  status        String     @default("nieuw") // nieuw | bevestigd | gedaan | geannuleerd
+  notitie       String? // interne notitie van de beheerder
+  aangemaakt    DateTime   @default(now())
+  bijgewerkt    DateTime   @updatedAt
+
+  @@index([status, gewenstOp])
+}
+
 model Feedback {
   id             String    @id @default(cuid())
   gebruikerId    String?

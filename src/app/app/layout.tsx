@@ -6,6 +6,9 @@ import { abonnementStatus, geenToegangTekst, huidigeOnderneming, logUit, vereisG
 import { Schil } from "@/components/Schil";
 import { openVragen } from "@/lib/vragen";
 import { isBeheerder, stopMeekijken } from "@/lib/beheer";
+import { Welkomst } from "@/components/Welkomst";
+import { belafspraakPlannen, introKiezen } from "@/lib/acties-intro";
+import { versAccount } from "@/lib/intro";
 
 export const instant = false;
 
@@ -14,6 +17,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const o = await huidigeOnderneming();
   const status = abonnementStatus(o);
   const ingeklapt = (await cookies()).get("zb_zijbalk")?.value === "1";
+  // Welkomstvenster: één keer, alleen voor een vers account (geen oude accounts, geen demo, geen meekijkende beheerder).
+  const g = sessie.gebruiker;
+  const welkomst = !sessie.meekijkerEmail && !o.demoTot && g.introKeuze === null && versAccount(g.aangemaakt);
   const [ondernemingen, ongelezen, twijfel] = await Promise.all([
     db.lidmaatschap.findMany({ where: { gebruikerId: sessie.gebruikerId }, include: { onderneming: true } }),
     db.melding.count({ where: { ondernemingId: o.id, gelezen: false } }),
@@ -66,6 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </p>
       )}
       {children}
+      {welkomst && <Welkomst naam={g.naam?.split(" ")[0] ?? null} kies={introKiezen} plan={belafspraakPlannen} />}
     </Schil>
   );
 }

@@ -2,10 +2,10 @@
 
 import { useId, useState } from "react";
 
-type Props = { name?: string; accept: string; required?: boolean; hint?: string; id?: string; multiple?: boolean };
+type Props = { name?: string; accept: string; required?: boolean; hint?: string; id?: string; multiple?: boolean; onBestanden?: (bestanden: File[]) => void };
 
 /** Nette vervanger van <input type="file">: toont de gekozen bestandsnaam, werkt ook met slepen. */
-export function Bestandskiezer({ name = "bestand", accept, required, hint, id, multiple }: Props) {
+export function Bestandskiezer({ name = "bestand", accept, required, hint, id, multiple, onBestanden }: Props) {
   const eigenId = useId();
   const inputId = id ?? eigenId;
   const [namen, setNamen] = useState<string[]>([]);
@@ -34,7 +34,7 @@ export function Bestandskiezer({ name = "bestand", accept, required, hint, id, m
         required={required}
         multiple={multiple}
         className="sr-only"
-        onChange={(e) => setNamen(Array.from(e.target.files ?? []).map((f) => f.name))}
+        onChange={(e) => { const b = Array.from(e.target.files ?? []); setNamen(b.map((f) => f.name)); onBestanden?.(b); }}
       />
     </label>
   );

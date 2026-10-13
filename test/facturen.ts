@@ -37,6 +37,22 @@ const f: any = { id: "f1", ondernemingId: "o1", nummer: "2026-0001", soort: "fac
   writeFileSync("test/uit/offerte.pdf", offertePdf);
   if (offertePdf.length < 1024) throw new Error("offerte-PDF fout");
 
+  // Elke lay-out met elk lettertype, als factuur en als offerte, plus een lange factuur (meer pagina's: rand en tabelkop op elke pagina).
+  const { LAYOUTS, LETTERS } = await import("../src/lib/facturen/huisstijl");
+  const veel = Array.from({ length: 45 }, (_, i) => ({ omschrijving: `Regel ${i + 1}: werkzaamheden volgens afspraak`, aantal: 1, prijs: 10 + i, btw: 21, eenheid: "uur" }));
+  for (const l of LAYOUTS) {
+    for (const t of LETTERS) {
+      const stijl = { layout: l.k, letter: t.k, kleur: "#0a7ea3", kleur2: l.k === "accent" ? "#2b8273" : null, voettekst: o.factuurVoettekst as string };
+      const a = await maakPdf(o, klant, { soort: "factuur", nummer: `F-${l.k}`, datum: f.datum, tweedeDatum: f.vervaldatum, regels, btwVerlegd: false, betaalLink: f.betaalLinkUrl }, stijl);
+      const b = await maakPdf(o, klant, { soort: "offerte", nummer: `O-${l.k}`, datum: f.datum, tweedeDatum: f.vervaldatum, regels, btwVerlegd: false }, stijl);
+      const c = await maakPdf(o, klant, { soort: "factuur", nummer: `L-${l.k}`, datum: f.datum, tweedeDatum: f.vervaldatum, regels: veel, btwVerlegd: false }, stijl);
+      if (t.k === "helvetica") { writeFileSync(`test/uit/factuur-${l.k}.pdf`, a); writeFileSync(`test/uit/offerte-${l.k}.pdf`, b); writeFileSync(`test/uit/factuur-${l.k}-lang.pdf`, c); }
+      for (const p of [a, b, c]) if (p.length < 1024 || p.subarray(0, 4).toString() !== "%PDF") throw new Error(`lay-out ${l.k}/${t.k} fout`);
+      if ((c.toString("latin1").match(/\/Type \/Page(?!s)/g) ?? []).length < 2) throw new Error(`lange factuur ${l.k} heeft maar één pagina`);
+    }
+  }
+  console.log("lay-outs OK:", LAYOUTS.map((l) => l.k).join(", "));
+
   const xml = maakUbl(f, klant, o);
   writeFileSync("test/uit/factuur.xml", xml);
   const p = new XMLParser({ ignoreAttributes: false });

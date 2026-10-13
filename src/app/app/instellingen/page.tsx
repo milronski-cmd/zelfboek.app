@@ -2,12 +2,13 @@ import { randomBytes } from "crypto";
 import { kvkAan } from "@/lib/kvk";
 import { cookies } from "next/headers";
 import { AccountInstellingen } from "@/components/AccountInstellingen";
-import { Bestandskiezer } from "@/components/Bestandskiezer";
+import { HuisstijlOntwerper } from "@/components/HuisstijlOntwerper";
 import Link from "next/link";
 import { db, huidigeOnderneming } from "@/lib/db";
 import { abonnementStatus, vereisGebruiker } from "@/lib/auth";
 import { datumNl } from "@/lib/btw";
-import { bedrijfOpslaan, bedrijfUitKvk, facturenOpslaan, fiscaalOpslaan, lidToevoegen, lidVerwijderen, ondernemingVerwijderen, smtpTest } from "@/lib/acties-instellingen";
+import { bedrijfOpslaan, bedrijfUitKvk, facturenOpslaan, fiscaalOpslaan, huisstijlOpslaan, lidToevoegen, lidVerwijderen, ondernemingVerwijderen, smtpTest } from "@/lib/acties-instellingen";
+import { isLayout, isLetter } from "@/lib/facturen/huisstijl";
 import { FormulierMetMelding } from "@/components/FormulierMetMelding";
 import { Kop, Melding, Pil, knop, knopLicht, veld } from "@/components/ui";
 
@@ -16,7 +17,7 @@ const ALLES_ZIP = "/api/exports/alles"; // download, geen paginanavigatie
 export const instant = false;
 
 const tabs = [
-  { k: "bedrijf", l: "Bedrijf" }, { k: "facturen", l: "Facturen" }, { k: "fiscaal", l: "Belasting" },
+  { k: "bedrijf", l: "Bedrijf" }, { k: "facturen", l: "Facturen" }, { k: "huisstijl", l: "Huisstijl" }, { k: "fiscaal", l: "Belasting" },
   { k: "account", l: "Inloggen en weergave" }, { k: "team", l: "Team" }, { k: "email", l: "E-mail" }, { k: "abonnement", l: "Abonnement" }, { k: "gevaar", l: "Verwijderen" },
 ];
 
@@ -103,16 +104,7 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
             <Veld naam="factuurVolgnr" label="Laatste factuurnummer" type="number" waarde={String(o.factuurVolgnr)} hint="Alleen verhogen, bijvoorbeeld als je overstapt." />
             <Veld naam="offertePrefix" label="Offerteprefix" waarde={o.offertePrefix} />
             <Veld naam="betaaltermijn" label="Betaaltermijn in dagen" type="number" waarde={String(o.betaaltermijn)} />
-            <Veld naam="huisstijlKleur" label="Huisstijlkleur" waarde={o.huisstijlKleur} hint="Hex-code, bijvoorbeeld #1e6b47." />
-            <div>
-              <label className="lbl" htmlFor="logo">Logo</label>
-              <Bestandskiezer id="logo" name="logo" accept="image/png,image/jpeg,image/webp" hint="PNG, JPG of WebP" />
-              <p className="mt-1 text-[13px] text-tekst-3">{o.logoPad ? "Er staat een logo. Upload een nieuw bestand om het te vervangen." : "PNG, JPG, WEBP of SVG, tot 2 MB."}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="lbl" htmlFor="factuurVoettekst">Voettekst op facturen</label>
-              <textarea id="factuurVoettekst" name="factuurVoettekst" defaultValue={o.factuurVoettekst ?? ""} rows={3} className={veld} />
-            </div>
+            <p className="text-[13px] text-tekst-3 sm:col-span-2">Logo, kleuren, lettertype en lay-out van facturen en offertes stel je in onder <Link href="/app/instellingen?tab=huisstijl" className="underline">Huisstijl</Link>.</p>
             <div className="sm:col-span-2">
               <Vinkje naam="herinneringAuto" label="Herinneringen automatisch versturen" uitleg="Na 7, 21 en 35 dagen over de vervaldatum, met de wettelijke rente en kosten bij de laatste." aan={o.herinneringAuto} />
               <details className="mt-3 rounded-lg border border-lijn px-4 py-3">
@@ -128,6 +120,20 @@ export default async function Instellingen({ searchParams }: { searchParams: Pro
             </div>
           </div>
         </FormulierMetMelding>
+      )}
+
+      {tab === "huisstijl" && (
+        <HuisstijlOntwerper
+          actie={huisstijlOpslaan}
+          start={{
+            layout: isLayout(o.factuurLayout) ? o.factuurLayout : "klassiek",
+            kleur: /^#[0-9a-f]{6}$/i.test(o.huisstijlKleur) ? o.huisstijlKleur.toLowerCase() : "#1c1917",
+            kleur2: o.huisstijlKleur2 && /^#[0-9a-f]{6}$/i.test(o.huisstijlKleur2) ? o.huisstijlKleur2.toLowerCase() : null,
+            letter: isLetter(o.huisstijlLetter) ? o.huisstijlLetter : "helvetica",
+            heeftLogo: Boolean(o.logo?.length) || Boolean(o.logoPad && !o.logoPad.startsWith("db:")),
+            voettekst: o.factuurVoettekst ?? "",
+          }}
+        />
       )}
 
       {tab === "fiscaal" && (

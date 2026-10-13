@@ -8,6 +8,7 @@ Dit is de webapp (inloggen, boekhouding, API's, webhooks, cron), bedoeld voor `a
 
 **Account**
 - Inloggen met e-mailcode, geen wachtwoord. Meerdere ondernemingen per gebruiker, teamleden met rol.
+- Welkomstvenster na het aanmaken van een account: een call inplannen (werkdagen 9 tot 17 uur; beheer krijgt een mail, de klant een bevestiging), een rondleiding langs de belangrijkste onderdelen, of eerst zelf kijken. De rondleiding staat ook in het accountmenu; afspraken staan onder `/admin/afspraken`.
 - Abonnement via Stripe Checkout met proefperiode, klantportaal, webhook voor actief/achterstallig/gestopt.
 
 **Koppelen met één knop (geen sleutels voor de klant)**
@@ -28,7 +29,7 @@ Dit is de webapp (inloggen, boekhouding, API's, webhooks, cron), bedoeld voor `a
 
 **Facturen, offertes, klanten**
 - Facturen met automatische nummering, producten, btw verlegd bij EU-klanten, KOR, creditfacturen, deelbetalingen, afletteren met bankregels.
-- PDF met logo en huisstijl, UBL 2.1 e-factuur (Peppol BIS 3 / NLCIUS), verzenden per e-mail, iDEAL-betaallink via Mollie met webhook.
+- Eén huisstijl voor facturen, creditfacturen en offertes (Instellingen, Huisstijl): kies uit vier lay-outs (klassiek, modern, minimaal, accent), twee kleuren, lettertype (schreefloos of met schreef), eigen logo en voettekst, met een voorbeeld-PDF die meteen meeverandert. UBL 2.1 e-factuur (Peppol BIS 3 / NLCIUS), verzenden per e-mail, iDEAL-betaallink via Mollie met webhook.
 - Automatische herinneringen in drie trappen (7, 21, 35 dagen) met wettelijke rente en incassokosten volgens de WIK-staffel.
 - Terugkerende facturen (week, maand, kwartaal, jaar) met automatisch verzenden.
 - Offertes met publieke accepteerpagina, omzetten naar factuur. Uren naar factuur.

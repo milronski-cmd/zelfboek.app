@@ -7,6 +7,7 @@ import { Beeldmerk, Woordmerk } from "@/components/Merk";
 import { Icoon, type IcoonNaam } from "@/components/Iconen";
 import { BotPaneel } from "@/components/BotPaneel";
 import { FeedbackKnop, FeedbackVenster } from "@/components/Feedback";
+import { Rondleiding, RondleidingKnop } from "@/components/Rondleiding";
 
 type Kind = { href: string; label: string };
 type Item = { href?: string; label: string; icoon: IcoonNaam; teller?: number; kinderen?: Kind[] };
@@ -32,6 +33,9 @@ const NIEUW: { href: string; label: string; icoon: IcoonNaam }[] = [
   { href: "/app/uren", label: "Uren", icoon: "uren" },
 ];
 
+/** Namen voor de rondleiding (data-tour), dezelfde in de zijbalk en de onderbalk. */
+const TOUR: Record<string, string> = { "/app": "overzicht", "/app/bank": "bank", "/app/bonnen": "bonnen", "/app/facturen": "facturen", "/app/offertes": "offertes", "/app/btw": "btw", "/app/koppelingen": "koppelingen" };
+
 function Chevron({ open, className = "" }: { open?: boolean; className?: string }) {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 transition-transform ${open ? "rotate-180" : ""} ${className}`} aria-hidden>
@@ -47,6 +51,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
   const [dicht, setDicht] = useState(ingeklapt);
   const [handmatig, setHandmatig] = useState<Record<string, boolean>>({});
   const zoekveld = useRef<HTMLInputElement>(null);
+  const groep = useRef<HTMLLIElement>(null);
 
   // "/" zet de cursor in het zoekveld; uitklapmenu's in de topbalk sluiten bij een klik ernaast.
   useEffect(() => {
@@ -69,12 +74,12 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
     { href: "/app/bank", label: "Bank", icoon: "bank", teller: tellers.bank },
     { href: "/app/bonnen", label: "Bonnen", icoon: "bon" },
     { href: "/app/facturen", label: "Facturen", icoon: "factuur" },
+    { href: "/app/offertes", label: "Offertes", icoon: "offerte" },
     { href: "/app/btw", label: "Btw-aangifte", icoon: "btw" },
     { href: "/app/koppelingen", label: "Koppelingen", icoon: "koppel" },
     {
       label: "Meer", icoon: "meer", teller: tellers.meldingen,
       kinderen: [
-        { href: "/app/offertes", label: "Offertes" },
         { href: "/app/klanten", label: "Klanten" },
         { href: "/app/producten", label: "Producten" },
         { href: "/app/terugkerend", label: "Vaste facturen" },
@@ -107,7 +112,12 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
   const beste = routes.filter((h) => (h === "/app" ? pad === "/app" : pad === h || pad.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0];
   const actief = (href?: string) => Boolean(href) && href === beste;
   const groepOpen = (it: Item) => handmatig[it.label] ?? (it.kinderen ?? []).some((k) => actief(k.href));
-  const toggleGroep = (it: Item) => setHandmatig((h) => ({ ...h, [it.label]: !groepOpen(it) }));
+  // Openklappen is een animatie van ~220ms; daarna de groep in beeld scrollen als hij onder de rand valt.
+  const toggleGroep = (it: Item) => {
+    const open = !groepOpen(it);
+    setHandmatig((h) => ({ ...h, [it.label]: open }));
+    if (open) window.setTimeout(() => groep.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 240);
+  };
   const toggleDicht = () => {
     const v = !dicht;
     setDicht(v);
@@ -155,8 +165,8 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
                 </>
               );
               return (
-                <li key={it.label}>
-                  <div className={`nav-item ${a ? "nav-item-actief" : ""} ${dicht ? "md:justify-center md:px-0" : ""}`} title={dicht ? it.label : undefined}>
+                <li key={it.label} ref={it.kinderen ? groep : undefined}>
+                  <div data-tour={it.href ? TOUR[it.href] : "meer"} className={`nav-item ${a ? "nav-item-actief" : ""} ${dicht ? "md:justify-center md:px-0" : ""}`} title={dicht ? it.label : undefined}>
                     {it.href || dicht ? (
                       <Link href={href ?? "/app"} aria-current={a ? "page" : undefined} onClick={sluit} className={`flex min-w-0 flex-1 items-center gap-2.5 ${dicht ? "md:flex-none" : ""}`}>{inhoud}</Link>
                     ) : (
@@ -168,14 +178,16 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
                       </button>
                     )}
                   </div>
-                  {it.kinderen && open && (
-                    <ul className={`mt-0.5 space-y-0.5 ${verborgen}`}>
-                      {it.kinderen.map((k) => (
-                        <li key={k.href}>
-                          <Link href={k.href} aria-current={actief(k.href) ? "page" : undefined} onClick={sluit} className={`nav-item nav-sub ${actief(k.href) ? "nav-item-actief" : ""}`}>{k.label}</Link>
-                        </li>
-                      ))}
-                    </ul>
+                  {it.kinderen && (
+                    <div className={`nav-groep ${open ? "nav-groep-open" : ""} ${verborgen}`} inert={!open}>
+                      <ul className="nav-groep-lijst space-y-0.5">
+                        {it.kinderen.map((k) => (
+                          <li key={k.href}>
+                            <Link href={k.href} aria-current={actief(k.href) ? "page" : undefined} onClick={sluit} tabIndex={open ? undefined : -1} className={`nav-item nav-sub ${actief(k.href) ? "nav-item-actief" : ""}`}>{k.label}</Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </li>
               );
@@ -200,7 +212,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
         <header className="topbalk sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-lijn bg-white px-4 md:px-6">
           <Link href="/app" className="shrink-0 md:hidden" aria-label="Naar het overzicht"><Beeldmerk size={28} /></Link>
 
-          <form action="/app/zoeken" method="get" role="search" className="relative w-full max-w-md">
+          <form action="/app/zoeken" method="get" role="search" data-tour="zoeken" className="relative w-full max-w-md">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tekst-3" aria-hidden>
               <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
             </svg>
@@ -209,7 +221,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
           </form>
 
           <div className="ml-auto flex items-center gap-1.5">
-            <details className="menu relative">
+            <details className="menu relative" data-tour="toevoegen">
               <summary className="knop">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
                 <span className="hidden sm:inline">Toevoegen</span>
@@ -233,6 +245,7 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
                 <Link href="/app/instellingen">Instellingen</Link>
                 <Link href="/app/instellingen?tab=abonnement">Abonnement <span className="ml-auto text-[12px] text-tekst-3">{status.tekst}</span></Link>
                 <FeedbackKnop className="w-full text-left">Feedback geven</FeedbackKnop>
+                <RondleidingKnop className="w-full text-left">Rondleiding</RondleidingKnop>
                 {beheerder && <Link href="/admin">Beheer</Link>}
                 <hr />
                 <form action={uitloggen}><button type="submit">Uitloggen</button></form>
@@ -250,20 +263,21 @@ export function Schil({ onderneming, ondernemingen, email, status, tellers, inge
         {onder.map((o) => {
           const a = o.href === "/app" ? pad === "/app" : pad === o.href || pad.startsWith(`${o.href}/`);
           return (
-            <Link key={o.href} href={o.href} aria-current={a ? "page" : undefined} className={`relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium ${a ? "text-primair-tekst" : "text-tekst-2"}`}>
+            <Link key={o.href} href={o.href} data-tour={TOUR[o.href]} aria-current={a ? "page" : undefined} className={`relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium ${a ? "text-primair-tekst" : "text-tekst-2"}`}>
               <Icoon naam={o.icoon} size={22} />
               {o.label}
               {o.teller ? <span className="absolute right-[22%] top-1 min-w-[16px] rounded-full bg-rood px-1 text-center text-[10px] font-bold leading-[16px] text-white">{o.teller}</span> : null}
             </Link>
           );
         })}
-        <button type="button" onClick={() => { setHandmatig((h) => ({ ...h, Meer: true })); setMenuOpen(true); }} aria-expanded={menuOpen} aria-controls="menu" className="relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium text-tekst-2">
+        <button type="button" data-tour="meer" onClick={() => { setHandmatig((h) => ({ ...h, Meer: true })); setMenuOpen(true); }} aria-expanded={menuOpen} aria-controls="menu" className="relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium text-tekst-2">
           <Icoon naam="meer" size={22} />
           Meer
           {tellers.meldingen ? <span className="absolute right-[22%] top-1.5 h-2 w-2 rounded-full bg-rood" /> : null}
         </button>
       </nav>
       <FeedbackVenster />
+      <Rondleiding />
     </div>
   );
 }

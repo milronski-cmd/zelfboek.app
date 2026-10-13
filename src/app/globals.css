@@ -260,6 +260,10 @@ label.lbl { display: block; font-size: 13px; font-weight: 500; color: var(--teks
 .nav-chevron:hover { background: rgba(26, 31, 54, 0.06); color: var(--tekst); }
 .nav-item-actief .nav-chevron { color: rgba(255, 255, 255, 0.8); }
 .nav-item-actief .nav-chevron:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+/* Uitklapgroep ("Meer"): de rij groeit vloeiend van 0fr naar 1fr en vervaagt mee; dicht is de lijst onbereikbaar (inert). */
+.nav-groep { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .22s ease, opacity .14s ease; }
+.nav-groep-open { grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows .22s ease, opacity .18s ease .06s; }
+.nav-groep-lijst { min-height: 0; overflow: hidden; padding-top: 2px; }
 
 /* Uitklapmenu in de topbalk, op basis van <details>. */
 .menu > summary { list-style: none; cursor: pointer; }
@@ -334,6 +338,51 @@ label.lbl { display: block; font-size: 13px; font-weight: 500; color: var(--teks
   border-radius: 999px; color: var(--tekst-2); cursor: pointer;
 }
 .iconknop:hover { background: var(--papier); color: var(--tekst); }
+
+/* Welkomstvenster na het aanmaken van een account: wazige dimming, kaart die zacht omhoog komt, keuzes die na elkaar verschijnen. */
+@keyframes welkomst-achter-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes welkomst-achter-uit { from { opacity: 1; } to { opacity: 0; } }
+@keyframes welkomst-in { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes welkomst-uit { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(10px) scale(.97); } }
+@keyframes welkomst-wissel { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+.welkomst-achter { background: rgba(26, 31, 54, 0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: welkomst-achter-in .3s ease-out both; }
+.welkomst-achter.uit { animation: welkomst-achter-uit .25s ease-in both; }
+.welkomst-kaart {
+  animation: welkomst-in .4s cubic-bezier(.2, .8, .2, 1) both;
+  box-shadow: 0 0 0 1px rgba(26, 31, 54, 0.06), 0 30px 80px -24px rgba(26, 31, 54, 0.5), 0 0 60px rgba(29, 177, 223, 0.18);
+}
+.welkomst-kaart.uit { animation: welkomst-uit .22s ease-in both; pointer-events: none; }
+.welkomst-stap { animation: welkomst-wissel .28s ease-out both; }
+.welkomst-keuze {
+  animation: welkom-in .4s ease-out both;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.welkomst-keuze:hover { transform: translateY(-2px); border-color: var(--primair); box-shadow: 0 10px 24px -12px rgba(26, 31, 54, 0.35), 0 0 0 1px var(--primair); }
+.welkomst-keuze:active { transform: translateY(0); }
+.welkomst-slot { transition: background-color .15s, color .15s, box-shadow .15s; }
+
+/* Rondleiding: een uitsparing (spotlight) die zacht van onderdeel naar onderdeel glijdt, met een kaartje ernaast. */
+@keyframes tour-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tour-uit { from { opacity: 1; } to { opacity: 0; } }
+@keyframes tour-kaart-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes tour-puls { 0% { box-shadow: 0 0 0 9999px rgba(26, 31, 54, 0.55), 0 0 0 0 rgba(29, 177, 223, .55); } 100% { box-shadow: 0 0 0 9999px rgba(26, 31, 54, 0.55), 0 0 0 10px rgba(29, 177, 223, 0); } }
+.tour { animation: tour-in .3s ease-out both; }
+.tour.uit { animation: tour-uit .22s ease-in both; pointer-events: none; }
+.tour-gat {
+  position: fixed; border-radius: 10px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(26, 31, 54, 0.55);
+  transition: top .4s cubic-bezier(.2, .8, .2, 1), left .4s cubic-bezier(.2, .8, .2, 1), width .4s cubic-bezier(.2, .8, .2, 1), height .4s cubic-bezier(.2, .8, .2, 1), opacity .3s;
+}
+.tour-gat.rust { animation: tour-puls 1.6s ease-out .4s infinite; }
+.tour-kaart {
+  position: fixed; width: min(360px, calc(100vw - 24px));
+  transition: top .4s cubic-bezier(.2, .8, .2, 1), left .4s cubic-bezier(.2, .8, .2, 1);
+  box-shadow: 0 0 0 1px rgba(26, 31, 54, 0.06), 0 24px 60px -20px rgba(26, 31, 54, 0.5), 0 0 40px rgba(29, 177, 223, 0.16);
+}
+.tour-tekst { animation: tour-kaart-in .3s ease-out both; }
+.tour-stip { width: 6px; height: 6px; border-radius: 999px; background: var(--lijn-2); transition: width .3s, background-color .3s; }
+.tour-stip.nu { width: 18px; background: var(--primair); }
+.tour-stip.gedaan { background: var(--primair); opacity: .5; }
 }
 
 :focus-visible { outline: 2px solid var(--primair); outline-offset: 2px; }

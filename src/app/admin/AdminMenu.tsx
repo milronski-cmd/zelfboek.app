@@ -7,6 +7,7 @@ const ITEMS = [
   { href: "/admin", label: "Cijfers" },
   { href: "/admin/klanten", label: "Klanten" },
   { href: "/admin/feedback", label: "Feedback" },
+  { href: "/admin/afspraken", label: "Afspraken" },
   { href: "/admin/storingen", label: "Storingen" },
   { href: "/admin/logboek", label: "Logboek" },
 ];

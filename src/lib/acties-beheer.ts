@@ -65,3 +65,19 @@ export async function feedbackStatusActie(fd: FormData) {
   revalidatePath("/admin", "layout");
   redirect(`/admin/feedback${filter ? `?status=${encodeURIComponent(filter)}` : ""}#f-${id}`);
 }
+
+const AFSPRAAK_STATUS = ["nieuw", "bevestigd", "gedaan", "geannuleerd"] as const;
+
+/** Beheer > Afspraken: status en notitie van een belafspraak. */
+export async function belafspraakStatusActie(fd: FormData) {
+  const beheerder = await vereisBeheerder();
+  const id = String(fd.get("id") ?? "");
+  const status = String(fd.get("status") ?? "");
+  if (!AFSPRAAK_STATUS.includes(status as (typeof AFSPRAAK_STATUS)[number])) throw new Error("Onbekende status.");
+  const notitie = fd.has("notitie") ? String(fd.get("notitie") ?? "").slice(0, 1000) || null : undefined;
+  const a = await db.belafspraak.update({ where: { id }, data: { status, ...(notitie !== undefined ? { notitie } : {}) } });
+  await beheerLog(beheerder, `Belafspraak op "${status}"`, { gebruikerId: a.gebruikerId, ondernemingId: a.ondernemingId, doel: a.email });
+  const filter = String(fd.get("filter") ?? "");
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/afspraken${filter ? `?status=${encodeURIComponent(filter)}` : ""}#a-${id}`);
+}
