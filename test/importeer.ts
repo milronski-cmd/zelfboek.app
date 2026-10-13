@@ -41,6 +41,21 @@ const db = new PrismaClient();
     const ppRegels = await db.transactie.count({ where: { ondernemingId: o.id, bron: "paypal" } });
     if (pp.nieuw !== 2 || ppRegels !== 2) throw new Error("paypal: " + JSON.stringify(pp));
     console.log("ok  PayPal CSV (omzet + kosten)");
+
+    // Dezelfde bankregel bij twee verschillende ondernemingen: bankregels zijn alleen dubbel binnen
+    // dezelfde onderneming. De hash-kolom is in de databank wél uniek over álle ondernemingen, dus
+    // zonder deze controle verdween de regel van de tweede klant stil als 'dubbel overgeslagen'.
+    const o2 = await db.onderneming.create({ data: { naam: "Test import tweede klant" } });
+    try {
+      const nog = parseBankbestand(csv, "ing.csv");
+      const b1 = await importeerRegels(o2.id, nog.regels, { bron: "csv", bank: nog.bank, eigenIban: nog.eigenIban, beoordeel: false });
+      if (b1.nieuw !== 2 || b1.dubbel !== 0) throw new Error("tweede onderneming raakt regels kwijt: " + JSON.stringify(b1));
+      const b2 = await importeerRegels(o2.id, nog.regels, { bron: "csv", bank: nog.bank, eigenIban: nog.eigenIban, beoordeel: false });
+      if (b2.nieuw !== 0 || b2.dubbel !== 2) throw new Error("dubbelen bij dezelfde onderneming: " + JSON.stringify(b2));
+      console.log("ok  zelfde regel bij twee ondernemingen blijft bij allebei staan");
+    } finally {
+      await db.onderneming.delete({ where: { id: o2.id } });
+    }
     console.log("IMPORT OK");
   } finally {
     await db.transactie.deleteMany({ where: { ondernemingId: o.id } });

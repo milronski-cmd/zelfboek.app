@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { db } from "@/lib/db";
+import { voegTransactieToe } from "@/lib/bank/importeer";
 import { datum, getal, maakHash } from "@/lib/bank/csv";
 import { BTW_CODES, CATEGORIEEN, CATEGORIE_INFO, type Categorie } from "@/lib/categorieen";
 
@@ -57,13 +57,11 @@ export async function importeerExcel(ondernemingId: string, bestand: Buffer): Pr
     const categorie = (CATEGORIEEN as string[]).includes(catRuw) ? (catRuw as Categorie) : null;
     const btwRuw = cel(rij, iBtw).trim().toLowerCase().replace("%", "");
     const btwCode = (BTW_CODES as readonly string[]).includes(btwRuw) ? btwRuw : null;
-    const res = await db.transactie.createMany({
-      data: [{
-        ondernemingId, datum: d, bedrag, tegenpartij: tegen || "Onbekend", omschrijving: oms, hash: maakHash(d, bedrag, tegen, oms, "excel"), bron: "import",
-        categorie, btwCode, zakelijk: categorie ? categorie !== "prive" && categorie !== "overboeking_eigen" : null, bevestigd: !!categorie, zekerheid: categorie ? 1 : null, uitleg: categorie ? "Overgenomen uit Excel" : null,
-      }],
-    }).catch(() => ({ count: 0 }));
-    if (res.count) uit.regels++; else uit.overgeslagen++;
+    const nieuw = await voegTransactieToe(ondernemingId, {
+      datum: d, bedrag, tegenpartij: tegen || "Onbekend", omschrijving: oms, hash: maakHash(d, bedrag, tegen, oms, "excel"), bron: "import",
+      categorie, btwCode, zakelijk: categorie ? categorie !== "prive" && categorie !== "overboeking_eigen" : null, bevestigd: !!categorie, zekerheid: categorie ? 1 : null, uitleg: categorie ? "Overgenomen uit Excel" : null,
+    }).catch(() => 0);
+    if (nieuw) uit.regels++; else uit.overgeslagen++;
   }
   return uit;
 }

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { haalJson, kanaalConfig } from "@/lib/kanalen/basis";
+import { voegTransactieToe } from "@/lib/bank/importeer";
 import { maakHash } from "@/lib/bank/csv";
 import { koppelingStatus } from "@/lib/koppelingen";
 
@@ -77,10 +78,10 @@ export async function importeerMoneybird(ondernemingId: string): Promise<{ klant
       const bedrag = parseFloat(m.amount);
       const tegen = m.contra_account_name ?? "";
       const oms = m.message ?? "";
-      const r = await db.transactie.createMany({
-        data: [{ ondernemingId, datum: d, bedrag, tegenpartij: tegen || "Onbekend", tegenIban: m.contra_account_number ?? null, omschrijving: oms, hash: maakHash(d, bedrag, tegen, oms, `moneybird:${m.id}`), bron: "import", externId: `moneybird:${m.id}` }],
-      }).catch(() => ({ count: 0 }));
-      uit.transacties += r.count;
+      const r = await voegTransactieToe(ondernemingId, {
+        datum: d, bedrag, tegenpartij: tegen || "Onbekend", tegenIban: m.contra_account_number ?? null, omschrijving: oms, hash: maakHash(d, bedrag, tegen, oms, `moneybird:${m.id}`), bron: "import", externId: `moneybird:${m.id}`,
+      }).catch(() => 0);
+      uit.transacties += r;
     }
 
     // Inkoopfacturen → Boekingsregel

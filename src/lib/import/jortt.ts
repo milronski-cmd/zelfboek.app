@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { db } from "@/lib/db";
+import { voegTransactieToe } from "@/lib/bank/importeer";
 import { datum, getal, maakHash } from "@/lib/bank/csv";
 import { CATEGORIEEN } from "@/lib/categorieen";
 
@@ -40,13 +41,11 @@ export async function importeerJorttCsv(ondernemingId: string, tekst: string): P
     const categorie = CATEGORIEEN.find((c) => catRuw.includes(c)) ?? (/omzet|verkoop/i.test(catRuw) ? "omzet" : /priv/i.test(catRuw) ? "prive" : null);
     const btwRuw = k(r, /btw.?(tarief|percentage|%)|^btw$/i);
     const btwCode = /21/.test(btwRuw) ? "21" : /9/.test(btwRuw) ? "9" : /verlegd/i.test(btwRuw) ? "verlegd" : /0|geen|vrij/i.test(btwRuw) ? "geen" : null;
-    const res = await db.transactie.createMany({
-      data: [{
-        ondernemingId, datum: d, bedrag, tegenpartij: tegen || "Onbekend", omschrijving: oms, hash: maakHash(d, bedrag, tegen, oms, "jortt"), bron: "import",
-        categorie, btwCode, zakelijk: categorie ? categorie !== "prive" : null, bevestigd: !!categorie, zekerheid: categorie ? 1 : null, uitleg: categorie ? "Overgenomen uit Jortt" : null,
-      }],
-    }).catch(() => ({ count: 0 }));
-    uit.regels += res.count;
+    const nieuw = await voegTransactieToe(ondernemingId, {
+      datum: d, bedrag, tegenpartij: tegen || "Onbekend", omschrijving: oms, hash: maakHash(d, bedrag, tegen, oms, "jortt"), bron: "import",
+      categorie, btwCode, zakelijk: categorie ? categorie !== "prive" : null, bevestigd: !!categorie, zekerheid: categorie ? 1 : null, uitleg: categorie ? "Overgenomen uit Jortt" : null,
+    }).catch(() => 0);
+    uit.regels += nieuw;
   }
   return uit;
 }

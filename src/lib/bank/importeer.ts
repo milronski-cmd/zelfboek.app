@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { winkelSleutel } from "@/lib/vragen";
 import { beoordeelTransacties, BOT_ONBEREIKBAAR } from "@/lib/ai";
 import { btwUitInclusief } from "@/lib/btw";
@@ -17,6 +18,33 @@ export function parseBankbestand(tekst: string, bestandsnaam = ""): ParseResulta
 }
 
 export type ImportUitkomst = { nieuw: number; dubbel: number; bankrekeningId: string | null; beoordeeld: number; aiFout?: string };
+
+export type NieuweTransactie = Omit<Prisma.TransactieUncheckedCreateInput, "ondernemingId" | "hash"> & { hash: string };
+
+/**
+ * Zet één regel in Transactie en vertelt of hij nieuw is (1) of al bij deze klant stond (0).
+ *
+ * De hash-kolom is in de databank uniek over álle ondernemingen, maar een bankregel is alleen dubbel
+ * binnen dezelfde onderneming: twee klanten die op dezelfde dag hetzelfde bedrag aan dezelfde partij
+ * betalen mogen elkaars regel niet kwijtraken (de regel verdween eerder stil als 'dubbel').
+ * Botst de hash met een regel van iemand anders, dan bewaren we deze regel onder een eigen hash.
+ */
+export async function voegTransactieToe(ondernemingId: string, rij: NieuweTransactie): Promise<number> {
+  const poging = (hash: string) =>
+    db.transactie
+      .createMany({ data: [{ ...rij, ondernemingId, hash }] })
+      .then((res) => res.count)
+      .catch((e: unknown) => {
+        if ((e as { code?: string })?.code === "P2002") return null;
+        throw e;
+      });
+
+  const eerste = await poging(rij.hash);
+  if (eerste !== null) return eerste;
+  const bestaand = await db.transactie.findUnique({ where: { hash: rij.hash }, select: { ondernemingId: true } });
+  if (!bestaand || bestaand.ondernemingId === ondernemingId) return 0; // echt een dubbel voor deze klant
+  return (await poging(`${ondernemingId}:${rij.hash}`)) ?? 0;
+}
 
 /**
  * Schrijft bankregels naar Transactie, maakt of vindt de bankrekening op IBAN, slaat dubbelen over (hash)
@@ -40,22 +68,16 @@ export async function importeerRegels(
 
   let nieuw = 0;
   for (const r of regels) {
-    const res = await db.transactie
-      .createMany({
-        data: [{
-          ondernemingId,
-          bankrekeningId,
-          datum: r.datum,
-          bedrag: r.bedrag,
-          tegenpartij: r.tegenpartij || "Onbekend",
-          tegenIban: r.tegenIban ?? null,
-          omschrijving: r.omschrijving,
-          hash: r.hash,
-          bron: opties.bron,
-        }],
-      })
-      .catch((e: unknown) => { if ((e as { code?: string })?.code === "P2002") return { count: 0 }; throw e; });
-    nieuw += res.count;
+    nieuw += await voegTransactieToe(ondernemingId, {
+      bankrekeningId,
+      datum: r.datum,
+      bedrag: r.bedrag,
+      tegenpartij: r.tegenpartij || "Onbekend",
+      tegenIban: r.tegenIban ?? null,
+      omschrijving: r.omschrijving,
+      hash: r.hash,
+      bron: opties.bron,
+    });
   }
   if (bankrekeningId) await db.bankrekening.update({ where: { id: bankrekeningId }, data: { laatsteSync: new Date() } });
 

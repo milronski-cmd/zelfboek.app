@@ -1,6 +1,7 @@
 import { MERK } from "@/lib/merk";
 import { db } from "@/lib/db";
 import { haalJson, kanaalConfig } from "@/lib/kanalen/basis";
+import { voegTransactieToe } from "@/lib/bank/importeer";
 import { maakHash } from "@/lib/bank/csv";
 import { koppelingStatus } from "@/lib/koppelingen";
 
@@ -45,10 +46,10 @@ export async function importeerEboekhouden(ondernemingId: string): Promise<{ kla
       const oms = m.description ?? m.invoiceNumber ?? "";
       if (/Geld|Betaling/i.test(m.type)) {
         const teken = /Uitgegeven|Verstuurd|BetalingVerstuurd/i.test(m.type) ? -1 : 1;
-        const r = await db.transactie.createMany({
-          data: [{ ondernemingId, datum: d, bedrag: teken * Math.abs(bedrag), tegenpartij: oms.slice(0, 60) || "Onbekend", omschrijving: oms, hash: maakHash(d, teken * Math.abs(bedrag), oms, oms, `eboekhouden:${m.id}`), bron: "import", externId: `eboekhouden:${m.id}` }],
-        }).catch(() => ({ count: 0 }));
-        uit.transacties += r.count;
+        const r = await voegTransactieToe(ondernemingId, {
+          datum: d, bedrag: teken * Math.abs(bedrag), tegenpartij: oms.slice(0, 60) || "Onbekend", omschrijving: oms, hash: maakHash(d, teken * Math.abs(bedrag), oms, oms, `eboekhouden:${m.id}`), bron: "import", externId: `eboekhouden:${m.id}`,
+        }).catch(() => 0);
+        uit.transacties += r;
       } else {
         const teken = /Ontvangen|Verkoop/i.test(m.type) ? 1 : -1;
         const r = await db.boekingsregel.createMany({
