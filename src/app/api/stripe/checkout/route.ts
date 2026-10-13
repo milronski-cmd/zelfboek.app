@@ -44,7 +44,10 @@ export async function POST(req: Request) {
     success_url: `${basis}/app/instellingen?tab=abonnement&stripe=gelukt`,
     cancel_url: `${basis}/app/instellingen?tab=abonnement&stripe=geannuleerd`,
     locale: "nl",
+    // Btw-nummer van de klant vragen: Stripe eist dan dat naam en adres van de bestaande klant mogen worden bijgewerkt
+    // (anders weigert Stripe de sessie met "Tax ID collection requires updating business name on the customer").
     tax_id_collection: { enabled: true },
+    customer_update: { name: "auto", address: "auto" },
     automatic_tax: { enabled: false },
   });
   return NextResponse.redirect(sessie.url!, 303);
