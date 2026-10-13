@@ -14,6 +14,9 @@ import { importeerRegels } from "./importeer";
  * zoals in de eerste sandbox), SALTEDGE_SANDBOX="1" (nepbanken van Salt Edge in plaats van de echte bank),
  * SALTEDGE_API_URL (alleen voor tests).
  *
+ * Proef op je eigen pc: zet NEXT_PUBLIC_APP_URL op http://localhost:<poort>, niet op http://127.0.0.1:<poort>.
+ * Salt Edge weigert een terugkeeradres met een IP-adres erin (het antwoord is dan 403 met een HTML-pagina, geen JSON).
+ *
  * Config in koppeling "saltedge": { customerId?, verbindingen: [{ id, bank, tot }] }. Eén klant bij Salt Edge per onderneming,
  * per bank één verbinding; "Toestemming verlengen" maakt geen nieuwe verbinding maar vernieuwt de bestaande (reconnect).
  */
@@ -68,10 +71,17 @@ async function api<T>(pad: string, init?: { method?: string; body?: unknown }): 
   const r = await fetch(url, { method: methode, headers, body: body || undefined, signal: AbortSignal.timeout(30_000) });
   const tekst = await r.text();
   let json: { data?: T; meta?: { next_id?: string | null }; error?: { class?: string; message?: string }; error_class?: string; error_message?: string } = {};
-  try { json = tekst ? JSON.parse(tekst) : {}; } catch { /* geen JSON */ }
+  let geenJson = false;
+  try { json = tekst ? JSON.parse(tekst) : {}; } catch { geenJson = true; /* geen JSON */ }
   if (!r.ok) {
     const klasse = json.error?.class ?? json.error_class ?? "Onbekend";
-    throw new SaltEdgeFout(r.status, klasse, `Salt Edge ${r.status} ${klasse}: ${(json.error?.message ?? json.error_message ?? tekst).slice(0, 200)}`);
+    const bericht = json.error?.message ?? json.error_message;
+    // Een geweigerd verzoek (bijvoorbeeld een terugkeeradres dat hun WAF blokkeert) komt terug als een HTML-pagina in
+    // plaats van JSON; die lap tekst is voor de gebruiker onbruikbaar, dus zeggen we waar het meestal aan ligt.
+    const uitleg = bericht ?? (geenJson
+      ? `Salt Edge weigert dit verzoek (${r.status}). Meestal ligt het aan het terugkeeradres van de app: gebruik https://<domein> of http://localhost:<poort>; een IP-adres zoals 127.0.0.1 wordt geweigerd.`
+      : tekst);
+    throw new SaltEdgeFout(r.status, klasse, `Salt Edge ${r.status} ${klasse}: ${uitleg.slice(0, 240)}`);
   }
   return { data: json.data as T, meta: json.meta };
 }

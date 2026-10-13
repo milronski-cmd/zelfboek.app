@@ -47,6 +47,8 @@ const server = createServer(async (req, res) => {
   const pad = url.pathname.replace(/^\/api\/v6/, "");
   aanroepen.push({ methode: req.method ?? "", pad: `${pad}${url.search}`, headers: req.headers, body: tekst ? JSON.parse(tekst) : null, ruw: tekst });
   const stuur = (status: number, json: unknown) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(json)); };
+  // Zoals de echte Salt Edge: een terugkeeradres met een IP-adres erin wordt met een HTML-pagina geweigerd (geen JSON).
+  if (tekst.includes("127.0.0.1")) { res.writeHead(403, { "Content-Type": "text/html" }); return res.end("<html><head><title>403 Forbidden</title></head><body><center><h1>403 Forbidden</h1></center></body></html>"); }
   if (req.headers["app-id"] !== "test-app" || req.headers.secret !== "test-secret") return stuur(401, { error: { class: "WrongClientCredentials", message: "nee" } });
   const data = (tekst ? JSON.parse(tekst).data : {}) as Record<string, unknown>;
 
@@ -201,6 +203,11 @@ const server = createServer(async (req, res) => {
     const sb = (aanroepen.filter((x) => x.pad === "/connections/connect").at(-1)!.body as { data: Record<string, any> }).data;
     check("sandbox: nepbank met include_sandboxes, land XF", sb.provider?.code === "fake_oauth_client_xf" && sb.provider?.include_sandboxes === true && sb.widget.allowed_countries[0] === "XF", sb);
     delete process.env.SALTEDGE_SANDBOX;
+
+    // Een terugkeeradres met een IP-adres erin komt als HTML terug: dan een zin die zegt waar het aan ligt, niet "Er ging iets mis"
+    let blok = "";
+    try { await se.startAutorisatie(a.id, "Triodos Bank", "http://127.0.0.1:3021/api/koppelingen/saltedge/callback/X", "a@test.nl"); } catch (e) { blok = e instanceof Error ? e.message : ""; }
+    check("geweigerd adres (403 met HTML) wordt een begrijpelijke zin", /weigert dit verzoek/.test(blok) && /localhost/.test(blok) && blok.length < 300, blok.slice(0, 200));
 
     // Met private key: elke aanroep ondertekend
     process.env.SALTEDGE_PRIVATE_KEY = privateKey.export({ type: "pkcs8", format: "pem" }).toString().replace(/\n/g, "\\n");
