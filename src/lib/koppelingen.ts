@@ -2,7 +2,7 @@ import { db } from "./db";
 import { ontsleutel, versleutel } from "./crypto";
 
 export type KoppelingSoort =
-  | "enablebanking" | "mollie" | "stripe" | "shopify" | "bol" | "woocommerce" | "paypal"
+  | "enablebanking" | "saltedge" | "mollie" | "stripe" | "shopify" | "bol" | "woocommerce" | "paypal"
   | "moneybird" | "eboekhouden" | "jortt" | "smtp" | "whatsapp"
   | "gmail" | "outlook" | "etsy" | "sumup" | "zettle" | "amazon" | "lightspeed";
 

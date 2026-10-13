@@ -4,6 +4,7 @@ import { datumNl, wanneerNl } from "@/lib/btw";
 import { importeerVanPakket, koppelingOpslaan, koppelingVerwijderen, startKoppeling, startPsd2, syncNu, syncNuFormulier } from "@/lib/acties-bank";
 import { AANBIEDERS, ingesteld, proefmodus, type OAuthSoort } from "@/lib/koppelen";
 import { leesKoppeling } from "@/lib/koppelingen";
+import { bankIngesteld } from "@/lib/bank/aanbieder";
 import { MERK } from "@/lib/merk";
 import { Kop, Melding, Pil, knopLicht } from "@/components/ui";
 import { Bestandskiezer } from "@/components/Bestandskiezer";
@@ -13,7 +14,7 @@ import { bonAdres as maakBonAdres, whatsappKoppelTekst } from "@/lib/bonnen/adre
 
 export const instant = false;
 
-/** Banken via de bankkoppeling (Enable Banking). De naam is wat de koppeling verwacht. */
+/** Banken via de bankkoppeling (Salt Edge of Enable Banking). De naam is wat de koppeling verwacht. */
 const BANKEN: { id: string; naam: string }[] = [
   { id: "ing", naam: "ING" }, { id: "rabobank", naam: "Rabobank" }, { id: "abnamro", naam: "ABN AMRO" }, { id: "bunq", naam: "bunq" },
   { id: "knab", naam: "Knab" }, { id: "sns", naam: "SNS" }, { id: "asn", naam: "ASN Bank" }, { id: "regiobank", naam: "RegioBank" },
@@ -70,11 +71,13 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
   const per = new Map(koppelingen.map((k) => [k.soort, k]));
   const proef = new Set<string>();
   for (const k of koppelingen) if ((await leesKoppeling<{ proef?: string }>(o.id, k.soort as never))?.proef) proef.add(k.soort);
-  const psd2 = per.get("enablebanking");
+  // De bankkoppeling van deze onderneming (Salt Edge of Enable Banking); knoppen en status horen bij die soort.
+  const bankSoort = per.has("saltedge") ? "saltedge" : "enablebanking";
+  const psd2 = per.get(bankSoort);
   const bonAdres = maakBonAdres(o.id);
   const kanProef = proefmodus() || Boolean(o.demoTot);
-  // Bank: zonder Enable Banking-contract (en buiten de proefmodus) is er nog geen knop, wel de upload-route.
-  const bankKlaar = kanProef || Boolean(process.env.ENABLE_BANKING_APP_ID && process.env.ENABLE_BANKING_PRIVATE_KEY) || Boolean((await leesKoppeling<{ appId?: string }>(o.id, "enablebanking"))?.appId);
+  // Bank: zonder aanbieder (en buiten de proefmodus) is er nog geen knop, wel de upload-route.
+  const bankKlaar = kanProef || bankIngesteld("saltedge") || bankIngesteld("enablebanking") || Boolean((await leesKoppeling<{ appId?: string }>(o.id, "enablebanking"))?.appId);
 
   const statusPil = (soort: string) => {
     const k = per.get(soort);
@@ -154,7 +157,7 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
               icoon={<AppIcoon id={b.id} />}
               naam={b.naam}
               uitleg={gekoppeld ? `${rekeningen.length === 1 ? "1 rekening" : `${rekeningen.length} rekeningen`}, elke nacht bijgewerkt.` : "Bij- en afschrijvingen elke nacht vanzelf."}
-              status={gekoppeld ? <Pil kleur="groen">{proef.has("enablebanking") ? "Gekoppeld (proef)" : "Gekoppeld"}</Pil> : bankKlaar ? null : <Pil kleur="grijs">Binnenkort</Pil>}
+              status={gekoppeld ? <Pil kleur="groen">{proef.has(bankSoort) ? "Gekoppeld (proef)" : "Gekoppeld"}</Pil> : bankKlaar ? null : <Pil kleur="grijs">Binnenkort</Pil>}
               knop={gekoppeld ? { tekst: "Beheren", licht: true } : undefined}
               actie={gekoppeld ? undefined : bankKlaar ? <form action={startPsd2}><input type="hidden" name="bank" value={b.naam} /><button className="knop knop-klein">Koppelen</button></form> : <Link href="/app/bank" className="knop-licht knop-klein">Afschrift uploaden</Link>}
             >
@@ -167,9 +170,9 @@ export default async function Koppelingen({ searchParams }: { searchParams: Prom
                 ))}
               </ul>
               <div className="mt-5 flex flex-wrap items-center gap-2">
-                <form action={syncNuFormulier}><input type="hidden" name="soort" value="enablebanking" /><button className="knop">Nu ophalen</button></form>
+                <form action={syncNuFormulier}><input type="hidden" name="soort" value={bankSoort} /><button className="knop">Nu ophalen</button></form>
                 <form action={startPsd2}><input type="hidden" name="bank" value={b.naam} /><button className="knop-licht">Toestemming verlengen</button></form>
-                <form action={koppelingVerwijderen}><input type="hidden" name="soort" value="enablebanking" /><button className="knop-tekst text-rood-tekst">Ontkoppelen</button></form>
+                <form action={koppelingVerwijderen}><input type="hidden" name="soort" value={bankSoort} /><button className="knop-tekst text-rood-tekst">Ontkoppelen</button></form>
               </div>
             </AppTegel>
           );

@@ -38,7 +38,8 @@ Volledige lijst met uitleg: `env.voorbeeld.txt`. Nooit in git.
 | `AI_PRIJS_INVOER_PER_MTOK`, `AI_PRIJS_UITVOER_PER_MTOK` | nee | Prijs in dollars per miljoen tokens van het gebruikte model (`claude-opus-5-5`, zie anthropic.com/pricing). Alleen om in /admin de AI-kosten per klant in dollars te zien; zonder staan er alleen tokens. |
 | `AI_MAX_PER_DAG` | nee | Standaard 400 AI-verzoeken per onderneming per dag |
 | `INBOUND_SECRET`, `INBOUND_DOMEIN` | later | Bonnen per mail |
-| `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY` | later | Bankkoppeling |
+| `SALTEDGE_APP_ID`, `SALTEDGE_SECRET`, `SALTEDGE_PRIVATE_KEY`, `SALTEDGE_PARTNER=1` | zodra Salt Edge Live is | Bankkoppeling (nooit `SALTEDGE_SANDBOX` in productie) |
+| `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY` | later | Bankkoppeling (alternatief) |
 | Overige koppelingen | later | Zie README, tabel "Klaargezet" |
 
 Niet zetten in productie: `STRIPE_API_BASIS` (alleen voor tests), `SALDOPLAN_PROEFMODUS`.

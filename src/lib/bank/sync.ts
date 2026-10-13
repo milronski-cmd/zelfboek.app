@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { syncPsd2 } from "./enablebanking";
+import { syncSaltEdge } from "./saltedge";
 import { haalBonnenUitMail } from "@/lib/bonnen/mailbox";
 import * as mollie from "@/lib/kanalen/mollie";
 import * as stripe from "@/lib/kanalen/stripe";
@@ -60,6 +61,11 @@ export async function syncAlleBanken(ondernemingId: string): Promise<{ nieuw: nu
     nieuw += r.nieuw;
     fouten.push(...r.fouten.map((f) => `Bank: ${f}`));
   }
+  if (koppelingen.some((k) => k.soort === "saltedge") && !(await isProef(ondernemingId, "saltedge"))) {
+    const r = await syncSaltEdge(ondernemingId);
+    nieuw += r.nieuw;
+    fouten.push(...r.fouten.map((f) => `Bank: ${f}`));
+  }
   for (const k of koppelingen) {
     if (k.soort === "gmail" || k.soort === "outlook") {
       const r = await haalBonnenUitMail(ondernemingId, k.soort);
@@ -80,6 +86,7 @@ export async function syncEenBron(ondernemingId: string, soort: string): Promise
   if (soort === "gmail" || soort === "outlook") return haalBonnenUitMail(ondernemingId, soort);
   if (await isProef(ondernemingId, soort)) return proefSync(ondernemingId, soort);
   if (soort === "enablebanking") return syncPsd2(ondernemingId);
+  if (soort === "saltedge") return syncSaltEdge(ondernemingId);
   if (soort in KANALEN) return KANALEN[soort as Kanaal].haalTransacties(ondernemingId, new Date(Date.now() - 365 * 864e5));
   return { nieuw: 0, fouten: [`Onbekende bron: ${soort}`] };
 }

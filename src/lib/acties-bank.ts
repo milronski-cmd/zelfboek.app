@@ -7,6 +7,9 @@ import { db, schrijfOnderneming } from "./db";
 import { btwUitInclusief, rond } from "./btw";
 import { parseBankbestand, importeerRegels, beoordeelOpenstaand as beoordeelOpen, pasVasteKeuzesToe, VASTE_KEUZE } from "./bank/importeer";
 import { startAutorisatie } from "./bank/enablebanking";
+import * as saltedge from "./bank/saltedge";
+import { bankIngesteld, bankSoortVan } from "./bank/aanbieder";
+import { vereisGebruiker } from "./auth";
 import { syncAlleBanken, syncEenBron } from "./bank/sync";
 import { bewaarKoppeling, leesKoppeling, verwijderKoppeling as verwijderK, type KoppelingSoort } from "./koppelingen";
 import { importeerPaypalCsv } from "./kanalen/paypal";
@@ -171,25 +174,35 @@ export async function koppelingVerwijderen(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
   await logNu(o.id, "Koppeling verwijderd");
   const soort = String(formData.get("soort")) as KoppelingSoort;
+  if (soort === "saltedge") await saltedge.verwijderVerbindingen(o.id);
   await verwijderK(o.id, soort);
-  if (soort === "enablebanking") await db.bankrekening.updateMany({ where: { ondernemingId: o.id, bron: "psd2" }, data: { psd2SessieId: null, psd2AccountId: null, psd2Verloopt: null } });
+  if (soort === "enablebanking" || soort === "saltedge") await db.bankrekening.updateMany({ where: { ondernemingId: o.id, bron: "psd2" }, data: { psd2SessieId: null, psd2AccountId: null, psd2Verloopt: null } });
   ververs();
 }
 
-/** PSD2: doorsturen naar de bank voor toestemming. Zonder Enable Banking-contract (buiten productie): de proefmodus. */
+/**
+ * PSD2: doorsturen naar de bank voor toestemming, via Salt Edge of Enable Banking (zie bank/aanbieder.ts).
+ * Is de bank al gekoppeld, dan vernieuwt dit de toestemming. Zonder ingestelde aanbieder (buiten productie): de proefmodus.
+ */
 export async function startPsd2(formData: FormData): Promise<void> {
   const o = await schrijfOnderneming();
   const bank = String(formData.get("bank") ?? "").trim();
   if (!bank) redirect("/app/koppelingen?fout=" + encodeURIComponent("Kies een bank."));
+  const soort = await bankSoortVan(o.id);
   const eb = await leesKoppeling<{ appId?: string }>(o.id, "enablebanking");
-  const ebIngesteld = Boolean(process.env.ENABLE_BANKING_APP_ID && process.env.ENABLE_BANKING_PRIVATE_KEY) || Boolean(eb?.appId);
-  if ((!ebIngesteld && proefmodus()) || o.demoTot) redirect(`/app/koppelingen/proef?state=${encodeURIComponent(maakState({ o: o.id, s: "enablebanking", b: bank }))}`);
+  const isIngesteld = bankIngesteld(soort) || (soort === "enablebanking" && Boolean(eb?.appId));
+  if ((!isIngesteld && proefmodus()) || o.demoTot) redirect(`/app/koppelingen/proef?state=${encodeURIComponent(maakState({ o: o.id, s: "enablebanking", b: bank }))}`);
   const basis = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   let url: string;
   try {
-    url = await startAutorisatie(o.id, bank, `${basis}/api/koppelingen/enablebanking/callback`);
+    if (soort === "saltedge") {
+      const { gebruiker } = await vereisGebruiker();
+      const state = maakState({ o: o.id, s: "saltedge", b: bank });
+      url = await saltedge.startAutorisatie(o.id, bank, `${basis}/api/koppelingen/saltedge/callback/${state}`, gebruiker.email);
+    } else url = await startAutorisatie(o.id, bank, `${basis}/api/koppelingen/enablebanking/callback`);
   } catch (e) {
-    redirect("/app/koppelingen?fout=" + encodeURIComponent(ebIngesteld ? (foutTekst(e)) : "De bankkoppeling is nog niet beschikbaar. Upload zolang een afschrift bij Bank."));
+    console.error("bank koppelen", soort, e instanceof Error ? e.message : e);
+    redirect("/app/koppelingen?fout=" + encodeURIComponent(isIngesteld ? (foutTekst(e)) : "De bankkoppeling is nog niet beschikbaar. Upload zolang een afschrift bij Bank."));
   }
   redirect(url);
 }

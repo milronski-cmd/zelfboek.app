@@ -175,7 +175,7 @@ export default async function Overzicht() {
     db.transactie.count({ where: { ondernemingId: o.id } }),
     db.bon.count({ where: { ondernemingId: o.id } }),
     db.factuur.count({ where: { ondernemingId: o.id } }),
-    db.koppeling.count({ where: { ondernemingId: o.id, soort: "enablebanking" } }),
+    db.koppeling.count({ where: { ondernemingId: o.id, soort: { in: ["enablebanking", "saltedge"] } } }),
   ]);
 
   const excl = (t: { bedrag: number; btwBedrag: number | null; priveDeel: number }) => (Math.abs(t.bedrag) - (t.btwBedrag ?? 0)) * (1 - t.priveDeel);

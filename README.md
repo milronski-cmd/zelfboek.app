@@ -99,7 +99,7 @@ Next.js 16 (App Router, server actions, proxy), Prisma 6 op SQLite (voor product
 | AI | API-sleutel van console.anthropic.com |
 | E-mail | SMTP-gegevens (Resend, Postmark, Mailgun) en een verzenddomein |
 | Abonnement | Stripe-account, product van € 50 per maand, webhook naar `/api/stripe/webhook` |
-| Bankkoppeling | Contract met Enable Banking (applicatie-id en private key in `ENABLE_BANKING_APP_ID` en `ENABLE_BANKING_PRIVATE_KEY`); zonder contract werkt CSV, MT940 en CAMT |
+| Bankkoppeling | Salt Edge (`SALTEDGE_APP_ID`, `SALTEDGE_SECRET`, op Live ook `SALTEDGE_PRIVATE_KEY`; Partner Program met `SALTEDGE_PARTNER=1`) of Enable Banking (`ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY`). `BANK_AANBIEDER` kiest; leeg = Salt Edge als die is ingevuld. Zonder aanbieder werkt CSV, MT940 en CAMT. Code: `src/lib/bank/aanbieder.ts`, `saltedge.ts`, `enablebanking.ts`; test `test/saltedge.ts` |
 | Mollie | App registreren in het Mollie-dashboard (Ontwikkelaars, Apps): `MOLLIE_CLIENT_ID`, `MOLLIE_CLIENT_SECRET`, terugkeer-URL `https://app.saldoplan.nl/api/koppelingen/mollie/terug` |
 | Stripe | Stripe Connect aanzetten in het eigen Stripe-account: `STRIPE_CONNECT_CLIENT_ID` (ca_...) plus `STRIPE_SECRET_KEY`, terugkeer-URL `.../api/koppelingen/stripe/terug` |
 | Shopify | Shopify Partner-account, app aanmaken: `SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET`, terugkeer-URL `.../api/koppelingen/shopify/terug`; voor Shopify Payments-uitbetalingen moet Shopify de scope goedkeuren |
@@ -116,6 +116,7 @@ Alles hieronder is gebouwd en gaat vanzelf aan zodra de genoemde variabelen in d
 | Partij | Wat aanvragen | Env-variabelen | Kosten (12-10-2026) | Bron |
 |---|---|---|---|---|
 | KvK (gegevens bij aanmelden, klant opzoeken) | Abonnement KvK API via het Developer Portal | `KVK_API_KEY` | € 6,40 per maand; Zoeken gratis, Basisprofiel € 0,02 per bevraging | developers.kvk.nl/nl/pricing |
+| Salt Edge (bank) | Gratis account op saltedge.com (sandbox met nepbanken direct); voor echte banken het Partner Program (werkt onder de vergunning van Salt Edge) | `SALTEDGE_APP_ID`, `SALTEDGE_SECRET`, `SALTEDGE_PRIVATE_KEY`, `SALTEDGE_PARTNER` | Op offerte (contact Sales) | docs.saltedge.com/v6 |
 | Enable Banking (bank) | Account; voor een publieke app een contract en bedrijfscontrole (KYB) | `ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_PRIVATE_KEY` | Op offerte, prijs naar volume met een minimum per maand; sandbox gratis | enablebanking.com/docs/faq |
 | Mollie Connect | OAuth-app in het Mollie-dashboard (Developers, Your apps) met terugkeer-URL `/api/koppelingen/mollie/terug` | `MOLLIE_CLIENT_ID`, `MOLLIE_CLIENT_SECRET` | Geen platformkosten vermeld | docs.mollie.com/docs/connect-overview |
 | Stripe Connect | Connect aanzetten in het eigen Stripe-account | `STRIPE_CONNECT_CLIENT_ID`, `STRIPE_SECRET_KEY` | Geen kosten als Stripe de prijs met de klant regelt | stripe.com/connect/pricing |
