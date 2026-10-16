@@ -1,4 +1,3 @@
-import { Linking } from "react-native";
 import { useInstellingen } from "@/lib/instellingen";
 import { useMeta } from "@/lib/queries";
 import { ga } from "@/lib/navigatie";
@@ -23,13 +22,12 @@ export default function Instellingen() {
     <Scherm ververs={refetch}>
       <Kop titel="Instellingen" />
       <Kaart strak>{items.map((it, i) => <Rij key={it.pad} titel={it.titel} sub={it.sub} onPress={() => ga(it.pad)} laatste={i === items.length - 1} />)}</Kaart>
+      {/* Geen prijs en geen link naar een betaalpagina: Apple staat dat niet toe in een app (richtlijn 3.1.1). Alleen de status. */}
       <Kaart titel="Abonnement" actie={<Pil kleur={data.abonnement.toegang ? "groen" : "rood"}>{data.abonnement.tekst}</Pil>}>
-        <Tekst kleur="2" soort="klein">€ 50 per maand zonder btw, elke maand opzegbaar.{data.abonnement.proefTot && data.abonnement.status === "proef" ? ` Proef tot ${datumNl(data.abonnement.proefTot)}.` : ""}</Tekst>
-        <Tekst kleur="2" soort="klein">Starten, betaalgegevens wijzigen of opzeggen doe je in de webapp onder Instellingen, Abonnement.</Tekst>
-        <Rij titel="Open de webapp" onPress={() => Linking.openURL(`${meta.data?.appUrl ?? "https://app.saldoplan.nl"}/app/instellingen?tab=abonnement`)} laatste />
+        <Tekst kleur="2" soort="klein">{data.abonnement.proefTot && data.abonnement.status === "proef" ? `Proefperiode tot ${datumNl(data.abonnement.proefTot)}.` : data.abonnement.toegang ? "Je abonnement is actief." : "Je hebt op dit moment geen actief abonnement."}</Tekst>
         {data.abonnement.verwijscode && <Tekst kleur="3" soort="klein">Jouw uitnodigingslink: {meta.data?.appUrl ?? "https://app.saldoplan.nl"}/login?ref={data.abonnement.verwijscode}</Tekst>}
       </Kaart>
-      <Tekst kleur="3" soort="klein" style={{ textAlign: "center" }}>De onderneming verwijderen kan alleen in de webapp.</Tekst>
+      <Rij titel="Account verwijderen" sub="Onderneming, gegevens en je inlogaccount definitief weg" onPress={() => ga("/instellingen/verwijderen")} laatste />
     </Scherm>
   );
 }

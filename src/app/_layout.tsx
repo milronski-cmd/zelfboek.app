@@ -63,6 +63,7 @@ function Navigatie() {
           <Stack.Screen name="feedback" options={{ title: "Feedback", presentation: "modal" }} />
           <Stack.Screen name="pdf" options={{ title: "PDF" }} />
           <Stack.Screen name="instellingen/index" options={{ title: "Instellingen" }} />
+          <Stack.Screen name="instellingen/verwijderen" options={{ title: "Account verwijderen" }} />
           <Stack.Screen name="instellingen/bedrijf" options={{ title: "Bedrijf" }} />
           <Stack.Screen name="instellingen/facturen" options={{ title: "Facturen" }} />
           <Stack.Screen name="instellingen/huisstijl" options={{ title: "Huisstijl" }} />
