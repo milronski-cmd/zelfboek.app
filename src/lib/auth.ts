@@ -1,5 +1,5 @@
 import { MERK } from "@/lib/merk";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { timingSafeEqual } from "crypto";
@@ -156,7 +156,9 @@ export async function logUit() {
 
 export const huidigeSessie = cache(async () => {
   const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
+  // De mobiele app stuurt hetzelfde sessietoken als bearer-token in plaats van als cookie.
+  // Daardoor werken alle server actions en pagina-helpers ook voor de app (/api/mobiel).
+  const token = jar.get(COOKIE)?.value ?? (await headers()).get("authorization")?.replace(/^Bearer\s+/i, "").trim();
   if (!token) return null;
   const s = await db.sessie.findUnique({ where: { tokenHash: hash(token) }, include: { gebruiker: true } });
   if (!s || s.verlooptOp < new Date()) return null;
