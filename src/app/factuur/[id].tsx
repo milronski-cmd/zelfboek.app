@@ -33,9 +33,14 @@ export default function FactuurDetail() {
       const r = await actie(naam, { id, ...velden });
       if (!r.ok) setMelding({ soort: "fout", tekst: r.fout });
       else setMelding({ soort: "ok", tekst: r.melding || okTekst });
+      if (naam === "factuurVerwijderen" && r.ok) {
+        // Niet meer ophalen: de factuur bestaat niet meer. Eerst terug, dan de lijsten verversen.
+        router.back();
+        await ververs("facturen", "overzicht", "transacties", "klanten");
+        return;
+      }
       await Promise.all([refetch(), ververs("facturen", "overzicht", "transacties", "klanten")]);
       if (naam === "factuurCrediteren" && r.ok && r.id) ga("/factuur/[id]", { id: r.id, melding: r.melding });
-      if (naam === "factuurVerwijderen" && r.ok) router.back();
     } catch (e) { setMelding({ soort: "fout", tekst: e instanceof Error ? e.message : "Dat lukte niet." }); }
     finally { setBezig(null); }
   };

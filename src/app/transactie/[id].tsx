@@ -41,6 +41,8 @@ export default function TransactieDetail() {
   const t = data.regel;
   const s = statusVan(t);
   const start = () => { setVorm({ zakelijk: t.zakelijk === false ? "nee" : "ja", categorie: t.categorie ?? "overig", btwCode: t.btwCode ?? "21", priveDeel: String(Math.round(t.priveDeel * 100)), splitsBedrag: "", opmerking: t.opmerking ?? "", altijd: false }); setBewerk(true); };
+  /** Van privé naar zakelijk: categorie "prive" en btw "geen" horen bij privé en gaan naar een zakelijk beginpunt (aan te passen). */
+  const kiesZakelijk = (v: "ja" | "nee") => vorm && setVorm(v === "ja" ? { ...vorm, zakelijk: v, categorie: vorm.categorie === "prive" ? "overig" : vorm.categorie, btwCode: vorm.btwCode === "geen" ? "21" : vorm.btwCode } : { ...vorm, zakelijk: v });
   const categorieLabel = meta.data?.categorieen.find((c) => c.k === t.categorie)?.label ?? t.categorie ?? "–";
 
   return (
@@ -77,7 +79,7 @@ export default function TransactieDetail() {
 
       {bewerk && vorm && (
         <Kaart titel="Anders boeken">
-          <Chips label="Zakelijk of privé" opties={[{ k: "ja", l: "Zakelijk" }, { k: "nee", l: "Privé" }]} waarde={vorm.zakelijk} onChange={(v) => setVorm({ ...vorm, zakelijk: v })} />
+          <Chips label="Zakelijk of privé" opties={[{ k: "ja", l: "Zakelijk" }, { k: "nee", l: "Privé" }]} waarde={vorm.zakelijk} onChange={kiesZakelijk} />
           {vorm.zakelijk === "ja" && (
             <>
               <Kies label="Categorie" waarde={vorm.categorie} opties={(meta.data?.categorieen ?? []).map((c) => ({ k: c.k, l: c.label }))} onChange={(v) => setVorm({ ...vorm, categorie: v })} />

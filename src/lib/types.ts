@@ -60,6 +60,8 @@ export type Meta = {
   constanten: { kmVergoeding: number; investeringsgrens: number; urencriterium: number };
   kan: { peppol: boolean; digipoort: boolean; proefmodus: boolean; stripe: boolean };
   appUrl: string;
+  /** NEXT_PUBLIC_*-variabelen van de server (Vercel), sleutels in camelCase: appUrl, websiteUrl, ... */
+  publiek: Record<string, string>;
 };
 
 export type Account = {

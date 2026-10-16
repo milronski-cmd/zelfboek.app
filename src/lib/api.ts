@@ -87,9 +87,14 @@ export async function downloadNaarCache(pad: string, naam: string): Promise<stri
   return bestand.uri;
 }
 
-/** Multipart-upload (bonnen, importbestanden). bestand: { uri, naam, type } uit de camera of de bestandskiezer. */
+/**
+ * Multipart-upload (bonnen, importbestanden, logo). uri komt uit de camera of de bestandskiezer.
+ * De globale fetch is in Expo de WinterCG-variant: die kent geen { uri } zoals React Native, maar wel
+ * objecten met bytes(), name en type. Het bestand wordt pas gelezen op het moment van verzenden.
+ */
 export function bestandVeld(uri: string, naam: string, type: string) {
-  return { uri, name: naam, type } as unknown as Blob;
+  const bestand = new File(uri);
+  return { name: naam, type, bytes: () => bestand.bytes() } as unknown as Blob;
 }
 
 /**

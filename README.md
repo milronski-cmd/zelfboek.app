@@ -34,6 +34,14 @@ cp .env.example .env     # EXPO_PUBLIC_API_URL: leeg = productie, of het LAN-adr
 npx expo start           # scan de QR met Expo Go op je iPhone, of druk op i voor de simulator
 ```
 
-Expo Go volstaat voor ontwikkelen: alle gebruikte modules zitten erin. Voor de App Store: `npx eas-cli@latest build --platform ios` (bundle-id `nl.saldoplan.app`, zie `app.json`).
+Expo Go volstaat voor ontwikkelen: alle gebruikte modules zitten erin. Voor de App Store: `npx eas-cli@latest build --platform ios --profile production` (bundle-id `nl.saldoplan.app`, zie `app.json`; profielen in `eas.json`).
+
+## Omgevingsvariabelen
+
+De app heeft geen eigen env. Alles komt van de server waar hij mee praat (op Vercel: app.saldoplan.nl):
+
+- Geheimen (database, AI, Mollie, Stripe, mail) gebruikt de server zelf wanneer de app een API-route aanroept.
+- Publieke waarden geeft de server door via `/api/mobiel/meta`: `kan` (Stripe, Peppol, proefmodus), `appUrl` en `publiek` met alle `NEXT_PUBLIC_*`-variabelen in camelCase. In de app: `useMeta().data?.publiek.websiteUrl`.
+- Het enige dat bij het bouwen vastligt is het serveradres, `EXPO_PUBLIC_API_URL`, per profiel in `eas.json` (leeg of productie = app.saldoplan.nl). Zet daar nooit een geheim in: alles met `EXPO_PUBLIC_` zit leesbaar in de app.
 
 Controles: `npx tsc --noEmit`, `npx expo lint`, `npx expo export --platform ios`.

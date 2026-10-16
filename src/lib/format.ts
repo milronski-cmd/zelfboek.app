@@ -2,10 +2,13 @@
 
 const nl = "nl-NL";
 
-export const euro = (n: number | null | undefined) =>
-  n == null ? "" : new Intl.NumberFormat(nl, { style: "currency", currency: "EUR" }).format(n);
+/** Rondt op centen en haalt -0 weg, anders staat er "€ -0,00" bij een negatieve afronding naar nul. */
+const netto = (n: number) => { const c = Math.round(n * 100) / 100; return c === 0 ? 0 : c; };
 
-export const euroHeel = (n: number) => `${n < 0 ? "−" : ""}€ ${Math.abs(Math.round(n)).toLocaleString(nl)}`;
+export const euro = (n: number | null | undefined) =>
+  n == null ? "" : new Intl.NumberFormat(nl, { style: "currency", currency: "EUR" }).format(netto(n));
+
+export const euroHeel = (n: number) => { const h = Math.round(n); return `${h < 0 ? "−" : ""}€ ${Math.abs(h).toLocaleString(nl)}`; };
 
 export const getal = (n: number, decimalen = 1) => n.toLocaleString(nl, { maximumFractionDigits: decimalen });
 

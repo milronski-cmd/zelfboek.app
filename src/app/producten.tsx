@@ -23,7 +23,7 @@ export default function Producten() {
     catch (e) { setFout(e instanceof Error ? e.message : "Opslaan lukte niet."); }
     finally { setBezig(false); }
   };
-  const verwijder = (p: Product) => Alert.alert("Verwijderen", `${p.naam} wordt verwijderd.`, [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: async () => { await actie("productVerwijderen", { id: p.id }); await ververs("producten"); } }]);
+  const verwijder = (p: Product) => Alert.alert("Verwijderen", `${p.naam} wordt verwijderd.`, [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: async () => { await actie("productVerwijderen", { id: p.id }); setVorm(null); await ververs("producten"); } }]);
   return (
     <Scherm ververs={refetch}>
       <Kop titel="Producten" sub="Kies ze met één tik als regel op een factuur of offerte.">
