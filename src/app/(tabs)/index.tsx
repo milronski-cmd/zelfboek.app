@@ -5,6 +5,7 @@ import { ga, naarScherm } from "@/lib/navigatie";
 import { STATUS_KLEUR, STATUS_TEKST } from "@/constants/theme";
 import { Vragen } from "@/components/vragen";
 import { Cijferband, Fout, Kaart, Knop, Kop, Laden, Pil, Rij, Scherm, Tegel, Tekst, useKleuren } from "@/components/ui";
+import { AiBalk } from "@/components/ai-balk";
 import type { Overzicht } from "@/lib/types";
 
 /** Startscherm: dezelfde opbouw als het overzicht van de webapp. */
@@ -22,6 +23,7 @@ export default function OverzichtScherm() {
   return (
     <Scherm ververs={refetch}>
       <Kop titel={`${groet} ${d.naam}!`} />
+      <AiBalk />
 
       {d.nieuwAccount ? <EersteStappen stappen={d.stappen} /> : volgende ? (
         <Kaart strak>

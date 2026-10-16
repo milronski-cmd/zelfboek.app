@@ -1,6 +1,7 @@
-import { useRef, useState, type ComponentRef } from "react";
+import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
+import { useLocalSearchParams } from "expo-router";
 import { api, stream } from "@/lib/api";
 import { useVervers } from "@/lib/queries";
 import { Kies } from "@/components/kies";
@@ -22,6 +23,8 @@ export default function Assistent() {
   const lijst = useRef<ComponentRef<typeof ScrollView>>(null);
   const ververs = useVervers();
   const getoond = berichten ?? data?.berichten ?? [];
+  const { q } = useLocalSearchParams<{ q?: string }>();
+  const gesteld = useRef<string | null>(null);
 
   const stuur = async (vraag: string) => {
     const t = vraag.trim();
@@ -44,6 +47,12 @@ export default function Assistent() {
     } catch (e) { setFout(e instanceof Error ? e.message : "De assistent is nu even niet bereikbaar."); }
     finally { setBezig(false); }
   };
+
+  // Vraag uit de vraagbalk op het overzicht: meteen stellen zodra de assistent open is.
+  useEffect(() => {
+    if (q && gesteld.current !== q) { gesteld.current = q; void stuur(q); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: k.papier }} keyboardVerticalOffset={90}>
