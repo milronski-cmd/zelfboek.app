@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { useAuth } from "@/lib/auth";
 import { ApiFout } from "@/lib/api";
 import { Knop, Melding, Veilig, Veld, useKleuren } from "@/components/ui";
@@ -43,10 +43,7 @@ export default function Login() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24, gap: 24 }} keyboardShouldPersistTaps="handled">
           <View style={{ alignItems: "center", gap: 10 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: k.primair, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: "#fff", fontSize: 34, fontWeight: "800" }}>S</Text>
-            </View>
-            <Text style={{ color: k.tekst, fontSize: 28, fontWeight: "700", letterSpacing: -0.5 }}>Saldoplan</Text>
+            <Image source={require("../../assets/images/saldoplan-logo.png")} accessibilityLabel="Saldoplan" style={{ width: 218, height: 66 }} resizeMode="contain" />
             <Text style={{ color: k.tekst2, fontSize: 15, textAlign: "center" }}>Je boekhouding doet zichzelf.</Text>
           </View>
 
