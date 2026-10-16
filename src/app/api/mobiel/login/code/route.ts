@@ -9,5 +9,6 @@ export const POST = route(async (req: Request) => {
   if (!body.email) return fout(400, "E-mailadres ontbreekt.");
   const r = await stuurLoginCode(body.email, await klantIp(req));
   if (!r.ok) return fout(400, r.melding);
-  return NextResponse.json({ ok: true, melding: r.melding });
+  // In de testmodus (geen mail) komt de code mee, net als op de inlogpagina van de webapp.
+  return NextResponse.json({ ok: true, melding: r.melding, testCode: "testCode" in r ? r.testCode : undefined });
 });
