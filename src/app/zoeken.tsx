@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocalSearchParams } from "expo-router";
 import { api } from "@/lib/api";
 import { euro, datumKort } from "@/lib/format";
 import { ga } from "@/lib/navigatie";
@@ -11,8 +12,9 @@ type Antwoord = { transacties: Transactie[]; facturen: Factuur[]; offertes: Offe
 
 /** Zoeken door betalingen, facturen, offertes, klanten en bonnen. */
 export default function Zoeken() {
-  const [q, setQ] = useState("");
-  const [term, setTerm] = useState("");
+  const start = useLocalSearchParams<{ q?: string }>().q?.trim() ?? "";
+  const [q, setQ] = useState(start);
+  const [term, setTerm] = useState(start);
   const { data, isFetching } = useQuery({ queryKey: ["zoeken", term], queryFn: () => api<Antwoord>(`/api/mobiel/zoeken?q=${encodeURIComponent(term)}`), enabled: term.length > 0 });
   const totaal = data ? data.transacties.length + data.facturen.length + data.offertes.length + data.klanten.length + data.bonnen.length : 0;
   return (
