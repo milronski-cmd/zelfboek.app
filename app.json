@@ -1,14 +1,21 @@
 {
   "expo": {
-    "name": "saldoplan-ios",
-    "slug": "saldoplan-ios",
+    "name": "Saldoplan",
+    "slug": "saldoplan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "saldoplanios",
+    "scheme": "saldoplan",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "nl.saldoplan.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Saldoplan gebruikt de camera om bonnen te fotograferen.",
+        "NSPhotoLibraryUsageDescription": "Saldoplan gebruikt je foto's om bonnen te kiezen.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,11 +39,20 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      "expo-secure-store",
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Saldoplan gebruikt de camera om bonnen te fotograferen.",
+          "photosPermission": "Saldoplan gebruikt je foto's om bonnen te kiezen."
+        }
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": true,
+      "typedRoutes": false
     }
   }
 }

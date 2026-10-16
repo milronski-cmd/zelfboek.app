@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Lokale serverinstelling (bevat je LAN-adres)
+.env

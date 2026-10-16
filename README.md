@@ -1,56 +1,39 @@
-# Welcome to your Expo app 👋
+# Saldoplan voor iPhone
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+De iOS-app van Saldoplan, gebouwd met Expo (React Native). Dezelfde boekhouding als de webapp: de app praat met dezelfde
+Next.js-server en dezelfde database (repo `zelfboek.app`, branch `saldoplan`). Wat je in de app doet, zie je direct op app.saldoplan.nl en andersom.
 
-## Get started
+## Wat erin zit
 
-1. Install dependencies
+Alles wat de webapp kan, in één app:
 
-   ```bash
-   npm install
-   ```
+- **Inloggen** met e-mailcode (en app-code bij tweestap), hetzelfde account als op het web. Token in de keychain.
+- **Overzicht**: eerste stappen voor een nieuw account, volgende stap, open vragen van Saldoplan, vrij te besteden, hoever je geld reikt, deze maand, btw, 12 maanden omzet/kosten, recent verwerkt.
+- **Bank**: alle betalingen met dezelfde filters (twijfel, nog niet beoordeeld, privé, kosten zonder bon), zoeken, vragen beantwoorden met twee knoppen, anders boeken (categorie, btw, privédeel, splitsen, "altijd zo"), bankbestand inlezen, betaling aan factuur koppelen, als grote aankoop boeken.
+- **Bonnen**: foto maken, uit foto's, PDF; Saldoplan leest de bon uit en koppelt hem. Corrigeren, opnieuw lezen, koppelen aan een betaling.
+- **Facturen**: maken, bewerken, verzenden, PDF, herinnering, betaald melden, afletteren, iDEAL-link, crediteren, oninbaar, Peppol, link delen. Offertes (klant tekent online, omzetten naar factuur), vaste facturen, producten, klanten.
+- **Uren** (urencriterium, uren naar factuur, uit je agenda), **kilometers**, **grote aankopen** (activeren, afschrijven, KIA, verkopen).
+- **Btw-aangifte** in drie stappen met alle rubrieken, ICP en historie; **inkomstenbelasting** met opbouw en KOR-advies; **jaaroverzicht** met balans, kengetallen, correcties en jaar afsluiten; **downloads** (Excel, XAF, SBR, ICP, PDF's).
+- **Meldingen en taken**, **koppelingen** (bank via PSD2, Mollie, Stripe, Shopify, enzovoort; inloggen gebeurt in de browser), **overstappen** uit Moneybird, e-Boekhouden, Jortt, Excel en PayPal, **logboek**, **zoeken**, **assistent** (chat met streaming), **feedback**.
+- **Instellingen**: bedrijf, facturen, huisstijl (lay-out, kleuren, lettertype, logo, voettekst, voorbeeld-PDF), belasting, team, account.
 
-2. Start the app
+Alleen in de webapp: tweestap aanzetten (QR-code), passkeys, het abonnement afrekenen (Stripe) en de onderneming verwijderen.
 
-   ```bash
-   npx expo start
-   ```
+## Hoe het werkt
 
-In the output, you'll find options to open the app in a
+- `src/lib/api.ts`: alle verkeer met de server. JSON via `/api/mobiel/*`, bestanden en PDF's via de gewone API-routes, de assistent via `/api/assistent` (NDJSON-stream met `expo/fetch`).
+- `POST /api/mobiel/actie` voert server actions van de webapp uit (`{ naam, velden }` of multipart met bestanden). Dezelfde controles op rol en abonnement als op het web. Zie `src/app/api/mobiel/actie/route.ts` in de webapp-repo voor de lijst.
+- De server accepteert het sessietoken als `Authorization: Bearer` overal waar de webapp een cookie gebruikt (`huidigeSessie` in `src/lib/auth.ts` van de webapp).
+- Schermen staan in `src/app` (Expo Router). Tabbladen: Overzicht, Bank, Bonnen, Facturen, Meer. Bouwstenen in `src/components/ui.tsx`, kleuren in `src/constants/theme.ts` (één op één uit de webapp).
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Starten
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env     # EXPO_PUBLIC_API_URL: leeg = productie, of het LAN-adres van je Mac met de webapp (http://192.168.x.x:3000)
+npx expo start           # scan de QR met Expo Go op je iPhone, of druk op i voor de simulator
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Expo Go volstaat voor ontwikkelen: alle gebruikte modules zitten erin. Voor de App Store: `npx eas-cli@latest build --platform ios` (bundle-id `nl.saldoplan.app`, zie `app.json`).
 
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Controles: `npx tsc --noEmit`, `npx expo lint`, `npx expo export --platform ios`.
