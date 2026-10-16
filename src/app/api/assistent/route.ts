@@ -1,4 +1,4 @@
-import { BOT_ONBEREIKBAAR } from "@/lib/ai";
+import { aiSleutelAanwezig, BOT_ONBEREIKBAAR } from "@/lib/ai";
 import { huidigeSessie } from "@/lib/auth";
 import { huidigeOnderneming, mijnRol } from "@/lib/db";
 import { abonnementStatus, geenToegangTekst } from "@/lib/auth";
@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   if (!bericht) return new Response("Leeg bericht", { status: 400 });
   const rol = await mijnRol();
   const enkel = (tekst: string) => new Response(JSON.stringify({ type: "fout", tekst }) + "\n" + JSON.stringify({ type: "klaar", gesprekId: body.gesprekId ?? null }) + "\n", { headers: { "Content-Type": "application/x-ndjson; charset=utf-8" } });
-  if (testmodus()) return enkel(TESTMODUS_AI);
+  // Testversie zonder AI-sleutel: uitleggen dat de bot daar niet werkt. Met sleutel (OpenRouter of Anthropic) gewoon antwoorden.
+  if (testmodus() && !aiSleutelAanwezig()) return enkel(TESTMODUS_AI);
   if (process.env.STRIPE_SECRET_KEY && !o.demoTot && !abonnementStatus(o).toegang) return enkel(`${geenToegangTekst(o)} Kies een abonnement onder Instellingen, Abonnement; dan helpt de bot je meteen weer.`);
   if (!(await aiTegoed(o.id, Boolean(o.demoTot)))) return enkel(AI_OP);
 
