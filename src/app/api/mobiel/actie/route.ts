@@ -41,7 +41,7 @@ const ACTIES: Record<string, Actie> = {
   // Instellingen en account
   bedrijfOpslaan: instellingen.bedrijfOpslaan, bedrijfUitKvk: instellingen.bedrijfUitKvk, facturenOpslaan: instellingen.facturenOpslaan, huisstijlOpslaan: instellingen.huisstijlOpslaan,
   fiscaalOpslaan: instellingen.fiscaalOpslaan, lidToevoegen: instellingen.lidToevoegen, lidVerwijderen: instellingen.lidVerwijderen, overalUitloggen: instellingen.overalUitloggen,
-  tweestapAan: instellingen.tweestapAan, tweestapUit: instellingen.tweestapUit,
+  tweestapAan: instellingen.tweestapAan, tweestapUit: instellingen.tweestapUit, ondernemingVerwijderen: instellingen.ondernemingVerwijderen,
   // Welkom
   belafspraakPlannen: intro.belafspraakPlannen,
 };

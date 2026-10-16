@@ -34,10 +34,14 @@ export async function stuurLoginCode(email: string, ip?: string): Promise<{ ok: 
   if (recent >= 3) return { ok: false, melding: "Je hebt net al een code gekregen. Kijk in je mail (ook bij spam) of probeer het over 10 minuten opnieuw." };
   if (vandaag >= 10) return { ok: false, melding: "Je hebt vandaag al veel codes aangevraagd. Probeer het morgen opnieuw, of log in met Face ID of vingerafdruk." };
   await db.loginCode.updateMany({ where: { gebruikerId: gebruiker.id, gebruiktOp: null }, data: { gebruiktOp: new Date() } });
-  const code = zesCijfers();
+  // Reviewaccount van Apple/Google: REVIEW_LOGIN="adres@voorbeeld.nl:123456" geeft dat ene adres altijd dezelfde code, zonder mail.
+  const review = (process.env.REVIEW_LOGIN ?? "").split(":");
+  const isReview = review.length === 2 && review[0].trim().toLowerCase() === e && /^\d{6}$/.test(review[1].trim());
+  const code = isReview ? review[1].trim() : zesCijfers();
   await db.loginCode.create({
     data: { gebruikerId: gebruiker.id, codeHash: hash(code), verlooptOp: new Date(Date.now() + 10 * 60_000) },
   });
+  if (isReview) return { ok: true, melding: "We hebben je een code gemaild." };
   // Testversie: geen mail, de code staat op het scherm. De limieten hierboven blijven gewoon gelden.
   if (testmodus()) return { ok: true, melding: "Testversie: er gaat geen mail de deur uit. Je code staat hieronder.", testCode: code };
   let r: { verzonden: boolean };
