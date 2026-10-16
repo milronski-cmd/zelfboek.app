@@ -19,7 +19,12 @@ export default function Login() {
   const stuur = async () => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setMelding({ soort: "fout", tekst: "Vul een geldig e-mailadres in." }); return; }
     setBezig(true); setMelding(null);
-    try { const m = await codeSturen(email); setMelding({ soort: "info", tekst: m || "We hebben je een code gemaild." }); setStap("code"); }
+    try {
+      const r = await codeSturen(email);
+      // Testserver zonder mail: de code komt mee en staat alvast ingevuld.
+      if (r.testCode) setCode(r.testCode);
+      setMelding({ soort: "info", tekst: r.testCode ? `${r.melding} Code: ${r.testCode}` : r.melding || "We hebben je een code gemaild." }); setStap("code");
+    }
     catch (e) { setMelding({ soort: "fout", tekst: e instanceof Error ? e.message : "Dat lukte niet." }); }
     finally { setBezig(false); }
   };

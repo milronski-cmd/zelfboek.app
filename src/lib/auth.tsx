@@ -15,7 +15,7 @@ type Staat = {
   klaar: boolean;
   ingelogd: boolean;
   account: Account | null;
-  codeSturen: (email: string) => Promise<string>;
+  codeSturen: (email: string) => Promise<{ melding: string; testCode?: string }>;
   inloggen: (email: string, code: string, appCode?: string) => Promise<void>;
   uitloggen: () => Promise<void>;
   ververs: () => Promise<void>;
@@ -52,8 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [ververs]);
 
   const codeSturen = useCallback(async (email: string) => {
-    const r = await api<{ ok: boolean; melding: string }>("/api/mobiel/login/code", { body: { email: email.trim().toLowerCase() } });
-    return r.melding;
+    const r = await api<{ ok: boolean; melding: string; testCode?: string }>("/api/mobiel/login/code", { body: { email: email.trim().toLowerCase() } });
+    return { melding: r.melding, testCode: r.testCode };
   }, []);
 
   const inloggen = useCallback(async (email: string, code: string, appCode?: string) => {
