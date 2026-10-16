@@ -45,3 +45,11 @@ De app heeft geen eigen env. Alles komt van de server waar hij mee praat (op Ver
 - Het enige dat bij het bouwen vastligt is het serveradres, `EXPO_PUBLIC_API_URL`, per profiel in `eas.json` (leeg of productie = app.saldoplan.nl). Zet daar nooit een geheim in: alles met `EXPO_PUBLIC_` zit leesbaar in de app.
 
 Controles: `npx tsc --noEmit`, `npx expo lint`, `npx expo export --platform ios`.
+
+## Stand van zaken (16 oktober 2026)
+
+- Volledig doorgelopen in de simulator (33 schermen, alle handelingen), zie `scripts/simulator/`.
+- Eerste productiebuild gemaakt met EAS (1.0.0, build 4) onder Expo-account `ronniedaniel`; indienen bij TestFlight met `npx eas-cli@latest submit --platform ios --latest`.
+- Server: saldoplan-test.vercel.app (testmodus). Voor de App Store-versie: app.saldoplan.nl aan Vercel koppelen, testmodus uit, en `EXPO_PUBLIC_API_URL` in het productieprofiel van `eas.json` terugzetten naar https://app.saldoplan.nl.
+- Abonnementen worden op de website afgesloten (Stripe); de app toont alleen de status. Account verwijderen kan in de app.
+- Zie `CLAUDE.md` voor de werkafspraken en valkuilen.
