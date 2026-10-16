@@ -20,5 +20,21 @@ export const GET = route(async (req: Request) => {
     constanten: { kmVergoeding: KM_VERGOEDING, investeringsgrens: INVESTERINGSGRENS, urencriterium: URENCRITERIUM },
     kan: { peppol: peppolAan(), digipoort: digipoortAan(), proefmodus: proefmodus(), stripe: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID) },
     appUrl: (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, ""),
+    publiek: publiekeEnv(),
   });
 });
+
+/**
+ * Publieke omgevingsvariabelen voor de app, uit de env van de server (Vercel). Alleen NEXT_PUBLIC_*:
+ * die zijn in de webapp ook al zichtbaar in de browser. Geheimen blijven zo altijd op de server.
+ * Sleutel zonder voorvoegsel, in camelCase: NEXT_PUBLIC_STRIPE_KEY wordt stripeKey.
+ */
+function publiekeEnv(): Record<string, string> {
+  const uit: Record<string, string> = {};
+  for (const [naam, waarde] of Object.entries(process.env)) {
+    if (!naam.startsWith("NEXT_PUBLIC_") || !waarde) continue;
+    const sleutel = naam.slice("NEXT_PUBLIC_".length).toLowerCase().replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
+    uit[sleutel] = waarde;
+  }
+  return uit;
+}

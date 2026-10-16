@@ -134,16 +134,28 @@ export async function logInMetCode(email: string, code: string, appCode?: string
   return { ok: true, melding: "Ingelogd.", nieuw };
 }
 
+/**
+ * Het sessietoken van dit verzoek: de cookie van de webapp, of het bearer-token van de iPhone-app.
+ * Alles wat "deze sessie" moet herkennen (uitloggen, andere sessies sluiten) gebruikt dit, anders
+ * zou de app bij "overal anders uitloggen" zichzelf ook uitloggen.
+ */
+async function huidigToken(): Promise<string | undefined> {
+  const cookie = (await cookies()).get(COOKIE)?.value;
+  if (cookie) return cookie;
+  const bearer = (await headers()).get("authorization")?.replace(/^Bearer\s+/i, "").trim();
+  return bearer || undefined;
+}
+
 /** Overal uitloggen behalve hier (na tweestap aan/uit, een passkey erbij, of op verzoek). */
 export async function sluitAndereSessies(gebruikerId: string): Promise<number> {
-  const token = (await cookies()).get(COOKIE)?.value;
+  const token = await huidigToken();
   const r = await db.sessie.deleteMany({ where: { gebruikerId, ...(token ? { NOT: { tokenHash: hash(token) } } : {}) } });
   return r.count;
 }
 
 export async function logUit() {
   const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
+  const token = await huidigToken();
   if (token) await db.sessie.deleteMany({ where: { tokenHash: hash(token) } });
   jar.delete(COOKIE);
   // Uitloggen tijdens meekijken: ook de bewaarde beheerderssessie weg (niemand blijft per ongeluk ingelogd).
@@ -155,10 +167,9 @@ export async function logUit() {
 }
 
 export const huidigeSessie = cache(async () => {
-  const jar = await cookies();
   // De mobiele app stuurt hetzelfde sessietoken als bearer-token in plaats van als cookie.
   // Daardoor werken alle server actions en pagina-helpers ook voor de app (/api/mobiel).
-  const token = jar.get(COOKIE)?.value ?? (await headers()).get("authorization")?.replace(/^Bearer\s+/i, "").trim();
+  const token = await huidigToken();
   if (!token) return null;
   const s = await db.sessie.findUnique({ where: { tokenHash: hash(token) }, include: { gebruiker: true } });
   if (!s || s.verlooptOp < new Date()) return null;

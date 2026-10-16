@@ -35,13 +35,16 @@ export async function verwerkAntwoord(transactieId: string, keuze: "zakelijk" | 
   // Al bevestigd (in de app of via een eerdere link): niets overschrijven.
   if (t.bevestigd) return t;
   const zakelijk = keuze === "zakelijk";
+  const btwCodeZakelijk = t.btwCode && t.btwCode !== "geen" ? t.btwCode : "21";
   await db.transactie.update({
     where: { id: t.id },
     data: {
       zakelijk,
-      categorie: zakelijk ? t.categorie ?? "overig" : "prive",
-      btwCode: zakelijk ? t.btwCode ?? "21" : "geen",
-      btwBedrag: zakelijk ? btwUitInclusief(Math.abs(t.bedrag), t.btwCode ?? "21") : 0,
+      // Zei de AI "privé" en kiest de gebruiker "zakelijk", dan mogen categorie "prive" en btw "geen" niet blijven staan:
+      // anders telt de regel niet mee als kosten en gebruikt de AI hem later als privé-voorbeeld.
+      categorie: zakelijk ? (t.categorie && t.categorie !== "prive" ? t.categorie : "overig") : "prive",
+      btwCode: zakelijk ? btwCodeZakelijk : "geen",
+      btwBedrag: zakelijk ? btwUitInclusief(Math.abs(t.bedrag), btwCodeZakelijk) : 0,
       bevestigd: true,
       zekerheid: 1,
       uitleg: zakelijk ? "Door jou bevestigd als zakelijk" : "Door jou gemarkeerd als privé",

@@ -63,7 +63,9 @@ export async function wijzigTransactie(formData: FormData): Promise<void> {
   const t = await db.transactie.findFirst({ where: { id, ondernemingId: o.id } });
   if (!t) return;
   const zakelijk = formData.get("zakelijk") === "ja";
-  const categorie = String(formData.get("categorie") ?? t.categorie ?? "overig");
+  const gevraagdeCategorie = String(formData.get("categorie") ?? t.categorie ?? "overig");
+  // "prive" is geen zakelijke categorie: komt die mee bij een zakelijke boeking, dan wordt het "overig".
+  const categorie = zakelijk && gevraagdeCategorie === "prive" ? "overig" : gevraagdeCategorie;
   const btwCode = String(formData.get("btwCode") ?? t.btwCode ?? "21");
   const priveDeel = Math.min(1, Math.max(0, Number(formData.get("priveDeel") ?? 0) / 100 || 0));
   const splitsBedrag = Number(String(formData.get("splitsBedrag") ?? "").replace(",", ".")) || 0;
