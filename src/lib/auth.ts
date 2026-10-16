@@ -21,8 +21,9 @@ const SESSIE_DAGEN = 30;
 export async function stuurLoginCode(email: string, ip?: string): Promise<{ ok: boolean; melding: string; testCode?: string }> {
   const e = email.trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) || e.length > 200) return { ok: false, melding: "Ongeldig e-mailadres." };
-  // Per IP hooguit 10 codes per uur (tegen massaal aanvragen en als mailbom).
-  if (!(await binnenLimiet(`code-ip:${ip ?? (await klantIp())}`, 10, UUR))) return { ok: false, melding: "Te veel aanvragen vanaf dit adres. Probeer het over een uur opnieuw." };
+  // Per IP hooguit 10 codes per uur (tegen massaal aanvragen en als mailbom). Niet op een testserver: daar wordt
+  // veel vaker ingelogd vanaf hetzelfde adres en gaat er toch geen mail de deur uit.
+  if (!testmodus() && !(await binnenLimiet(`code-ip:${ip ?? (await klantIp())}`, 10, UUR))) return { ok: false, melding: "Te veel aanvragen vanaf dit adres. Probeer het over een uur opnieuw." };
   const gebruiker = await db.gebruiker.upsert({ where: { email: e }, update: {}, create: { email: e } });
   if (gebruiker.geblokkeerd) return { ok: false, melding: GEBLOKKEERD };
   // Hooguit 3 codes per 10 minuten en 10 per dag per adres; elke nieuwe code maakt de vorige ongeldig.
