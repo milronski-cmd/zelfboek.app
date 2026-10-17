@@ -12,7 +12,7 @@ export const maxDuration = 300;
 export async function POST(req: Request) {
   if (!(await huidigeSessie())) return new Response("Niet ingelogd", { status: 401 });
   const o = await huidigeOnderneming();
-  const body = (await req.json().catch(() => ({}))) as { gesprekId?: string; bericht?: string };
+  const body = (await req.json().catch(() => ({}))) as { gesprekId?: string; bericht?: string; stijl?: string };
   const bericht = String(body.bericht ?? "").trim().slice(0, 4000);
   if (!bericht) return new Response("Leeg bericht", { status: 400 });
   const rol = await mijnRol();
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     async start(controller) {
       const zend = (obj: unknown) => controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
       try {
-        await chatBeurt({ ondernemingId: o.id, gesprekId: body.gesprekId, bericht, emit: zend, magSchrijven: rol === "eigenaar" || rol === "boekhouder" });
+        await chatBeurt({ ondernemingId: o.id, gesprekId: body.gesprekId, bericht, emit: zend, magSchrijven: rol === "eigenaar" || rol === "boekhouder", stijl: body.stijl === "kort" ? "kort" : undefined });
       } catch (e) {
         const m = e instanceof Error ? e.message : String(e);
         zend({ type: "fout", tekst: /api key|authentication|overloaded|529|429|rate.?limit|timeout/i.test(m) ? BOT_ONBEREIKBAAR : foutTekst(e) });
