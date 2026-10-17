@@ -27,7 +27,7 @@ export default function Instellingen() {
         <Tekst kleur="2" soort="klein">{data.abonnement.proefTot && data.abonnement.status === "proef" ? `Proefperiode tot ${datumNl(data.abonnement.proefTot)}.` : data.abonnement.toegang ? "Je abonnement is actief." : "Je hebt op dit moment geen actief abonnement."}</Tekst>
         {data.abonnement.verwijscode && <Tekst kleur="3" soort="klein">Jouw uitnodigingslink: {meta.data?.appUrl ?? "https://app.saldoplan.nl"}/login?ref={data.abonnement.verwijscode}</Tekst>}
       </Kaart>
-      <Rij titel="Account verwijderen" sub="Onderneming, gegevens en je inlogaccount definitief weg" onPress={() => ga("/instellingen/verwijderen")} laatste />
+      <Kaart strak><Rij titel="Account verwijderen" sub="Onderneming, gegevens en je inlogaccount definitief weg" onPress={() => ga("/instellingen/verwijderen")} laatste /></Kaart>
     </Scherm>
   );
 }

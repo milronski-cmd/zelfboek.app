@@ -10,6 +10,7 @@ import { STATUS_KLEUR, STATUS_TEKST } from "@/constants/theme";
 import type { Factuur, Klant, Transactie } from "@/lib/types";
 import { Totaalregel } from "@/components/regels";
 import { Fout, Kaart, Knop, Laden, Melding, Pil, Rij, Scherm, Tekst, Veld, useKleuren } from "@/components/ui";
+import { Acties } from "@/components/acties";
 
 type Detail = {
   factuur: Factuur; klant: Klant; open: number; isOpen: boolean; teLaat: boolean; tijdlijn: { datum: string; tekst: string }[]; betalingen: Transactie[];
@@ -96,19 +97,19 @@ export default function FactuurDetail() {
         {f.opmerking ? <Tekst kleur="2" soort="klein">{f.opmerking}</Tekst> : null}
       </Kaart>
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Knop tekst="PDF" soort="licht" klein onPress={() => ga("/pdf", { pad: data.pdf, naam: `${f.nummer}.pdf`, titel })} />
-        {f.status === "concept" && <Knop tekst="Bewerken" soort="licht" klein onPress={() => ga("/factuur/nieuw", { id: f.id })} />}
-        {(f.status === "concept" || data.isOpen) && <Knop tekst={f.status === "concept" ? "Verzenden per e-mail" : "Opnieuw verzenden"} klein soort={f.status === "concept" ? "primair" : "licht"} bezig={bezig === "factuurVerzenden"} onPress={() => klant.email ? doe("factuurVerzenden", {}, "Factuur verzonden.") : setMelding({ soort: "fout", tekst: "De klant heeft nog geen e-mailadres." })} />}
-        {data.isOpen && <Knop tekst="Herinnering sturen" soort="licht" klein bezig={bezig === "factuurHerinnering"} onPress={() => doe("factuurHerinnering")} />}
-        {data.isOpen && <Knop tekst="Betaald gemeld" soort="licht" klein onPress={() => setBetaal(betaal ? null : { bedrag: String(data.open).replace(".", ","), datum: isoDatum() })} />}
-        {data.isOpen && f.soort === "factuur" && <Knop tekst="iDEAL-link" soort="licht" klein bezig={bezig === "factuurBetaallink"} onPress={() => doe("factuurBetaallink")} />}
-        {data.peppol && (f.status === "concept" || data.isOpen) && <Knop tekst="Via Peppol" soort="licht" klein bezig={bezig === "factuurPeppol"} onPress={() => doe("factuurPeppol")} />}
-        {f.status !== "concept" && <Knop tekst="Link delen" soort="licht" klein onPress={() => Share.share({ message: `${titel} van ${klant.naam}: ${data.link}`, url: data.link })} />}
-        {f.soort === "factuur" && f.status !== "concept" && f.status !== "gecrediteerd" && <Knop tekst="Crediteren" soort="licht" klein onPress={() => setCredit(credit == null ? "" : null)} />}
-        {data.isOpen && <Knop tekst="Oninbaar" soort="licht" klein bezig={bezig === "factuurStatus"} onPress={() => Alert.alert("Oninbaar", "De factuur wordt afgeboekt als oninbaar.", [{ text: "Annuleren", style: "cancel" }, { text: "Oninbaar", style: "destructive", onPress: () => doe("factuurStatus", { status: "oninbaar" }) }])} />}
-        {f.status === "concept" && <Knop tekst="Verwijderen" soort="rood" klein bezig={bezig === "factuurVerwijderen"} onPress={() => Alert.alert("Verwijderen", "Dit concept wordt verwijderd.", [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: () => doe("factuurVerwijderen") }])} />}
-      </View>
+      <Acties acties={[
+        (f.status === "concept" || data.isOpen) && { tekst: f.status === "concept" ? "Verzenden" : "Opnieuw sturen", sf: "paperplane", soort: f.status === "concept" ? "primair" : undefined, bezig: bezig === "factuurVerzenden", onPress: () => klant.email ? doe("factuurVerzenden", {}, "Factuur verzonden.") : setMelding({ soort: "fout", tekst: "De klant heeft nog geen e-mailadres." }) },
+        data.isOpen && { tekst: "Herinnering", sf: "bell", soort: "primair", bezig: bezig === "factuurHerinnering", onPress: () => doe("factuurHerinnering") },
+        data.isOpen && { tekst: "Betaald gemeld", sf: "checkmark.circle", onPress: () => setBetaal(betaal ? null : { bedrag: String(data.open).replace(".", ","), datum: isoDatum() }) },
+        { tekst: "PDF", sf: "eye", onPress: () => ga("/pdf", { pad: data.pdf, naam: `${f.nummer}.pdf`, titel }) },
+        f.status === "concept" && { tekst: "Bewerken", sf: "pencil", onPress: () => ga("/factuur/nieuw", { id: f.id }) },
+        data.isOpen && f.soort === "factuur" && { tekst: "iDEAL-link", sf: "creditcard", bezig: bezig === "factuurBetaallink", onPress: () => doe("factuurBetaallink") },
+        data.peppol && (f.status === "concept" || data.isOpen) && { tekst: "Via Peppol", sf: "arrow.up.right.square", bezig: bezig === "factuurPeppol", onPress: () => doe("factuurPeppol") },
+        f.status !== "concept" && { tekst: "Link delen", sf: "square.and.arrow.up", onPress: () => Share.share({ message: `${titel} van ${klant.naam}: ${data.link}`, url: data.link }) },
+        f.soort === "factuur" && f.status !== "concept" && f.status !== "gecrediteerd" && { tekst: "Crediteren", sf: "arrow.uturn.backward", onPress: () => setCredit(credit == null ? "" : null) },
+        data.isOpen && { tekst: "Oninbaar", sf: "xmark.circle", soort: "gevaar", bezig: bezig === "factuurStatus", onPress: () => Alert.alert("Oninbaar", "De factuur wordt afgeboekt als oninbaar.", [{ text: "Annuleren", style: "cancel" }, { text: "Oninbaar", style: "destructive", onPress: () => doe("factuurStatus", { status: "oninbaar" }) }]) },
+        f.status === "concept" && { tekst: "Verwijderen", sf: "trash", soort: "gevaar", bezig: bezig === "factuurVerwijderen", onPress: () => Alert.alert("Verwijderen", "Dit concept wordt verwijderd.", [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: () => doe("factuurVerwijderen") }]) },
+      ]} />
 
       {betaal && (
         <Kaart titel="Betaling melden">
@@ -137,7 +138,7 @@ export default function FactuurDetail() {
       <Kaart titel="Tijdlijn" strak>
         {data.tijdlijn.map((t, i) => <Rij key={i} titel={t.tekst} rechts={datumKort(t.datum)} laatste={i === data.tijdlijn.length - 1} nummer={false} />)}
       </Kaart>
-      <Knop tekst={`Klant ${klant.naam}`} soort="tekst" onPress={() => ga("/klant/[id]", { id: klant.id })} />
+      <Kaart strak><Rij titel={klant.naam} sub="Klant" onPress={() => ga("/klant/[id]", { id: klant.id })} laatste /></Kaart>
     </Scherm>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
+import { SymbolView, type SFSymbol } from "expo-symbols";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { useAccount, useVervers } from "@/lib/queries";
@@ -8,13 +9,13 @@ import { Kies } from "@/components/kies";
 import { Kaart, Knop, Kop, Pil, Rij, Scherm, Tekst, Veld, useKleuren } from "@/components/ui";
 
 /** Wat je het vaakst nodig hebt: groot bovenaan. */
-const VAAK: { pad: string; teken: string; titel: string }[] = [
-  { pad: "/klanten", teken: "👥", titel: "Klanten" },
-  { pad: "/offertes", teken: "✍️", titel: "Offertes" },
-  { pad: "/btw", teken: "🧾", titel: "Btw" },
-  { pad: "/uren", teken: "⏱️", titel: "Uren" },
-  { pad: "/kilometers", teken: "🚗", titel: "Ritten" },
-  { pad: "/zoeken", teken: "🔍", titel: "Zoeken" },
+const VAAK: { pad: string; sf: SFSymbol; titel: string }[] = [
+  { pad: "/klanten", sf: "person.2", titel: "Klanten" },
+  { pad: "/offertes", sf: "doc.plaintext", titel: "Offertes" },
+  { pad: "/btw", sf: "percent", titel: "Btw" },
+  { pad: "/uren", sf: "clock", titel: "Uren" },
+  { pad: "/kilometers", sf: "car", titel: "Ritten" },
+  { pad: "/zoeken", sf: "magnifyingglass", titel: "Zoeken" },
 ];
 
 /** Alle onderdelen, in gewone taal. Niets is weggelaten: dit is dezelfde boekhouding als op de website. */
@@ -93,8 +94,8 @@ export default function Meer() {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
           {VAAK.map((v) => (
             <Pressable key={v.pad} onPress={() => ga(v.pad)} accessibilityRole="button" accessibilityLabel={v.titel}
-              style={({ pressed }) => ({ flexBasis: "30%", flexGrow: 1, alignItems: "center", gap: 6, paddingVertical: 14, borderRadius: 12, borderWidth: 0.5, borderColor: k.lijn, backgroundColor: pressed ? k.primairLicht : k.wit })}>
-              <Text style={{ fontSize: 24 }}>{v.teken}</Text>
+              style={({ pressed }) => ({ flexBasis: "30%", flexGrow: 1, alignItems: "center", gap: 10, paddingVertical: 18, borderRadius: 20, backgroundColor: k.wit, opacity: pressed ? 0.7 : 1 })}>
+              <SymbolView name={v.sf} tintColor={k.tekst} size={22} weight="medium" />
               <Text style={{ color: k.tekst, fontSize: 14, fontWeight: "600" }}>{v.titel}</Text>
             </Pressable>
           ))}

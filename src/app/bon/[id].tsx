@@ -9,6 +9,7 @@ import { ga } from "@/lib/navigatie";
 import type { BonVol, Transactie } from "@/lib/types";
 import { Kies } from "@/components/kies";
 import { Fout, Kaart, Knop, Laden, Melding, Pil, Rij, Scherm, Tekst, Veld, useKleuren } from "@/components/ui";
+import { Acties } from "@/components/acties";
 import { bonStatus } from "../(tabs)/bonnen";
 
 type Detail = { bon: BonVol; transactie: Transactie | null; kandidaten: Transactie[]; bestand: string };
@@ -94,12 +95,12 @@ export default function BonDetail() {
           </View>
         </Kaart>
       ) : (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          <Knop tekst="Corrigeren" soort="licht" klein onPress={start} />
-          <Knop tekst="Opnieuw lezen" soort="licht" klein bezig={bezig === "bonOpnieuwLezen"} onPress={() => doe("bonOpnieuwLezen", {}, "Saldoplan leest de bon opnieuw.")} />
-          {data.transactie && <Knop tekst="Ontkoppelen" soort="licht" klein bezig={bezig === "bonOntkoppelen"} onPress={() => doe("bonOntkoppelen", {}, "Bon losgekoppeld.")} />}
-          <Knop tekst="Verwijderen" soort="rood" klein onPress={() => Alert.alert("Verwijderen", "De bon wordt verwijderd.", [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: () => doe("bonVerwijderen") }])} />
-        </View>
+        <Acties acties={[
+          { tekst: "Corrigeren", sf: "pencil", onPress: start },
+          { tekst: "Opnieuw lezen", sf: "arrow.counterclockwise", bezig: bezig === "bonOpnieuwLezen", onPress: () => doe("bonOpnieuwLezen", {}, "Saldoplan leest de bon opnieuw.") },
+          data.transactie && { tekst: "Ontkoppelen", sf: "link.badge.plus", bezig: bezig === "bonOntkoppelen", onPress: () => doe("bonOntkoppelen", {}, "Bon losgekoppeld.") },
+          { tekst: "Verwijderen", sf: "trash", soort: "gevaar", onPress: () => Alert.alert("Verwijderen", "De bon wordt verwijderd.", [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: () => doe("bonVerwijderen") }]) },
+        ]} />
       )}
 
       {data.transactie ? (

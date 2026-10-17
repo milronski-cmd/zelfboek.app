@@ -4,7 +4,7 @@ import * as WebBrowser from "expo-web-browser";
 import { useQuery } from "@tanstack/react-query";
 import { api, actie } from "@/lib/api";
 import { useVervers } from "@/lib/queries";
-import { wanneerNl } from "@/lib/format";
+import { euro, wanneerNl } from "@/lib/format";
 import { ga } from "@/lib/navigatie";
 import { Kaart, Knop, Kop, Laden, Melding, Pil, Rij, Scherm, Tekst, Veld, useKleuren } from "@/components/ui";
 
@@ -56,7 +56,7 @@ export default function Koppelingen() {
       <Kaart titel="Bank" actie={statusPil(psd2)}>
         {psd2 ? (
           <>
-            {data.bank.rekeningen.map((r) => <Rij key={r.id} titel={r.naam} sub={`${r.iban}${r.psd2Verloopt ? ` · toestemming tot ${new Date(r.psd2Verloopt).toLocaleDateString("nl-NL")}` : ""}`} rechts={r.saldo != null ? `€ ${r.saldo.toFixed(2).replace(".", ",")}` : ""} laatste />)}
+            {data.bank.rekeningen.map((r) => <Rij key={r.id} titel={r.naam} sub={`${r.iban}${r.psd2Verloopt ? ` · toestemming tot ${new Date(r.psd2Verloopt).toLocaleDateString("nl-NL")}` : ""}`} rechts={r.saldo != null ? euro(r.saldo) : ""} laatste />)}
             {psd2.laatsteSync && <Tekst kleur="3" soort="klein">Laatst opgehaald {wanneerNl(psd2.laatsteSync)}. Daarna elke nacht vanzelf.</Tekst>}
             {psd2.laatsteFout && <Tekst soort="klein" style={{ color: k.roodTekst }}>{psd2.laatsteFout}</Tekst>}
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>

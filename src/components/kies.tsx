@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FlatList, Modal, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { SymbolView } from "expo-symbols";
 import { Knop, Veld, useKleuren } from "./ui";
 
 export type Optie = { k: string; l: string; sub?: string };
@@ -17,9 +18,9 @@ export function Kies({ label, waarde, opties, onChange, placeholder = "Kies", hi
   return (
     <View style={{ gap: 5 }}>
       {label ? <Text style={{ color: k.tekst2, fontSize: 13, fontWeight: "500" }}>{label}</Text> : null}
-      <Pressable onPress={() => setOpen(true)} style={{ minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6, borderWidth: 0.5, borderColor: k.lijn2, backgroundColor: k.wit, flexDirection: "row", alignItems: "center" }}>
+      <Pressable onPress={() => setOpen(true)} style={{ minHeight: 48, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, borderWidth: 0.5, borderColor: k.lijn, backgroundColor: k.wit, flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Text style={{ flex: 1, color: huidig ? k.tekst : k.tekst3, fontSize: 16 }} numberOfLines={1}>{huidig?.l ?? placeholder}</Text>
-        <Text style={{ color: k.tekst3 }}>▾</Text>
+        <SymbolView name="chevron.down" tintColor={k.tekst3} size={13} weight="semibold" />
       </Pressable>
       {hint ? <Text style={{ color: k.tekst3, fontSize: 13 }}>{hint}</Text> : null}
       <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
@@ -33,7 +34,7 @@ export function Kies({ label, waarde, opties, onChange, placeholder = "Kies", hi
             <FlatList
               data={lijst}
               keyExtractor={(o) => o.k}
-              style={{ backgroundColor: k.wit, borderRadius: 8, borderWidth: 0.5, borderColor: k.lijn }}
+              style={{ backgroundColor: k.wit, borderRadius: 18, overflow: "hidden" }}
               ListEmptyComponent={<Text style={{ color: k.tekst3, padding: 16 }}>{leegTekst ?? "Niets gevonden."}</Text>}
               renderItem={({ item }) => {
                 const aan = item.k === waarde;
@@ -43,7 +44,7 @@ export function Kies({ label, waarde, opties, onChange, placeholder = "Kies", hi
                       <Text style={{ color: aan ? k.primairTekst : k.tekst, fontSize: 15, fontWeight: aan ? "600" : "400" }}>{item.l}</Text>
                       {item.sub ? <Text style={{ color: k.tekst3, fontSize: 13 }}>{item.sub}</Text> : null}
                     </View>
-                    {aan && <Text style={{ color: k.primairTekst }}>✓</Text>}
+                    {aan && <SymbolView name="checkmark" tintColor={k.primairTekst} size={14} weight="bold" />}
                   </Pressable>
                 );
               }}

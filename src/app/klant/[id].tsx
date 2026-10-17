@@ -9,6 +9,7 @@ import { ga } from "@/lib/navigatie";
 import { STATUS_KLEUR, STATUS_TEKST } from "@/constants/theme";
 import type { Factuur, Klant, Offerte } from "@/lib/types";
 import { Fout, Kaart, Knop, Laden, Melding, Pil, Rij, Scherm, Tekst, Veld, useKleuren } from "@/components/ui";
+import { Acties } from "@/components/acties";
 
 type Detail = { klant: Klant; open: number; omzet: number; facturen: Factuur[]; offertes: Offerte[]; openUren: { uren: number; aantal: number } };
 
@@ -53,12 +54,12 @@ export default function KlantDetail() {
         </View>
         {c.notities && <Tekst kleur="2" soort="klein">{c.notities}</Tekst>}
       </Kaart>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Knop tekst="Nieuwe factuur" klein onPress={() => ga("/factuur/nieuw", { klantId: c.id })} />
-        <Knop tekst="Nieuwe offerte" soort="licht" klein onPress={() => ga("/offerte/nieuw", { klantId: c.id })} />
-        <Knop tekst="Bewerken" soort="licht" klein onPress={() => ga("/klant/nieuw", { id: c.id })} />
-        {data.facturen.length === 0 && <Knop tekst="Verwijderen" soort="rood" klein onPress={() => Alert.alert("Verwijderen", `${c.naam} wordt verwijderd.`, [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: () => doe("klantVerwijderen") }])} />}
-      </View>
+      <Acties acties={[
+        { tekst: "Nieuwe factuur", sf: "doc.text", soort: "primair", onPress: () => ga("/factuur/nieuw", { klantId: c.id }) },
+        { tekst: "Nieuwe offerte", sf: "doc.plaintext", onPress: () => ga("/offerte/nieuw", { klantId: c.id }) },
+        { tekst: "Bewerken", sf: "pencil", onPress: () => ga("/klant/nieuw", { id: c.id }) },
+        data.facturen.length === 0 && { tekst: "Verwijderen", sf: "trash", soort: "gevaar", onPress: () => Alert.alert("Verwijderen", `${c.naam} wordt verwijderd.`, [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: () => doe("klantVerwijderen") }]) },
+      ]} />
       {data.openUren.aantal > 0 && (
         <Kaart titel={`${getal(data.openUren.uren)} uur nog niet gefactureerd`}>
           <Tekst kleur="2" soort="klein">{data.openUren.aantal} urenregels. Uren zonder tarief krijgen het tarief hieronder.</Tekst>

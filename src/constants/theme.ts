@@ -5,7 +5,7 @@
 import { Platform } from "react-native";
 
 const licht = {
-    papier: "#f6f8fa",
+    papier: "#f0f0f0",
     wit: "#ffffff",
     lijn: "#e3e8ee",
     lijn2: "#d5dbe1",
@@ -26,6 +26,7 @@ const licht = {
     roodLicht: "#ffe7eb",
     roodTekst: "#a41c3a",
     inkt: "#1a1f36",
+    donkerVlak: "#15181d",
 };
 
 export type Palet = { [K in keyof typeof licht]: string };
@@ -52,11 +53,12 @@ const donker: Palet = {
     roodLicht: "#3d151b",
     roodTekst: "#ff94a4",
     inkt: "#e7eaf1",
+    donkerVlak: "#0a7ea3",
 };
 
 export const Kleuren: { licht: Palet; donker: Palet } = { licht, donker };
 
-export const Radius = { s: 6, m: 8, l: 12, xl: 16 } as const;
+export const Radius = { s: 10, m: 14, l: 18, xl: 20 } as const;
 export const Ruimte = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 } as const;
 
 export const Letter = Platform.select({

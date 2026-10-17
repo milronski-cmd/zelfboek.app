@@ -9,6 +9,7 @@ import { ga } from "@/lib/navigatie";
 import type { Bon, Transactie } from "@/lib/types";
 import { Kies } from "@/components/kies";
 import { Chips, Fout, Kaart, Knop, Laden, Melding, Pil, Rij, Scherm, Schakel, Tekst, Veld, useKleuren } from "@/components/ui";
+import { Acties } from "@/components/acties";
 import { statusVan } from "../(tabs)/bank";
 
 type Detail = { regel: Transactie; bon: Bon | null; openFacturen: { id: string; nummer: string; klant: string; open: number }[] };
@@ -101,20 +102,18 @@ export default function TransactieDetail() {
 
       {data.bon ? (
         <Kaart titel="Bon" strak><Rij titel={data.bon.leverancier || data.bon.bestandsnaam} sub={data.bon.uitleg} rechts={data.bon.totaal != null ? euro(data.bon.totaal) : ""} onPress={() => ga("/bon/[id]", { id: data.bon!.id })} laatste /></Kaart>
-      ) : t.bedrag < 0 && t.zakelijk ? (
-        <Knop tekst="Bon bij deze betaling toevoegen" soort="licht" onPress={() => ga("/(tabs)/bonnen")} />
       ) : null}
-
-      {t.factuurId && <Knop tekst={`Factuur ${t.factuurNummer ?? ""} bekijken`} soort="licht" onPress={() => ga("/factuur/[id]", { id: t.factuurId! })} />}
       {data.openFacturen.length > 0 && (
         <Kaart titel="Is dit de betaling van een factuur?" strak>
           {data.openFacturen.map((f, i) => <Rij key={f.id} titel={`${f.klant} · ${f.nummer}`} rechts={euro(f.open)} rechtsSub="open" onPress={() => doe("factuurAfletteren", { id: f.id, transactieId: t.id }, "Betaling aan de factuur gekoppeld.")} laatste={i === data.openFacturen.length - 1} />)}
         </Kaart>
       )}
-      {t.bedrag < -450 * 1.21 && t.zakelijk && !t.activumId && (
-        <Knop tekst="Boek als grote aankoop (afschrijven)" soort="licht" bezig={bezig === "boekAlsInvestering"} onPress={() => Alert.alert("Grote aankoop", "Deze betaling wordt een bedrijfsmiddel dat je in 5 jaar afschrijft.", [{ text: "Annuleren", style: "cancel" }, { text: "Boek als aankoop", onPress: () => doe("boekAlsInvestering", { transactieId: t.id }, "Geboekt als grote aankoop.") }])} />
-      )}
-      {t.bron !== "psd2" && <Knop tekst="Regel verwijderen" soort="tekst" onPress={() => Alert.alert("Verwijderen", "Deze bankregel wordt verwijderd uit je boekhouding.", [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: () => doe("verwijderTransactie") }])} />}
+      <Acties acties={[
+        !data.bon && t.bedrag < 0 && t.zakelijk && { tekst: "Bon toevoegen", sf: "camera", onPress: () => ga("/(tabs)/bonnen") },
+        Boolean(t.factuurId) && { tekst: `Factuur ${t.factuurNummer ?? ""}`.trim(), sf: "doc.text" as const, onPress: () => ga("/factuur/[id]", { id: t.factuurId! }) },
+        t.bedrag < -450 * 1.21 && t.zakelijk && !t.activumId && { tekst: "Grote aankoop", sf: "laptopcomputer", bezig: bezig === "boekAlsInvestering", onPress: () => Alert.alert("Grote aankoop", "Deze betaling wordt een bedrijfsmiddel dat je in 5 jaar afschrijft.", [{ text: "Annuleren", style: "cancel" }, { text: "Boek als aankoop", onPress: () => doe("boekAlsInvestering", { transactieId: t.id }, "Geboekt als grote aankoop.") }]) },
+        t.bron !== "psd2" && { tekst: "Verwijderen", sf: "trash", soort: "gevaar", onPress: () => Alert.alert("Verwijderen", "Deze bankregel wordt verwijderd uit je boekhouding.", [{ text: "Annuleren", style: "cancel" }, { text: "Verwijderen", style: "destructive", onPress: () => doe("verwijderTransactie") }]) },
+      ]} />
     </Scherm>
   );
 }

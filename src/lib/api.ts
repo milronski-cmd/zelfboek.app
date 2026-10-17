@@ -52,20 +52,27 @@ type Init = { method?: "GET" | "POST" | "PUT" | "DELETE"; body?: unknown; form?:
 
 /** JSON-aanroep. Gooit ApiFout met de melding van de server ("fout" in de body). */
 export async function api<T>(pad: string, init: Init = {}): Promise<T> {
-  const res = await fetch(`${BASIS}${pad}`, {
-    method: init.method ?? (init.body || init.form ? "POST" : "GET"),
-    headers: koppen(init.body ? { "Content-Type": "application/json" } : {}),
-    body: init.form ?? (init.body ? JSON.stringify(init.body) : undefined),
-  });
-  if (res.status === 401) { await zetToken(null); luisteraars.forEach((f) => f()); }
-  const tekst = await res.text();
-  let data: unknown = null;
-  try { data = tekst ? JSON.parse(tekst) : null; } catch { data = null; }
-  if (!res.ok) {
-    const fout = (data as { fout?: string } | null)?.fout ?? (res.status === 401 ? "Je bent uitgelogd. Log opnieuw in." : `Er ging iets mis (${res.status}).`);
-    throw new ApiFout(res.status, fout);
+  const method = init.method ?? (init.body || init.form ? "POST" : "GET");
+  try {
+    const res = await fetch(`${BASIS}${pad}`, {
+      method,
+      headers: koppen(init.body ? { "Content-Type": "application/json" } : {}),
+      body: init.form ?? (init.body ? JSON.stringify(init.body) : undefined),
+    });
+    if (res.status === 401) { await zetToken(null); luisteraars.forEach((f) => f()); }
+    const tekst = await res.text();
+    let data: unknown = null;
+    try { data = tekst ? JSON.parse(tekst) : null; } catch { data = null; }
+    if (!res.ok) {
+      const fout = (data as { fout?: string } | null)?.fout ?? (res.status === 401 ? "Je bent uitgelogd. Log opnieuw in." : `Er ging iets mis (${res.status}).`);
+      throw new ApiFout(res.status, fout);
+    }
+    if (method !== "GET") meldUitkomst((data as { ok?: boolean } | null)?.ok === false ? "fout" : "ok");
+    return data as T;
+  } catch (e) {
+    if (method !== "GET") meldUitkomst("fout");
+    throw e;
   }
-  return data as T;
 }
 
 /**
@@ -73,9 +80,13 @@ export async function api<T>(pad: string, init: Init = {}): Promise<T> {
  * tekst, getallen, ja/nee ("on") en lijsten (meerdere waarden onder dezelfde naam).
  */
 export async function actie(naam: string, velden: Record<string, string | number | boolean | null | undefined | string[]> = {}): Promise<Resultaat> {
-  const r = await api<Resultaat & { fout?: string }>("/api/mobiel/actie", { body: { naam, velden } });
-  return r;
+  return api<Resultaat & { fout?: string }>("/api/mobiel/actie", { body: { naam, velden } });
 }
+
+// Knoppen luisteren mee: liep de laatste schrijfactie (POST) goed af? Dan tonen ze even een vinkje, anders een kruisje.
+const uitkomstLuisteraars = new Set<(u: "ok" | "fout") => void>();
+function meldUitkomst(u: "ok" | "fout") { uitkomstLuisteraars.forEach((f) => f(u)); }
+export function bijUitkomst(f: (u: "ok" | "fout") => void) { uitkomstLuisteraars.add(f); return () => { uitkomstLuisteraars.delete(f); }; }
 
 /** Zoals actie(), maar gooit bij een fout, zodat je in één regel kunt schrijven: await doe("x", {...}). */
 export async function doe(naam: string, velden: Parameters<typeof actie>[1] = {}): Promise<Extract<Resultaat, { ok: true }>> {

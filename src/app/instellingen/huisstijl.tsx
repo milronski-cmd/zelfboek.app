@@ -52,7 +52,6 @@ export default function Huisstijl() {
   return (
     <Scherm>
       {melding && <Melding soort={melding.soort} tekst={melding.tekst} onSluit={() => setMelding(null)} />}
-      <Tekst kleur="2" soort="klein">Eén huisstijl voor je facturen, creditfacturen en offertes.</Tekst>
       <Kaart titel="Lay-out">
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {(meta.data?.layouts ?? []).map((l) => <Knop key={l.k} tekst={l.l} klein soort={vorm.layout === l.k ? "primair" : "licht"} onPress={() => zet({ layout: l.k })} />)}

@@ -9,7 +9,8 @@ import { ga } from "@/lib/navigatie";
 import { STATUS_KLEUR, STATUS_TEKST } from "@/constants/theme";
 import type { Klant, Offerte } from "@/lib/types";
 import { Totaalregel } from "@/components/regels";
-import { Fout, Kaart, Knop, Laden, Melding, Pil, Scherm, Tekst, useKleuren } from "@/components/ui";
+import { Fout, Kaart, Laden, Melding, Pil, Rij, Scherm, Tekst, useKleuren } from "@/components/ui";
+import { Acties } from "@/components/acties";
 
 type Detail = { offerte: Offerte; klant: Klant; facturen: { id: string; nummer: string }[]; link: string; pdf: string };
 
@@ -67,16 +68,16 @@ export default function OfferteDetail() {
         {x.opmerking ? <Tekst kleur="2" soort="klein">{x.opmerking}</Tekst> : null}
         {data.facturen.length > 0 && <Tekst kleur="2" soort="klein">Factuur: {data.facturen.map((f) => f.nummer).join(", ")}</Tekst>}
       </Kaart>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Knop tekst="PDF" soort="licht" klein onPress={() => ga("/pdf", { pad: data.pdf, naam: `${x.nummer}.pdf`, titel: `Offerte ${x.nummer}` })} />
-        {x.status === "concept" && <Knop tekst="Bewerken" soort="licht" klein onPress={() => ga("/offerte/nieuw", { id: x.id })} />}
-        {(x.status === "concept" || x.status === "verzonden") && <Knop tekst={x.status === "concept" ? "Versturen" : "Opnieuw versturen"} klein soort={x.status === "concept" ? "primair" : "licht"} bezig={bezig === "offerteVerzenden"} onPress={() => doe("offerteVerzenden", {}, "Offerte verstuurd.")} />}
-        {x.status !== "concept" && <Knop tekst="Link delen" soort="licht" klein onPress={() => Share.share({ message: `Offerte ${x.nummer}: ${data.link}`, url: data.link })} />}
-        {(x.status === "geaccepteerd" || x.status === "verzonden") && <Knop tekst="Maak er een factuur van" klein soort={x.status === "geaccepteerd" ? "primair" : "licht"} bezig={bezig === "offerteNaarFactuur"} onPress={() => doe("offerteNaarFactuur")} />}
-        {open && <Knop tekst="Afgewezen" soort="licht" klein bezig={bezig === "offerteStatus"} onPress={() => Alert.alert("Afgewezen", "De offerte krijgt de status afgewezen.", [{ text: "Annuleren", style: "cancel" }, { text: "Afgewezen", style: "destructive", onPress: () => doe("offerteStatus", { status: "afgewezen" }) }])} />}
-        {x.status === "verzonden" && <Knop tekst="Geaccepteerd (handmatig)" soort="licht" klein onPress={() => doe("offerteStatus", { status: "geaccepteerd" })} />}
-      </View>
-      <Knop tekst={`Klant ${klant.naam}`} soort="tekst" onPress={() => ga("/klant/[id]", { id: klant.id })} />
+      <Acties acties={[
+        (x.status === "concept" || x.status === "verzonden") && { tekst: x.status === "concept" ? "Versturen" : "Opnieuw sturen", sf: "paperplane", soort: x.status === "concept" ? "primair" : undefined, bezig: bezig === "offerteVerzenden", onPress: () => doe("offerteVerzenden", {}, "Offerte verstuurd.") },
+        (x.status === "geaccepteerd" || x.status === "verzonden") && { tekst: "Factuur maken", sf: "doc.text", soort: x.status === "geaccepteerd" ? "primair" : undefined, bezig: bezig === "offerteNaarFactuur", onPress: () => doe("offerteNaarFactuur") },
+        { tekst: "PDF", sf: "eye", onPress: () => ga("/pdf", { pad: data.pdf, naam: `${x.nummer}.pdf`, titel: `Offerte ${x.nummer}` }) },
+        x.status === "concept" && { tekst: "Bewerken", sf: "pencil", onPress: () => ga("/offerte/nieuw", { id: x.id }) },
+        x.status !== "concept" && { tekst: "Link delen", sf: "square.and.arrow.up", onPress: () => Share.share({ message: `Offerte ${x.nummer}: ${data.link}`, url: data.link }) },
+        x.status === "verzonden" && { tekst: "Geaccepteerd", sf: "checkmark.seal", onPress: () => doe("offerteStatus", { status: "geaccepteerd" }) },
+        open && { tekst: "Afgewezen", sf: "hand.thumbsdown", soort: "gevaar", bezig: bezig === "offerteStatus", onPress: () => Alert.alert("Afgewezen", "De offerte krijgt de status afgewezen.", [{ text: "Annuleren", style: "cancel" }, { text: "Afgewezen", style: "destructive", onPress: () => doe("offerteStatus", { status: "afgewezen" }) }]) },
+      ]} />
+      <Kaart strak><Rij titel={klant.naam} sub="Klant" onPress={() => ga("/klant/[id]", { id: klant.id })} laatste /></Kaart>
     </Scherm>
   );
 }
