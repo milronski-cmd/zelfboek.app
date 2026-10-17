@@ -4,6 +4,7 @@
  * Het sessietoken gaat als bearer-token mee; de server accepteert dat overal waar de webapp een cookie gebruikt.
  */
 import { fetch as expoFetch } from "expo/fetch";
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { File, Paths } from "expo-file-system";
 
@@ -15,16 +16,20 @@ export const BASIS = (process.env.EXPO_PUBLIC_API_URL ?? "https://app.saldoplan.
 let token: string | null = null;
 const luisteraars = new Set<() => void>();
 
+// Op het web (de app bekijken op de pc) is er geen keychain; dan bewaart de browser het token.
+const web = Platform.OS === "web" && typeof localStorage !== "undefined";
+
 export async function laadToken(): Promise<string | null> {
-  try { token = await SecureStore.getItemAsync(SLEUTEL); } catch { token = null; }
+  try { token = web ? localStorage.getItem(SLEUTEL) : await SecureStore.getItemAsync(SLEUTEL); } catch { token = null; }
   return token;
 }
 export async function zetToken(t: string | null) {
   token = t;
   try {
-    if (t) await SecureStore.setItemAsync(SLEUTEL, t);
+    if (web) { if (t) localStorage.setItem(SLEUTEL, t); else localStorage.removeItem(SLEUTEL); }
+    else if (t) await SecureStore.setItemAsync(SLEUTEL, t);
     else await SecureStore.deleteItemAsync(SLEUTEL);
-  } catch { /* zonder keychain (web) blijft het token in het geheugen */ }
+  } catch { /* zonder opslag blijft het token in het geheugen */ }
 }
 export const heeftToken = () => Boolean(token);
 /** Wordt aangeroepen als de server zegt dat de sessie weg is (401): de app gaat dan terug naar het inlogscherm. */
