@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useOverzicht } from "@/lib/queries";
 import { euro, euroHeel, datumKort, datumNl } from "@/lib/format";
@@ -12,6 +13,7 @@ import type { Overzicht } from "@/lib/types";
 export default function OverzichtScherm() {
   const { data, isLoading, error, refetch } = useOverzicht();
   const k = useKleuren();
+  const [meer, setMeer] = useState(false);
   const uur = new Date().getHours();
   const groet = uur < 12 ? "Goedemorgen" : uur < 18 ? "Goedemiddag" : "Goedenavond";
   if (isLoading && !data) return <Scherm><Laden tekst="Je cijfers worden opgehaald" /></Scherm>;
@@ -23,31 +25,60 @@ export default function OverzichtScherm() {
   return (
     <Scherm ververs={refetch}>
       <Kop titel={`${groet} ${d.naam}!`} />
-      <AiBalk />
 
+      {/* 1. Het belangrijkste getal: wat je kunt uitgeven. */}
+      <Kaart>
+        <Tekst kleur="2">Dit kun je uitgeven</Tekst>
+        <Text style={{ color: d.geld.krap ? k.roodTekst : k.tekst, fontSize: 40, fontWeight: "700", letterSpacing: -1, fontVariant: ["tabular-nums"] }}>
+          {d.geld.vrij == null ? "–" : euroHeel(d.geld.vrij)}
+        </Text>
+        <Tekst kleur="2">
+          {d.banksaldo == null ? "Koppel je bank, dan rekent Saldoplan dit voor je uit." : `Je geld reikt tot ${d.geld.reiktTekst}. Belasting is er al vanaf.`}
+        </Tekst>
+        {d.banksaldo == null && <Knop tekst="Bank koppelen" onPress={() => ga("/koppelingen")} />}
+      </Kaart>
+
+      {/* 2. Wat je nu moet doen: één ding tegelijk. */}
       {d.nieuwAccount ? <EersteStappen stappen={d.stappen} /> : volgende ? (
-        <Kaart strak>
-          <View style={{ padding: 16, gap: 10 }}>
-            <Text style={{ color: k.primairTekst, fontSize: 12, fontWeight: "700", letterSpacing: 0.6 }}>VOLGENDE STAP</Text>
-            <Text style={{ color: k.tekst, fontSize: 16, fontWeight: "600", lineHeight: 22 }}>{volgende.tekst}</Text>
-            <Knop tekst={volgende.knop} onPress={() => naarScherm(volgende.scherm)} />
-          </View>
-          {d.acties.slice(1, 4).map((a, i) => <Rij key={i} titel={a.tekst} onPress={() => naarScherm(a.scherm)} laatste={i === Math.min(d.acties.length - 1, 3) - 1} />)}
+        <Kaart>
+          <Text style={{ color: k.primairTekst, fontSize: 13, fontWeight: "700" }}>
+            {d.acties.length === 1 ? "Dit moet je nog doen" : `Je hebt ${d.acties.length} dingen te doen`}
+          </Text>
+          <Text style={{ color: k.tekst, fontSize: 18, fontWeight: "600", lineHeight: 24 }}>{volgende.tekst}</Text>
+          <Knop tekst={volgende.knop} onPress={() => naarScherm(volgende.scherm)} />
+          {d.acties.length > 1 && <Knop tekst="Alles wat te doen is" soort="tekst" onPress={() => ga("/meldingen")} />}
         </Kaart>
       ) : (
         <Kaart>
-          <Text style={{ color: k.tekst, fontSize: 15, fontWeight: "600" }}>Alles is bijgewerkt</Text>
-          <Tekst kleur="2" soort="klein">Er wacht niets op je. Saldoplan boekt elke nacht je nieuwe betalingen.</Tekst>
+          <Text style={{ color: k.groenTekst, fontSize: 18, fontWeight: "600" }}>✓ Alles is bijgewerkt</Text>
+          <Tekst kleur="2">Er wacht niets op je. Saldoplan boekt elke nacht je nieuwe betalingen.</Tekst>
         </Kaart>
       )}
 
+      {/* 3. De drie dingen die je het vaakst doet. */}
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <SnelKnop teken="📷" tekst={"Bon\ntoevoegen"} onPress={() => ga("/(tabs)/bonnen")} />
+        <SnelKnop teken="📄" tekst={"Factuur\nmaken"} onPress={() => ga("/factuur/nieuw")} />
+        <SnelKnop teken="💬" tekst={"Vraag\nSaldoplan"} onPress={() => ga("/assistent")} />
+      </View>
+
       <Vragen vragen={d.vragen} compact />
 
+      {/* 4. Twee cijfers die je moet weten. */}
       <Cijferband>
-        <Tegel label="Vrij te besteden" waarde={d.geld.vrij == null ? "–" : euroHeel(d.geld.vrij)} hint={d.banksaldo == null ? "Koppel je bank voor je saldo" : `Banksaldo ${euro(d.banksaldo)}`} accent={d.geld.krap ? "rood" : undefined} />
-        <Tegel label="Klanten betalen nog" waarde={euroHeel(d.openFacturen.bedrag)} hint={d.openFacturen.aantal ? `${d.openFacturen.aantal} open${d.openFacturen.teLaat ? `, ${d.openFacturen.teLaat} te laat` : ""}` : "Geen open facturen"} accent={d.openFacturen.teLaat ? "rood" : undefined} />
+        <Tegel label="Klanten moeten je nog betalen" waarde={euroHeel(d.openFacturen.bedrag)} hint={d.openFacturen.teLaat ? `${d.openFacturen.teLaat} te laat` : d.openFacturen.aantal ? `${d.openFacturen.aantal} facturen` : "Niets open"} accent={d.openFacturen.teLaat ? "rood" : undefined} />
+        <Tegel label="Btw om te betalen" waarde={euroHeel(d.btw.teBetalen)} hint={`Uiterlijk ${datumNl(d.btw.deadline)}`} accent={d.btw.dagenTot <= 14 ? "geel" : undefined} />
+      </Cijferband>
+
+      {/* 5. Alle overige cijfers, ingeklapt. */}
+      <Pressable onPress={() => setMeer(!meer)} style={{ paddingVertical: 6, alignItems: "center" }}>
+        <Text style={{ color: k.primairTekst, fontSize: 15, fontWeight: "600" }}>{meer ? "Minder cijfers ▲" : "Meer cijfers ▼"}</Text>
+      </Pressable>
+      {meer && <>
+      <AiBalk />
+      <Cijferband>
         <Tegel label="Omzet deze maand" waarde={euroHeel(d.omzetMaand)} hint={`Kosten ${euro(d.kostenMaand)}`} />
-        <Tegel label={`Btw ${d.btw.label}`} waarde={euroHeel(d.btw.teBetalen)} hint={`Vóór ${datumNl(d.btw.deadline)}`} accent={d.btw.dagenTot <= 14 ? "geel" : undefined} />
+        <Tegel label="Op de bank" waarde={d.banksaldo == null ? "–" : euroHeel(d.banksaldo)} hint={`Btw-periode ${d.btw.label}`} />
       </Cijferband>
 
       <Kaart>
@@ -72,16 +103,29 @@ export default function OverzichtScherm() {
       </Kaart>
 
       <Maanden maanden={d.maanden} />
+      </>}
 
-      <Kaart titel="Recent verwerkt" strak actie={<Pressable onPress={() => ga("/(tabs)/bank")}><Text style={{ color: k.primairTekst, fontSize: 13, fontWeight: "600" }}>Alles</Text></Pressable>}>
+      <Kaart titel="Laatst geboekt" strak actie={<Pressable onPress={() => ga("/(tabs)/bank")}><Text style={{ color: k.primairTekst, fontSize: 14, fontWeight: "600" }}>Alles bekijken</Text></Pressable>}>
         {d.recent.length === 0 && <Tekst kleur="3" soort="klein" style={{ padding: 16 }}>Nog niets. Koppel je bank of maak je eerste factuur.</Tekst>}
-        {d.recent.map((r, i) => (
+        {d.recent.slice(0, meer ? undefined : 3).map((r, i, lijst) => (
           <Rij key={`${r.soort}${r.id}`} titel={r.titel} sub={r.sub} rechts={euro(r.bedrag)} rechtsSub={datumKort(r.datum)} kleurRechts={r.bedrag > 0 ? k.groenTekst : k.tekst}
             links={<Pil kleur={r.soort === "bank" ? (r.status === "Twijfel" ? "geel" : r.status === "Nieuw" ? "grijs" : "groen") : STATUS_KLEUR[r.status] ?? "grijs"}>{r.soort === "bank" ? r.status : STATUS_TEKST[r.status] ?? r.status}</Pil>}
-            onPress={() => ga(r.soort === "bank" ? "/transactie/[id]" : "/factuur/[id]", { id: r.id })} laatste={i === d.recent.length - 1} />
+            onPress={() => ga(r.soort === "bank" ? "/transactie/[id]" : "/factuur/[id]", { id: r.id })} laatste={i === lijst.length - 1} />
         ))}
       </Kaart>
     </Scherm>
+  );
+}
+
+/** Grote, duidelijke knop voor een veelgebruikte handeling. */
+function SnelKnop({ teken, tekst, onPress }: { teken: string; tekst: string; onPress: () => void }) {
+  const k = useKleuren();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={tekst.replace("\n", " ")}
+      style={({ pressed }) => ({ flex: 1, alignItems: "center", gap: 6, paddingVertical: 16, borderRadius: 12, borderWidth: 0.5, borderColor: k.lijn, backgroundColor: pressed ? k.primairLicht : k.wit })}>
+      <Text style={{ fontSize: 26 }}>{teken}</Text>
+      <Text style={{ color: k.tekst, fontSize: 14, fontWeight: "600", textAlign: "center", lineHeight: 18 }}>{tekst}</Text>
+    </Pressable>
   );
 }
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import { actie } from "@/lib/api";
 import { useVervers } from "@/lib/queries";
+import { ga } from "@/lib/navigatie";
 import type { Vraag } from "@/lib/types";
 import { Kaart, Knop, Melding, Schakel, useKleuren } from "./ui";
 
@@ -22,9 +23,11 @@ export function Vragen({ vragen, compact }: { vragen: Vraag[]; compact?: boolean
     } catch (e) { setFout(e instanceof Error ? e.message : "Dat lukte niet."); }
     finally { setBezig(null); }
   };
-  const lijst = compact ? vragen.slice(0, 3) : vragen;
+  // Op het overzicht één vraag tegelijk; de rest staat bij Bank.
+  const lijst = compact ? vragen.slice(0, 1) : vragen;
   return (
-    <Kaart titel={`${vragen.length === 1 ? "1 vraag" : `${vragen.length} vragen`} van Saldoplan`} strak>
+    <Kaart titel={compact ? "Zakelijk of privé?" : `${vragen.length === 1 ? "1 vraag" : `${vragen.length} vragen`} van Saldoplan`} strak
+      actie={compact && vragen.length > 1 ? <Text onPress={() => ga("/(tabs)/bank")} style={{ color: k.primairTekst, fontSize: 14, fontWeight: "600" }}>{`Nog ${vragen.length - 1}`}</Text> : undefined}>
       {fout && <View style={{ padding: 12 }}><Melding tekst={fout} onSluit={() => setFout(null)} /></View>}
       {lijst.map((v, i) => (
         <View key={v.sleutel} style={{ padding: 16, gap: 10, borderBottomWidth: i < lijst.length - 1 ? 0.5 : 0, borderBottomColor: k.lijn }}>

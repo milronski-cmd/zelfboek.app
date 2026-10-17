@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { useAccount, useVervers } from "@/lib/queries";
@@ -7,32 +7,45 @@ import { ga } from "@/lib/navigatie";
 import { Kies } from "@/components/kies";
 import { Kaart, Knop, Kop, Pil, Rij, Scherm, Tekst, Veld, useKleuren } from "@/components/ui";
 
+/** Wat je het vaakst nodig hebt: groot bovenaan. */
+const VAAK: { pad: string; teken: string; titel: string }[] = [
+  { pad: "/klanten", teken: "👥", titel: "Klanten" },
+  { pad: "/offertes", teken: "✍️", titel: "Offertes" },
+  { pad: "/btw", teken: "🧾", titel: "Btw" },
+  { pad: "/uren", teken: "⏱️", titel: "Uren" },
+  { pad: "/kilometers", teken: "🚗", titel: "Ritten" },
+  { pad: "/zoeken", teken: "🔍", titel: "Zoeken" },
+];
+
+/** Alle onderdelen, in gewone taal. Niets is weggelaten: dit is dezelfde boekhouding als op de website. */
 const GROEPEN: { kop: string; items: { pad: string; titel: string; sub: string; woorden?: string }[] }[] = [
-  { kop: "Verkoop", items: [
-    { pad: "/offertes", titel: "Offertes", sub: "Je klant tekent online", woorden: "offerte prijsopgave tekenen" },
-    { pad: "/klanten", titel: "Klanten", sub: "Wie wat open heeft staan", woorden: "klant debiteur relatie adres" },
-    { pad: "/producten", titel: "Producten", sub: "Vaste regels voor op je facturen", woorden: "product dienst tarief prijslijst" },
-    { pad: "/terugkerend", titel: "Vaste facturen", sub: "Abonnementen en maandbedragen", woorden: "abonnement herhalen terugkerend" },
-    { pad: "/uren", titel: "Uren", sub: "Urencriterium en uren naar factuur", woorden: "urenregistratie urencriterium declarabel agenda" },
-    { pad: "/kilometers", titel: "Kilometers", sub: "€ 0,23 per kilometer", woorden: "rit reiskosten auto fiets" },
+  { kop: "Geld ontvangen", items: [
+    { pad: "/klanten", titel: "Klanten", sub: "Wie je klanten zijn en wie nog moet betalen", woorden: "klant debiteur relatie adres" },
+    { pad: "/offertes", titel: "Offertes", sub: "Prijsvoorstel sturen, klant tekent online", woorden: "offerte prijsopgave tekenen" },
+    { pad: "/producten", titel: "Producten en diensten", sub: "Wat je verkoopt, met je vaste prijzen", woorden: "product dienst tarief prijslijst" },
+    { pad: "/terugkerend", titel: "Elke maand dezelfde factuur", sub: "Voor abonnementen en vaste klanten", woorden: "abonnement herhalen terugkerend vaste facturen" },
+    { pad: "/uren", titel: "Uren", sub: "Je gewerkte uren bijhouden en factureren", woorden: "urenregistratie urencriterium declarabel agenda" },
+    { pad: "/kilometers", titel: "Zakelijke ritten", sub: "Kilometers met je eigen auto of fiets", woorden: "rit reiskosten auto fiets kilometers" },
   ] },
   { kop: "Belasting", items: [
-    { pad: "/btw", titel: "Btw-aangifte", sub: "Alle rubrieken staan klaar", woorden: "omzetbelasting aangifte rubriek icp kor kwartaal grootboek" },
-    { pad: "/ib", titel: "Inkomstenbelasting", sub: "Indicatie en wat je opzij zet", woorden: "inkomstenbelasting winst aftrek zelfstandigenaftrek" },
-    { pad: "/activa", titel: "Grote aankopen", sub: "Afschrijven en investeringsaftrek", woorden: "activa afschrijving investering kia bedrijfsmiddel laptop" },
-    { pad: "/jaarrekening", titel: "Jaaroverzicht", sub: "Winst-en-verlies en balans", woorden: "jaarrekening grootboek grootboeken balans winst-en-verlies resultaat kengetallen eigen vermogen" },
-    { pad: "/exports", titel: "Downloaden", sub: "Excel, auditfile, PDF's", woorden: "export download excel xaf auditfile sbr xbrl pdf zip boekhouder" },
+    { pad: "/btw", titel: "Btw-aangifte", sub: "Staat klaar, jij hoeft alleen over te nemen", woorden: "omzetbelasting aangifte rubriek icp kor kwartaal grootboek" },
+    { pad: "/ib", titel: "Inkomstenbelasting", sub: "Wat je ongeveer moet betalen over je winst", woorden: "inkomstenbelasting winst aftrek zelfstandigenaftrek ib" },
+    { pad: "/activa", titel: "Dure aankopen", sub: "Laptop, bus, machine: wordt over jaren verdeeld", woorden: "activa afschrijving investering kia bedrijfsmiddel laptop grote aankopen" },
+    { pad: "/jaarrekening", titel: "Jaaroverzicht", sub: "Je winst en wat je bezit, per jaar", woorden: "jaarrekening grootboek grootboeken balans winst-en-verlies resultaat kengetallen eigen vermogen" },
+    { pad: "/exports", titel: "Voor je boekhouder", sub: "Alles downloaden als Excel of PDF", woorden: "export download excel xaf auditfile sbr xbrl pdf zip boekhouder downloaden" },
   ] },
-  { kop: "Saldoplan", items: [
-    { pad: "/assistent", titel: "Vraag het Saldoplan", sub: "Chat over je eigen cijfers", woorden: "ai chat vraag assistent" },
-    { pad: "/meldingen", titel: "Meldingen en taken", sub: "Deadlines en herinneringen", woorden: "taken deadline herinnering notificatie" },
-    { pad: "/zoeken", titel: "Zoeken", sub: "Betalingen, facturen, klanten, bonnen", woorden: "zoek transactie bon factuur" },
-    { pad: "/koppelingen", titel: "Koppelingen", sub: "Bank, Mollie, Stripe, Shopify en meer", woorden: "bank psd2 ing rabobank mollie stripe shopify whatsapp e-mail bonnen" },
-    { pad: "/rekeningen", titel: "Rekeningen", sub: "Je bankrekeningen", woorden: "bankrekening iban saldo" },
-    { pad: "/importeren", titel: "Overstappen", sub: "Uit Moneybird, e-Boekhouden, Jortt, Excel", woorden: "import overstappen moneybird e-boekhouden jortt excel paypal" },
-    { pad: "/logboek", titel: "Logboek", sub: "Wie deed wat", woorden: "log geschiedenis activiteit" },
-    { pad: "/instellingen", titel: "Instellingen", sub: "Bedrijf, facturen, huisstijl, team", woorden: "bedrijf kvk btw-nummer huisstijl logo team abonnement account tweestap beveiliging" },
-    { pad: "/feedback", titel: "Feedback geven", sub: "Wat kan beter?", woorden: "feedback fout melden suggestie" },
+  { kop: "Bank en koppelingen", items: [
+    { pad: "/koppelingen", titel: "Bank en apps koppelen", sub: "Je bank, Mollie, Stripe, Shopify en meer", woorden: "bank psd2 ing rabobank mollie stripe shopify whatsapp e-mail bonnen koppelingen" },
+    { pad: "/rekeningen", titel: "Bankrekeningen", sub: "Welke rekeningen gekoppeld zijn", woorden: "bankrekening iban saldo rekeningen" },
+    { pad: "/importeren", titel: "Overstappen", sub: "Je oude boekhouding meenemen", woorden: "import overstappen moneybird e-boekhouden jortt excel paypal" },
+  ] },
+  { kop: "Hulp en instellingen", items: [
+    { pad: "/assistent", titel: "Vraag het Saldoplan", sub: "Stel een vraag over je eigen cijfers", woorden: "ai chat vraag assistent hulp" },
+    { pad: "/meldingen", titel: "Te doen en herinneringen", sub: "Wat er moet gebeuren en wanneer", woorden: "taken deadline herinnering notificatie meldingen" },
+    { pad: "/zoeken", titel: "Zoeken", sub: "Een betaling, factuur, klant of bon vinden", woorden: "zoek transactie bon factuur" },
+    { pad: "/instellingen", titel: "Instellingen", sub: "Je bedrijf, je logo, je team", woorden: "bedrijf kvk btw-nummer huisstijl logo team abonnement account tweestap beveiliging" },
+    { pad: "/logboek", titel: "Wie deed wat", sub: "Alle wijzigingen op een rij", woorden: "log geschiedenis activiteit logboek" },
+    { pad: "/feedback", titel: "Iets melden", sub: "Een fout of een idee doorgeven", woorden: "feedback fout melden suggestie" },
   ] },
 ];
 
@@ -55,7 +68,7 @@ export default function Meer() {
   return (
     <Scherm>
       <Kop titel="Meer" />
-      <Veld placeholder="Zoek een onderdeel, bijvoorbeeld grootboek of btw" value={zoek} onChangeText={setZoek} autoCapitalize="none" autoCorrect={false} clearButtonMode="while-editing" returnKeyType="search" onSubmitEditing={() => { if (term && groepen.length === 0) ga("/zoeken", { q: zoek.trim() }); }} />
+      <Veld placeholder="Waar ben je naar op zoek?" value={zoek} onChangeText={setZoek} autoCapitalize="none" autoCorrect={false} clearButtonMode="while-editing" returnKeyType="search" onSubmitEditing={() => { if (term && groepen.length === 0) ga("/zoeken", { q: zoek.trim() }); }} />
       {term && groepen.length === 0 && (
         <Kaart>
           <Tekst kleur="2">Geen onderdeel heet zo.</Tekst>
@@ -76,9 +89,20 @@ export default function Meer() {
         {data && data.ondernemingen.length > 1 && <Kies label="Onderneming" waarde={data.onderneming.id} opties={data.ondernemingen.map((o) => ({ k: o.id, l: o.naam, sub: o.rol }))} onChange={wissel} />}
         {data?.schrijfFout && <Tekst kleur="2" soort="klein">{data.schrijfFout}</Tekst>}
       </Kaart>}
+      {!term && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+          {VAAK.map((v) => (
+            <Pressable key={v.pad} onPress={() => ga(v.pad)} accessibilityRole="button" accessibilityLabel={v.titel}
+              style={({ pressed }) => ({ flexBasis: "30%", flexGrow: 1, alignItems: "center", gap: 6, paddingVertical: 14, borderRadius: 12, borderWidth: 0.5, borderColor: k.lijn, backgroundColor: pressed ? k.primairLicht : k.wit })}>
+              <Text style={{ fontSize: 24 }}>{v.teken}</Text>
+              <Text style={{ color: k.tekst, fontSize: 14, fontWeight: "600" }}>{v.titel}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
       {groepen.map((g) => (
         <View key={g.kop} style={{ gap: 8 }}>
-          <Text style={{ color: k.tekst3, fontSize: 12, fontWeight: "700", letterSpacing: 0.6, marginLeft: 4 }}>{g.kop.toUpperCase()}</Text>
+          <Text style={{ color: k.tekst, fontSize: 17, fontWeight: "700", marginLeft: 4 }}>{g.kop}</Text>
           <Kaart strak>{g.items.map((it, i) => <Rij key={it.pad} titel={it.titel} sub={it.sub} onPress={() => ga(it.pad)} laatste={i === g.items.length - 1} />)}</Kaart>
         </View>
       ))}

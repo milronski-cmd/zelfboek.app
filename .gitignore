@@ -44,3 +44,5 @@ example
 
 # Lokale serverinstelling (bevat je LAN-adres)
 .env
+
+.chrome-profiel/
