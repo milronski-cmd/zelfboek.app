@@ -46,3 +46,6 @@ example
 .env
 
 .chrome-profiel/
+
+# Google Play-serviceaccount voor eas submit (geheim, nooit committen)
+google-play-sleutel.json

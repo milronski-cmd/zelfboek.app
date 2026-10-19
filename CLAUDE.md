@@ -1,4 +1,4 @@
-# Saldoplan voor iPhone — context voor Claude
+# Saldoplan voor iPhone en Android — context voor Claude
 
 Nederlandstalig project; antwoord en commit in het Nederlands. Expo SDK 58 / React Native, Expo Router in `src/app`.
 De app is een schil om de webapp `zelfboek.app` (GitHub milronski-cmd/zelfboek.app, branch `saldoplan`): zelfde server, zelfde database.
@@ -26,6 +26,14 @@ npx tsc --noEmit && npx expo lint && npx expo-doctor
 - `npx eas-cli@latest submit --platform ios --latest` zet hem in TestFlight; `ascAppId` komt na de eerste interactieve submit in `eas.json`.
 - Apple-eisen die al geregeld zijn: account verwijderen in de app (Instellingen), geen prijs of betaallink voor het abonnement (richtlijn 3.1.1; afsluiten gebeurt op de website), eigen icoon en splash, camera- en fototeksten.
 - Reviewaccount voor Apple: op de server `REVIEW_LOGIN="adres:123456"` geeft dat adres altijd die code.
+
+## Android en Google Play
+- Pakket `nl.saldoplan.app`, adaptief icoon in `assets/images/android-icon-*.png` (voorgrond en monochroom = de witte vormen van `icon.png` op 72/108, achtergrond #1DB1DF).
+- Iconen: gebruik `Symbool` uit `src/components/symbool.tsx`, nooit `SymbolView` direct. SF Symbols bestaan alleen op iOS; `Symbool` kiest op Android en web het Material-icoon uit `SF_NAAR_MATERIAL`. Nieuw icoon = daar toevoegen. Tabbladen: `md=` naast `sf=`.
+- `Scherm` geeft op Android zelf ruimte voor de statusbalk als er geen kopbalk is (iOS doet dat via `contentInsetAdjustmentBehavior`).
+- Lokaal: JDK 17 (`brew install openjdk@17`, `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`), `ANDROID_HOME=~/Library/Android/sdk`, emulator `Medium_Phone_API_36.0`. `npx expo run:android --no-bundler` bouwt en installeert; `adb reverse tcp:8081 tcp:8081` (en de API-poort) zodat de emulator de Mac bereikt.
+- Cloud: `npx eas-cli@latest build --platform android --profile production` (App Bundle; `preview` geeft een APK). Indienen: `npx eas-cli@latest submit --platform android --latest` met `google-play-sleutel.json` (serviceaccount, staat in .gitignore) naar de interne test als concept. De allereerste upload moet met de hand in de Play Console.
+- Alles voor de winkelvermelding (teksten, gegevensveiligheid, beelden): `store/google-play/`.
 
 ## Valkuilen
 - Parallelle Bash-aanroepen delen de werkmap: gebruik absolute paden en `git -C`.

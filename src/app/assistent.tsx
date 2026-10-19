@@ -3,7 +3,8 @@ import { Animated, Easing, FlatList, Keyboard, KeyboardAvoidingView, Modal, Plat
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { SymbolView, type SFSymbol } from "expo-symbols";
+import { type SFSymbol } from "expo-symbols";
+import { Symbool } from "@/components/symbool";
 import { Image } from "expo-image";
 import { api, stream } from "@/lib/api";
 import { useVervers } from "@/lib/queries";
@@ -115,7 +116,7 @@ export default function Assistent() {
           if (b.lokaal) return (
             <Bel key={i}>
               <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, paddingHorizontal: 4, paddingVertical: 2 }}>
-                {b.fout ? <SymbolView name="exclamationmark.circle" tintColor={k.roodTekst} size={16} weight="semibold" /> : <Vinkje kleur="#fff" achter={k.groen} maat={18} rond />}
+                {b.fout ? <Symbool name="exclamationmark.circle" tintColor={k.roodTekst} size={16} weight="semibold" /> : <Vinkje kleur="#fff" achter={k.groen} maat={18} rond />}
                 <Text style={{ color: b.fout ? k.roodTekst : k.tekst2, fontSize: 14, flexShrink: 1 }}>{b.tekst}</Text>
                 {b.knop ? <Pressable onPress={() => ga(b.knop!.pad, b.knop!.params)} style={({ pressed }) => ({ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: k.wit, borderWidth: 0.5, borderColor: k.lijn2, opacity: pressed ? 0.7 : 1 })}><Text style={{ color: k.primairTekst, fontSize: 13, fontWeight: "600" }}>{b.knop.tekst}</Text></Pressable> : null}
               </View>
@@ -147,7 +148,7 @@ export default function Assistent() {
               accessibilityLabel="Je vraag aan Saldoplan" style={{ flex: 1, color: "#fff", fontSize: 16, lineHeight: 21, paddingVertical: 9, maxHeight: 120 }} />
             <Pressable onPress={() => stuur(tekst)} disabled={!tekst.trim() || bezig} accessibilityLabel="Vraag versturen"
               style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: tekst.trim() && !bezig ? k.primair : "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center", marginBottom: 1 }}>
-              {bezig ? <Spinner kleur="#fff" maat={16} dikte={2} /> : <SymbolView name="arrow.up" tintColor="#fff" size={16} weight="bold" />}
+              {bezig ? <Spinner kleur="#fff" maat={16} dikte={2} /> : <Symbool name="arrow.up" tintColor="#fff" size={16} weight="bold" />}
             </Pressable>
           </View>
         </Gloedrand>
@@ -218,7 +219,7 @@ function RondeKnop({ sf, label, onPress }: { sf: SFSymbol; label: string; onPres
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={6}
       style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: k.wit, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
-      <SymbolView name={sf} tintColor={k.tekst} size={17} weight="semibold" />
+      <Symbool name={sf} tintColor={k.tekst} size={17} weight="semibold" />
     </Pressable>
   );
 }
@@ -274,7 +275,7 @@ function Gesprekken({ open, sluit, huidig, gesprekken, kies }: { open: boolean; 
             const aan = (item.id || null) === huidig;
             return (
               <Pressable onPress={() => kies(item.id || null)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: k.wit, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, opacity: pressed ? 0.7 : 1 })}>
-                <SymbolView name={item.id ? "bubble.left" : "plus"} tintColor={aan ? k.primairTekst : k.tekst2} size={16} weight="medium" />
+                <Symbool name={item.id ? "bubble.left" : "plus"} tintColor={aan ? k.primairTekst : k.tekst2} size={16} weight="medium" />
                 <Text style={{ flex: 1, color: aan ? k.primairTekst : k.tekst, fontSize: 15, fontWeight: aan || !item.id ? "600" : "400" }} numberOfLines={1}>{item.titel}</Text>
               </Pressable>
             );

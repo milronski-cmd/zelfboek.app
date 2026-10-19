@@ -2,13 +2,14 @@
  * Bouwstenen van de app, in de stijl van de webapp: witte kaarten op lichtgrijs, compacte rijen,
  * rechthoekige statuslabels, één merkkleur voor de hoofdactie.
  */
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator, Animated, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme,
+  ActivityIndicator, Animated, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme,
   type PressableProps, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { SymbolView } from "expo-symbols";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { HeaderHeightContext } from "expo-router/react-navigation";
+import { Symbool } from "@/components/symbool";
 import { router } from "expo-router";
 import { Kleuren, Ruimte, type Palet } from "@/constants/theme";
 import { bijUitkomst } from "@/lib/api";
@@ -26,10 +27,15 @@ export function Scherm({ children, ververs, bezig, rand = true, onder = true, st
   const k = useKleuren();
   const [trekt, setTrekt] = useState(false);
   const opTrek = useCallback(async () => { setTrekt(true); try { await ververs?.(); } finally { setTrekt(false); } }, [ververs]);
+  // iOS schuift de inhoud zelf onder de statusbalk vandaan (contentInsetAdjustmentBehavior); Android niet.
+  // Zonder kopbalk erboven (de tabbladen) houden we daar dus zelf ruimte voor de statusbalk.
+  const kop = useContext(HeaderHeightContext);
+  const { top } = useSafeAreaInsets();
+  const boven = Platform.OS === "android" && !kop ? top : 0;
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: k.papier }}
-      contentContainerStyle={[{ paddingHorizontal: rand ? 20 : 0, paddingTop: rand ? 12 : 0, paddingBottom: onder ? 120 : 0, gap: 14 }, style]}
+      contentContainerStyle={[{ paddingHorizontal: rand ? 20 : 0, paddingTop: (rand ? 12 : 0) + boven, paddingBottom: onder ? 120 : 0, gap: 14 }, style]}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       refreshControl={ververs ? <RefreshControl refreshing={trekt || Boolean(bezig)} onRefresh={opTrek} tintColor={k.tekst3} /> : undefined}
@@ -77,7 +83,7 @@ export function Rij({ titel, sub, rechts, rechtsSub, onPress, laatste, links, kl
           {rechtsSub ? <Text style={[st.rijSub, { color: k.tekst3 }]}>{rechtsSub}</Text> : null}
         </View>
       )}
-      {onPress && <SymbolView name="chevron.right" tintColor={k.tekst3} size={13} weight="semibold" />}
+      {onPress && <Symbool name="chevron.right" tintColor={k.tekst3} size={13} weight="semibold" />}
     </View>
   );
   return onPress ? <Pressable onPress={onPress} style={({ pressed }) => ({ backgroundColor: pressed ? k.papier : "transparent" })}>{inhoud}</Pressable> : inhoud;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, Text, View, useColorScheme } from "react-native";
-import { SymbolView, type SFSymbol } from "expo-symbols";
+import { type SFSymbol } from "expo-symbols";
+import { Symbool } from "@/components/symbool";
 import { actie } from "@/lib/api";
 import { euro, datumNl } from "@/lib/format";
 import { useFacturen, useKlanten, useOffertes, useVervers } from "@/lib/queries";
@@ -161,7 +162,7 @@ export function VoorstelKaart({ voorstel, status, actief, onKlaar }: {
     <View style={{ marginTop: 10, maxWidth: "94%", alignSelf: "flex-start", width: 340, backgroundColor: k.wit, borderRadius: 20, overflow: "hidden", borderWidth: 0.5, borderColor: k.lijn }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 }}>
         <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: donkerVlak, alignItems: "center", justifyContent: "center" }}>
-          <SymbolView name={kop.sf} tintColor="#fff" size={15} weight="semibold" />
+          <Symbool name={kop.sf} tintColor="#fff" size={15} weight="semibold" />
         </View>
         <Text style={{ flex: 1, color: k.tekst, fontSize: 16, fontWeight: "700" }}>{kop.titel}</Text>
         {status === "bevestigd" ? <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Vinkje kleur="#fff" achter={k.groen} maat={20} rond /><Text style={{ color: k.groenTekst, fontSize: 13, fontWeight: "600" }}>Gedaan</Text></View> : status ? <Text style={{ color: k.tekst3, fontSize: 13, fontWeight: "600" }}>Geannuleerd</Text> : null}

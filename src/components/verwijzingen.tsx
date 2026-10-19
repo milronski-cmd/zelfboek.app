@@ -1,5 +1,6 @@
 import { Alert, Pressable, Text, View, useColorScheme } from "react-native";
-import { SymbolView, type SFSymbol } from "expo-symbols";
+import { type SFSymbol } from "expo-symbols";
+import { Symbool } from "@/components/symbool";
 import { actie } from "@/lib/api";
 import { useBonnen, useFacturen, useKlanten, useOffertes, useVervers } from "@/lib/queries";
 import { ga, naarScherm } from "@/lib/navigatie";
@@ -200,7 +201,7 @@ export function Verwijzingen({ tekst, acties, tools, laatste, onVraag, onMelding
       {alles.map((c) => (
         <Pressable key={c.sleutel} onPress={c.doe} accessibilityRole="button"
           style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: c.primair ? donkerVlak : k.wit, borderWidth: c.primair ? 0 : 0.5, borderColor: k.lijn2, opacity: pressed ? 0.65 : 1 })}>
-          <SymbolView name={c.sf} tintColor={c.primair ? "#fff" : k.primair} size={14} weight="semibold" />
+          <Symbool name={c.sf} tintColor={c.primair ? "#fff" : k.primair} size={14} weight="semibold" />
           <Text numberOfLines={2} style={{ color: c.primair ? "#fff" : k.tekst, fontSize: 14, fontWeight: "600", flexShrink: 1 }}>{c.tekst}</Text>
         </Pressable>
       ))}

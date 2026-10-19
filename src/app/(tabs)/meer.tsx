@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
-import { SymbolView, type SFSymbol } from "expo-symbols";
+import { type SFSymbol } from "expo-symbols";
+import { Symbool } from "@/components/symbool";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { useAccount, useVervers } from "@/lib/queries";
@@ -95,7 +96,7 @@ export default function Meer() {
           {VAAK.map((v) => (
             <Pressable key={v.pad} onPress={() => ga(v.pad)} accessibilityRole="button" accessibilityLabel={v.titel}
               style={({ pressed }) => ({ flexBasis: "30%", flexGrow: 1, alignItems: "center", gap: 10, paddingVertical: 18, borderRadius: 20, backgroundColor: k.wit, opacity: pressed ? 0.7 : 1 })}>
-              <SymbolView name={v.sf} tintColor={k.tekst} size={22} weight="medium" />
+              <Symbool name={v.sf} tintColor={k.tekst} size={22} weight="medium" />
               <Text style={{ color: k.tekst, fontSize: 14, fontWeight: "600" }}>{v.titel}</Text>
             </Pressable>
           ))}

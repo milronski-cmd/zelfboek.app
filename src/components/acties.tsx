@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
-import { SymbolView, type SFSymbol } from "expo-symbols";
+import { type SFSymbol } from "expo-symbols";
+import { Symbool } from "@/components/symbool";
 import { bijUitkomst } from "@/lib/api";
 import { useKleuren } from "@/components/ui";
 import { Kruisje, Spinner, Vinkje, useKnopFase, type Uitkomst } from "@/components/animaties";
@@ -60,7 +61,7 @@ function Tegel({ actie, breedte }: { actie: Actie; breedte: number }) {
         onPressIn={() => veer(0.96)} onPressOut={() => veer(1)}
         style={({ pressed }) => ({ flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 8, borderRadius: 18, backgroundColor: achter, opacity: pressed ? 0.75 : 1 })}>
         <View style={{ height: 24, alignItems: "center", justifyContent: "center" }}>
-          {fase === "bezig" ? <Spinner kleur={icoonKleur} maat={22} /> : fase === "ok" ? <Vinkje kleur={primair ? "#fff" : k.groenTekst} maat={22} /> : fase === "fout" ? <Kruisje kleur="#fff" maat={22} /> : <SymbolView name={actie.sf} tintColor={icoonKleur} size={22} weight="medium" />}
+          {fase === "bezig" ? <Spinner kleur={icoonKleur} maat={22} /> : fase === "ok" ? <Vinkje kleur={primair ? "#fff" : k.groenTekst} maat={22} /> : fase === "fout" ? <Kruisje kleur="#fff" maat={22} /> : <Symbool name={actie.sf} tintColor={icoonKleur} size={22} weight="medium" />}
         </View>
         <Text numberOfLines={2} style={{ color: voor, fontSize: 13, fontWeight: "600", textAlign: "center", lineHeight: 16 }}>{actie.tekst}</Text>
       </Pressable>

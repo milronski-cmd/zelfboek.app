@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Animated, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { SymbolView, type SFSymbol } from "expo-symbols";
+import { type SFSymbol } from "expo-symbols";
+import { Symbool } from "@/components/symbool";
 import { Image } from "expo-image";
 import { useOverzicht } from "@/lib/queries";
 import { euro, datumKort } from "@/lib/format";
@@ -55,7 +56,7 @@ export default function OverzichtScherm() {
             style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, backgroundColor: k.wit, opacity: pressed ? 0.8 : 1 })}>
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: k.mosterd }} />
             <Text style={{ flex: 1, color: k.tekst, fontSize: 15, fontWeight: "600" }} numberOfLines={1}>{volgende.tekst}</Text>
-            <SymbolView name="chevron.right" tintColor={k.tekst3} size={14} weight="semibold" />
+            <Symbool name="chevron.right" tintColor={k.tekst3} size={14} weight="semibold" />
           </Pressable>
         ) : null}
 
@@ -79,7 +80,7 @@ export default function OverzichtScherm() {
           <Pressable key={`${r.soort}${r.id}`} onPress={() => ga(r.soort === "bank" ? "/transactie/[id]" : "/factuur/[id]", { id: r.id })}
             style={({ pressed }) => [st.boeking, { borderColor: k.lijn, backgroundColor: pressed ? achter : k.wit }]}>
             <View style={[st.icoon, { backgroundColor: achter }]}>
-              <SymbolView name={icoonVoor(r)} tintColor={k.tekst} size={20} weight="regular" />
+              <Symbool name={icoonVoor(r)} tintColor={k.tekst} size={20} weight="regular" />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ color: k.tekst, fontSize: 16, fontWeight: "600" }} numberOfLines={1}>{r.titel}</Text>
@@ -121,7 +122,7 @@ function AiKaart() {
               accessibilityLabel="Je vraag aan Saldoplan" style={{ flex: 1, color: KAART.tekst, fontSize: 16, paddingVertical: 8 }} />
             <Pressable onPress={() => stel(vraag)} disabled={!vraag.trim()} accessibilityLabel="Vraag versturen"
               style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: vraag.trim() ? k.primair : "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center" }}>
-              <SymbolView name="arrow.up" tintColor="#fff" size={16} weight="bold" />
+              <Symbool name="arrow.up" tintColor="#fff" size={16} weight="bold" />
             </Pressable>
           </Pressable>
         </Gloedrand>
@@ -135,7 +136,7 @@ function RondeKnop({ sf, label, onPress }: { sf: SFSymbol; label: string; onPres
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
       style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, backgroundColor: k.wit, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
-      <SymbolView name={sf} tintColor={k.tekst} size={20} weight="medium" />
+      <Symbool name={sf} tintColor={k.tekst} size={20} weight="medium" />
     </Pressable>
   );
 }
@@ -146,7 +147,7 @@ function SnelKnop({ sf, tekst, onPress }: { sf: SFSymbol; tekst: string; onPress
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={tekst}
       style={({ pressed }) => ({ flex: 1, alignItems: "center", gap: 12, paddingVertical: 22, borderRadius: 20, backgroundColor: k.wit, opacity: pressed ? 0.7 : 1 })}>
-      <SymbolView name={sf} tintColor={k.tekst} size={22} weight="medium" />
+      <Symbool name={sf} tintColor={k.tekst} size={22} weight="medium" />
       <Text style={{ color: k.tekst, fontSize: 16, fontWeight: "600" }}>{tekst}</Text>
     </Pressable>
   );

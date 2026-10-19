@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Animated, Easing, View } from "react-native";
-import { SymbolView } from "expo-symbols";
+import { Symbool } from "@/components/symbool";
 
 /** Draaiende ring: een cirkel met één doorzichtige zijde die rondjes draait. Loopt op de native animator. */
 export function Spinner({ kleur, maat = 20, dikte = 2.5 }: { kleur: string; maat?: number; dikte?: number }) {
@@ -21,7 +21,7 @@ export function Vinkje({ kleur, maat = 20, rond, achter }: { kleur: string; maat
   useEffect(() => {
     Animated.spring(schaal, { toValue: 1, useNativeDriver: true, damping: 9, stiffness: 260, mass: 0.6 }).start();
   }, [schaal]);
-  const inhoud = <SymbolView name="checkmark" tintColor={kleur} size={rond ? maat * 0.55 : maat} weight="bold" />;
+  const inhoud = <Symbool name="checkmark" tintColor={kleur} size={rond ? maat * 0.55 : maat} weight="bold" />;
   return (
     <Animated.View style={{ transform: [{ scale: schaal }], opacity: schaal.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 1, 1] }) }}>
       {rond ? <View style={{ width: maat, height: maat, borderRadius: maat / 2, backgroundColor: achter ?? kleur, alignItems: "center", justifyContent: "center" }}>{inhoud}</View> : inhoud}
@@ -42,7 +42,7 @@ export function Kruisje({ kleur, maat = 20 }: { kleur: string; maat?: number }) 
   }, [x]);
   return (
     <Animated.View style={{ transform: [{ translateX: x.interpolate({ inputRange: [-1, 1], outputRange: [-5, 5] }) }] }}>
-      <SymbolView name="xmark" tintColor={kleur} size={maat} weight="bold" />
+      <Symbool name="xmark" tintColor={kleur} size={maat} weight="bold" />
     </Animated.View>
   );
 }

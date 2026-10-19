@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SymbolView } from "expo-symbols";
+import { Symbool } from "@/components/symbool";
 import { Linking, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { api, actie } from "@/lib/api";
@@ -110,7 +110,7 @@ function Stap({ n, titel, tekst, klaar, actie, laatste }: { n: number; titel: st
   const k = useKleuren();
   return (
     <View style={{ flexDirection: "row", gap: 12, padding: 14, borderBottomWidth: laatste ? 0 : 0.5, borderBottomColor: k.lijn }}>
-      <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: klaar ? k.groen : k.primairLicht, alignItems: "center", justifyContent: "center" }}>{klaar ? <SymbolView name="checkmark" tintColor="#fff" size={11} weight="bold" /> : <Text style={{ color: k.primairTekst, fontSize: 12, fontWeight: "700" }}>{n}</Text>}</View>
+      <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: klaar ? k.groen : k.primairLicht, alignItems: "center", justifyContent: "center" }}>{klaar ? <Symbool name="checkmark" tintColor="#fff" size={11} weight="bold" /> : <Text style={{ color: k.primairTekst, fontSize: 12, fontWeight: "700" }}>{n}</Text>}</View>
       <View style={{ flex: 1, gap: 6 }}>
         <Text style={{ color: k.tekst, fontSize: 14, fontWeight: "600" }}>{titel}</Text>
         <Text style={{ color: k.tekst2, fontSize: 13, lineHeight: 18 }}>{tekst}</Text>

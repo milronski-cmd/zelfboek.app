@@ -1,6 +1,6 @@
-# Saldoplan voor iPhone
+# Saldoplan voor iPhone en Android
 
-De iOS-app van Saldoplan, gebouwd met Expo (React Native). Dezelfde boekhouding als de webapp: de app praat met dezelfde
+De app van Saldoplan voor iPhone en Android, gebouwd met Expo (React Native). Dezelfde boekhouding als de webapp: de app praat met dezelfde
 Next.js-server en dezelfde database (repo `zelfboek.app`, branch `saldoplan`). Wat je in de app doet, zie je direct op app.saldoplan.nl en andersom.
 
 ## Wat erin zit
@@ -45,6 +45,11 @@ De app heeft geen eigen env. Alles komt van de server waar hij mee praat (op Ver
 - Het enige dat bij het bouwen vastligt is het serveradres, `EXPO_PUBLIC_API_URL`, per profiel in `eas.json` (leeg of productie = app.saldoplan.nl). Zet daar nooit een geheim in: alles met `EXPO_PUBLIC_` zit leesbaar in de app.
 
 Controles: `npx tsc --noEmit`, `npx expo lint`, `npx expo export --platform ios`.
+
+## Android
+
+Dezelfde code als de iPhone-app. Iconen lopen via `Symbool` (SF Symbol op iOS, Material Symbol op Android en web).
+Lokaal bouwen en testen in de emulator, en de stappen naar Google Play: zie `CLAUDE.md` en `store/google-play/vermelding.md`.
 
 ## Stand van zaken (16 oktober 2026)
 
