@@ -14,6 +14,7 @@ import { letterAf, markeerBetaald } from "./facturen/betaling";
 import { stuurHerinnering } from "./facturen/herinneringen";
 import { maakBetaallink } from "./facturen/mollie";
 import { volgendeDatum } from "./facturen/terugkerend";
+import { eersteVanaf } from "./facturen/planning";
 import { foutTekst } from "@/lib/fout";
 
 export type Resultaat = { ok: true; melding: string; id?: string } | { ok: false; fout: string };
@@ -24,6 +25,7 @@ const fout = (e: unknown): Resultaat => ({ ok: false, fout: foutTekst(e) });
 
 function ververs() {
   for (const p of ["/app", "/app/facturen", "/app/offertes", "/app/klanten", "/app/producten", "/app/terugkerend", "/app/uren"]) revalidatePath(p);
+  revalidatePath("/app/terugkerend", "layout");
 }
 
 // ─────────── Klanten ───────────
@@ -439,12 +441,15 @@ export async function terugkerendOpslaan(fd: FormData): Promise<Resultaat> {
       volgendeOp: start,
       eindigtOp: s(fd, "eindigtOp") ? new Date(s(fd, "eindigtOp")) : null,
       autoVerzenden: fd.get("autoVerzenden") === "on",
-      actief: true,
     };
-    if (id) await db.terugkerendeFactuur.updateMany({ where: { id, ondernemingId: o.id }, data });
-    else await db.terugkerendeFactuur.create({ data: { ...data, ondernemingId: o.id } });
+    // Bewerken laat een gepauzeerde vaste factuur gepauzeerd; alleen een nieuwe begint meteen.
+    if (id) {
+      const r = await db.terugkerendeFactuur.updateMany({ where: { id, ondernemingId: o.id }, data });
+      if (r.count === 0) return { ok: false, fout: "Deze vaste factuur bestaat niet meer." };
+    }
+    const t = id ? { id } : await db.terugkerendeFactuur.create({ data: { ...data, actief: true, ondernemingId: o.id } });
     ververs();
-    return { ok: true, melding: "Terugkerende factuur opgeslagen." };
+    return { ok: true, melding: "Vaste factuur opgeslagen.", id: t.id };
   } catch (e) {
     return fout(e);
   }
@@ -453,8 +458,25 @@ export async function terugkerendOpslaan(fd: FormData): Promise<Resultaat> {
 export async function terugkerendStoppen(fd: FormData): Promise<void> {
   const o = await schrijfOnderneming();
   const actief = fd.get("actief") === "ja";
-  await db.terugkerendeFactuur.updateMany({ where: { id: s(fd, "id"), ondernemingId: o.id }, data: { actief } });
+  const t = await db.terugkerendeFactuur.findFirst({ where: { id: s(fd, "id"), ondernemingId: o.id } });
+  if (!t) return;
+  // Hervatten na een pauze: de gemiste periodes niet alsnog factureren, maar verder vanaf de eerstvolgende datum.
+  await db.terugkerendeFactuur.update({ where: { id: t.id }, data: { actief, ...(actief ? { volgendeOp: eersteVanaf(t.volgendeOp, t.interval) } : {}) } });
   ververs();
+}
+
+/** Verwijdert de afspraak; facturen die er al uit kwamen blijven gewoon bestaan. */
+export async function terugkerendVerwijderen(fd: FormData): Promise<void> {
+  const o = await schrijfOnderneming();
+  const t = await db.terugkerendeFactuur.findFirst({ where: { id: s(fd, "id"), ondernemingId: o.id } });
+  if (t) {
+    await db.$transaction([
+      db.factuur.updateMany({ where: { terugkerendId: t.id, ondernemingId: o.id }, data: { terugkerendId: null } }),
+      db.terugkerendeFactuur.delete({ where: { id: t.id } }),
+    ]);
+  }
+  ververs();
+  redirect("/app/terugkerend");
 }
 
 export async function terugkerendOverslaan(fd: FormData): Promise<void> {

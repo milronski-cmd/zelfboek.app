@@ -6,6 +6,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Kaart, Melding, knop, knopLicht, veld } from "./ui";
 import { berekenTotalen, parseBedrag, type FactuurRegel } from "@/lib/facturen/bereken";
+import { komendeData, perMaandFactor, perTekst, ritmeTekst } from "@/lib/facturen/planning";
 
 type Klant = { id: string; naam: string; email: string | null; land: string; btwNummer: string | null; isOndernemer: boolean; betaaltermijn: number | null };
 type Product = { id: string; naam: string; omschrijving: string | null; prijs: number; btw: number; eenheid: string };
@@ -19,7 +20,7 @@ type Props = {
   korDeelnemer: boolean;
   standaardTermijn: number;
   bestaand?: {
-    id: string;
+    id?: string;
     klantId: string;
     regels: FactuurRegel[];
     referentie?: string | null;
@@ -44,6 +45,8 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
   const [regels, setRegels] = useState<FactuurRegel[]>(bestaand?.regels?.length ? bestaand.regels : [leeg()]);
   // Wat de gebruiker letterlijk typt in het prijsveld (zodat "12," niet meteen naar "12" springt).
   const [prijsTekst, setPrijsTekst] = useState<Record<number, string>>({});
+  // Alleen voor een vaste factuur: het ritme, zodat de samenvatting meeloopt met wat je kiest.
+  const [ritme, setRitme] = useState({ interval: bestaand?.interval ?? "maand", volgendeOp: bestaand?.volgendeOp ?? isoDatum(), eindigtOp: bestaand?.eindigtOp ?? "", auto: bestaand?.autoVerzenden ?? true });
   const [staat, verstuur, bezig] = useActionState(async (_v: Resultaat | null, fd: FormData) => actie(fd), null);
 
   useEffect(() => {
@@ -68,7 +71,7 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
 
   return (
     <form action={verstuur} className="max-w-4xl space-y-6">
-      {bestaand && <input type="hidden" name="id" value={bestaand.id} />}
+      {bestaand?.id && <input type="hidden" name="id" value={bestaand.id} />}
 
       <Kaart titel="Voor wie">
         <div className="px-5 py-4">
@@ -147,16 +150,17 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
         <div className="grid gap-4 border-t border-lijn px-5 py-4 sm:grid-cols-3">
           {soort === "terugkerend" ? (
             <>
-              <div className="sm:col-span-3"><label className="lbl" htmlFor="omschrijving">Naam voor jezelf</label><input id="omschrijving" name="omschrijving" defaultValue={bestaand?.omschrijving ?? ""} className={veld} /></div>
+              <div className="sm:col-span-3"><label className="lbl" htmlFor="omschrijving">Naam voor jezelf</label><input id="omschrijving" name="omschrijving" defaultValue={bestaand?.omschrijving ?? ""} placeholder="Bijvoorbeeld: Hosting en onderhoud" className={veld} /></div>
               <div>
                 <label className="lbl" htmlFor="interval">Hoe vaak</label>
-                <select id="interval" name="interval" defaultValue={bestaand?.interval ?? "maand"} className={veld}>
+                <select id="interval" name="interval" value={ritme.interval} onChange={(e) => setRitme({ ...ritme, interval: e.target.value })} className={veld}>
                   <option value="week">Elke week</option><option value="maand">Elke maand</option><option value="kwartaal">Elk kwartaal</option><option value="jaar">Elk jaar</option>
                 </select>
               </div>
-              <div><label className="lbl" htmlFor="volgendeOp">Eerstvolgende factuur</label><input id="volgendeOp" name="volgendeOp" type="date" defaultValue={bestaand?.volgendeOp ?? isoDatum()} className={veld} /></div>
-              <div><label className="lbl" htmlFor="eindigtOp">Stopt op (mag leeg)</label><input id="eindigtOp" name="eindigtOp" type="date" defaultValue={bestaand?.eindigtOp ?? ""} className={veld} /></div>
-              <label className="flex items-center gap-2 text-sm sm:col-span-3"><input type="checkbox" name="autoVerzenden" defaultChecked={bestaand?.autoVerzenden ?? true} /> Automatisch per e-mail versturen</label>
+              <div><label className="lbl" htmlFor="volgendeOp">Eerstvolgende factuur</label><input id="volgendeOp" name="volgendeOp" type="date" required value={ritme.volgendeOp} onChange={(e) => setRitme({ ...ritme, volgendeOp: e.target.value })} className={veld} /></div>
+              <div><label className="lbl" htmlFor="eindigtOp">Stopt op (mag leeg)</label><input id="eindigtOp" name="eindigtOp" type="date" value={ritme.eindigtOp} onChange={(e) => setRitme({ ...ritme, eindigtOp: e.target.value })} className={veld} /></div>
+              <label className="flex items-center gap-2 text-sm sm:col-span-3"><input type="checkbox" name="autoVerzenden" checked={ritme.auto} onChange={(e) => setRitme({ ...ritme, auto: e.target.checked })} /> Automatisch per e-mail versturen</label>
+              <Samenvatting ritme={ritme} totaal={totalen.totaal} subtotaal={totalen.subtotaal} klantNaam={klantId === "nieuw" ? null : klant?.naam ?? null} email={klantId === "nieuw" ? undefined : klant?.email ?? null} />
             </>
           ) : (
             <>
@@ -165,7 +169,7 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
               {soort === "factuur" && <div><label className="lbl" htmlFor="referentie">Kenmerk van de klant</label><input id="referentie" name="referentie" defaultValue={bestaand?.referentie ?? ""} className={veld} /></div>}
             </>
           )}
-          <div className="sm:col-span-3"><label className="lbl" htmlFor="opmerking">Opmerking op het document</label><textarea id="opmerking" name="opmerking" rows={2} defaultValue={bestaand?.opmerking ?? ""} className={veld} /></div>
+          {soort !== "terugkerend" && <div className="sm:col-span-3"><label className="lbl" htmlFor="opmerking">Opmerking op het document</label><textarea id="opmerking" name="opmerking" rows={2} defaultValue={bestaand?.opmerking ?? ""} className={veld} /></div>}
         </div>
       </details>
 
@@ -181,5 +185,44 @@ export function FactuurFormulier({ soort, actie, klanten, producten, korDeelneme
         <Melding r={staat} />
       </div>
     </form>
+  );
+}
+
+/** Wat er gaat gebeuren, in gewone woorden: eerste datum, ritme, bedrag en hoe hij de deur uit gaat. */
+function Samenvatting({ ritme, totaal, subtotaal, klantNaam, email }: {
+  ritme: { interval: string; volgendeOp: string; eindigtOp: string; auto: boolean };
+  totaal: number; subtotaal: number; klantNaam: string | null; email: string | null | undefined;
+}) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ritme.volgendeOp)) return null;
+  const z = { timeZone: "Europe/Amsterdam" } as const;
+  const start = new Date(`${ritme.volgendeOp}T12:00:00`);
+  const stop = /^\d{4}-\d{2}-\d{2}$/.test(ritme.eindigtOp) ? new Date(`${ritme.eindigtOp}T12:00:00`) : null;
+  const data = komendeData(start, ritme.interval, 5, stop);
+  const kort = (d: Date) => d.toLocaleDateString("nl-NL", { day: "numeric", month: "short", ...(d.getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" }), ...z }).replace(".", "");
+  const factor = perMaandFactor[ritme.interval] ?? 1;
+  const verzenden = !ritme.auto
+    ? "Hij komt als concept klaar: jij kijkt hem na en verstuurt."
+    : email === undefined ? "Saldoplan mailt hem op die dag naar het e-mailadres van de nieuwe klant."
+    : email ? `Saldoplan mailt hem op die dag naar ${email}.`
+    : "Deze klant heeft geen e-mailadres, dus hij komt als concept klaar.";
+  return (
+    <div className="rounded-md bg-primair-licht px-4 py-3 text-sm sm:col-span-3">
+      {data.length === 0 ? (
+        <p className="text-mosterd-tekst">De stopdatum ligt vóór de eerste factuur, dus er gaat niets uit.</p>
+      ) : (
+        <>
+          <p>
+            Eerste factuur op <strong>{start.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long", ...z })}</strong>, daarna {ritmeTekst(start, ritme.interval)}
+            {stop ? ` tot en met ${kort(stop)}` : ""}.
+            {totaal > 0 && <> {klantNaam ?? "Je klant"} betaalt <strong className="cijfer">{euro(totaal)}</strong> {perTekst[ritme.interval]}{factor !== 1 ? `, ongeveer ${euro(subtotaal * factor)} per maand zonder btw` : ""}.</>}
+          </p>
+          <p className="mt-1 text-tekst-2">{verzenden}</p>
+          <p className="mt-2 flex flex-wrap gap-1.5">
+            {data.map((d) => <span key={d.toISOString()} className="rounded-full bg-[var(--wit)] px-2 py-0.5 text-[12px] font-medium text-tekst-2 shadow-[var(--ring-grijs)]">{kort(d)}</span>)}
+            {(!stop || data.length === 5) && <span className="px-1 py-0.5 text-[12px] text-tekst-3">enzovoort</span>}
+          </p>
+        </>
+      )}
+    </div>
   );
 }

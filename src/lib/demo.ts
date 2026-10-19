@@ -37,6 +37,7 @@ export async function vulDemo(db: PrismaClient, oid: string): Promise<{ regels: 
   await db.transactie.deleteMany({ where: { ondernemingId: oid } });
   await db.bon.deleteMany({ where: { ondernemingId: oid } });
   await db.factuur.deleteMany({ where: { ondernemingId: oid } });
+  await db.terugkerendeFactuur.deleteMany({ where: { ondernemingId: oid } });
   await db.offerte.deleteMany({ where: { ondernemingId: oid } });
   await db.urenregel.deleteMany({ where: { ondernemingId: oid } });
   await db.kilometerregel.deleteMany({ where: { ondernemingId: oid } });
@@ -120,21 +121,48 @@ export async function vulDemo(db: PrismaClient, oid: string): Promise<{ regels: 
   for (const r of regels) r.hash = `${oid}:${r.hash}`;
   for (const r of regels) await db.transactie.create({ data: r });
 
-  // Facturen: betaald, open, te laat, concept.
-  const factuur = (klant: (typeof klanten)[number], nummer: string, dagenGeleden: number, status: string, excl: number, extra: Record<string, unknown> = {}) => {
-    const eu = klant.land === "DE";
-    const btw = eu ? 0 : bedrag2(excl * 0.21);
-    const datum = new Date(nu.getTime() - dagenGeleden * 864e5);
-    return db.factuur.create({ data: { ondernemingId: oid, klantId: klant.id, nummer, datum, vervaldatum: new Date(datum.getTime() + 14 * 864e5), regels: JSON.stringify([{ omschrijving: "Ontwerp en bouw website", aantal: 1, prijs: excl, btw: eu ? 0 : 21 }]), subtotaal: excl, btw, totaal: bedrag2(excl + btw), btwVerlegd: eu, status, verzondenOp: status === "concept" ? null : datum, ...(status === "betaald" ? { betaaldOp: new Date(datum.getTime() + 9 * 864e5), betaaldBedrag: bedrag2(excl + btw) } : {}), ...extra } });
+  // Facturen: betaald, open, te laat, concept. Eerst alles verzamelen, dan op datum nummeren (per jaar doorlopend).
+  type Spec = { klant: (typeof klanten)[number]; datum: Date; status: string; excl: number; oms?: string; terugkerendId?: string; extra?: Record<string, unknown> };
+  const specs: Spec[] = [];
+  const dagenTerug = (n: number) => new Date(nu.getTime() - n * 864e5);
+  specs.push({ klant: klanten[2], datum: dagenTerug(60), status: "betaald", excl: 2400 });
+  specs.push({ klant: klanten[1], datum: dagenTerug(45), status: "betaald", excl: 1500 });
+  specs.push({ klant: klanten[4], datum: dagenTerug(30), status: "betaald", excl: 3200 });
+  const teLaat: Spec = { klant: klanten[0], datum: dagenTerug(21), status: "herinnerd", excl: 2250, extra: { herinneringen: 1, laatsteHerinnering: dagenTerug(3) } };
+  specs.push(teLaat);
+  specs.push({ klant: klanten[1], datum: dagenTerug(5), status: "verzonden", excl: 1500 });
+  specs.push({ klant: klanten[3], datum: dagenTerug(2), status: "verzonden", excl: 680 });
+  specs.push({ klant: klanten[2], datum: dagenTerug(0), status: "concept", excl: 1950 });
+
+  // Vaste facturen: wat al gemaakt is hoort erbij, de volgende staat gepland.
+  const opDag = (maandenTerug: number, dag: number) => new Date(nu.getFullYear(), nu.getMonth() - maandenTerug, dag, 9);
+  const vast = async (klant: Spec["klant"], omschrijving: string, regel: string, prijs: number, interval: string, data: Date[], volgendeOp: Date, opties: { actief?: boolean; autoVerzenden?: boolean; laatsteOpen?: boolean } = {}) => {
+    const t = await db.terugkerendeFactuur.create({ data: { ondernemingId: oid, klantId: klant.id, omschrijving, regels: JSON.stringify([{ omschrijving: regel, aantal: 1, prijs, btw: klant.land === "DE" ? 0 : 21, eenheid: interval === "maand" ? "maand" : "stuk" }]), interval, volgendeOp, actief: opties.actief ?? true, autoVerzenden: opties.autoVerzenden ?? true } });
+    data.filter((d) => d <= nu).forEach((datum, i, alle) => specs.push({ klant, datum, excl: prijs, oms: regel, terugkerendId: t.id, status: opties.laatsteOpen && i === alle.length - 1 ? "verzonden" : "betaald" }));
   };
-  await factuur(klanten[2], "2026-0028", 60, "betaald", 2400);
-  await factuur(klanten[1], "2026-0029", 45, "betaald", 1500);
-  await factuur(klanten[4], "2026-0030", 30, "betaald", 3200);
-  await factuur(klanten[0], "2026-0031", 21, "herinnerd", 2250, { herinneringen: 1, laatsteHerinnering: new Date(nu.getTime() - 3 * 864e5) });
-  await factuur(klanten[1], "2026-0032", 5, "verzonden", 1500);
-  await factuur(klanten[3], "2026-0033", 2, "verzonden", 680);
-  await factuur(klanten[2], "2026-0034", 0, "concept", 1950);
-  await db.onderneming.update({ where: { id: oid }, data: { factuurVolgnr: 34, offerteVolgnr: 12 } });
+  await vast(klanten[0], "Hosting en onderhoud", "Hosting en onderhoud website", 45, "maand", [4, 3, 2, 1, 0].map((m) => opDag(m, 1)), opDag(-1, 1));
+  const socialAf = nu.getDate() >= 15 ? 0 : 1;
+  await vast(klanten[1], "Social media beheer", "Beheer Instagram en LinkedIn, vier posts per week", 650, "maand", [3, 2, 1, 0].map((m) => opDag(m + socialAf, 15)), opDag(socialAf - 1, 15), { laatsteOpen: true });
+  await vast(klanten[3], "Jaarlicentie ledenportaal", "Licentie, hosting en updates ledenportaal", 240, "jaar", [opDag(11, 8)], opDag(-1, 8), { autoVerzenden: false });
+  await vast(klanten[4], "SEO-rapportage", "Quartalsbericht SEO und Empfehlungen", 375, "kwartaal", [opDag(8, 20), opDag(5, 20)], opDag(2, 20), { actief: false });
+  // Met de hand, maar wel elke maand hetzelfde: hier doet Saldoplan een voorstel voor.
+  for (const m of [4, 3, 2, 1]) specs.push({ klant: klanten[2], datum: opDag(m, 5), status: "betaald", excl: 350, oms: "Fotografie maandpakket: tien productfoto's" });
+
+  specs.sort((a, b) => a.datum.getTime() - b.datum.getTime());
+  const teller = new Map<number, number>();
+  let laatsteNr = 0;
+  for (const f of specs) {
+    const jaar = f.datum.getFullYear();
+    const nr = (teller.get(jaar) ?? (jaar === nu.getFullYear() ? 10 : 86)) + 1;
+    teller.set(jaar, nr);
+    if (jaar === nu.getFullYear()) laatsteNr = nr;
+    const nummer = `${jaar}-${String(nr).padStart(4, "0")}`;
+    f.extra = { ...f.extra, nummer };
+    const eu = f.klant.land === "DE";
+    const btw = eu ? 0 : bedrag2(f.excl * 0.21);
+    await db.factuur.create({ data: { ondernemingId: oid, klantId: f.klant.id, nummer, datum: f.datum, vervaldatum: new Date(f.datum.getTime() + 14 * 864e5), regels: JSON.stringify([{ omschrijving: f.oms ?? "Ontwerp en bouw website", aantal: 1, prijs: f.excl, btw: eu ? 0 : 21 }]), subtotaal: f.excl, btw, totaal: bedrag2(f.excl + btw), btwVerlegd: eu, status: f.status, verzondenOp: f.status === "concept" ? null : f.datum, terugkerendId: f.terugkerendId, ...(f.status === "betaald" ? { betaaldOp: new Date(f.datum.getTime() + 6 * 864e5), betaaldBedrag: bedrag2(f.excl + btw) } : {}), ...f.extra } });
+  }
+  await db.onderneming.update({ where: { id: oid }, data: { factuurVolgnr: laatsteNr, factuurJaar: nu.getFullYear(), offerteVolgnr: 12 } });
 
   await db.offerte.create({ data: { ondernemingId: oid, klantId: klanten[3].id, nummer: "OFF-0011", datum: new Date(nu.getTime() - 8 * 864e5), geldigTot: new Date(nu.getTime() + 22 * 864e5), regels: JSON.stringify([{ omschrijving: "Nieuwe website dorpshuis", aantal: 1, prijs: 3800, btw: 21 }]), subtotaal: 3800, btw: 798, totaal: 4598, status: "verzonden", verzondenOp: new Date(nu.getTime() - 8 * 864e5) } });
   await db.offerte.create({ data: { ondernemingId: oid, klantId: klanten[0].id, nummer: "OFF-0012", datum: new Date(nu.getTime() - 1 * 864e5), geldigTot: new Date(nu.getTime() + 29 * 864e5), regels: JSON.stringify([{ omschrijving: "Huisstijl en drukwerk", aantal: 1, prijs: 1400, btw: 21 }]), subtotaal: 1400, btw: 294, totaal: 1694, status: "concept" } });
@@ -157,7 +185,7 @@ export async function vulDemo(db: PrismaClient, oid: string): Promise<{ regels: 
 
   await db.taak.create({ data: { ondernemingId: oid, titel: "Is de betaling van Cafe Het Hoekje (€ 42,50) zakelijk? Lunch met een klant?", bron: "ai" } });
   await db.taak.create({ data: { ondernemingId: oid, titel: "Controleer of het btw-nummer van Weber GmbH klopt (dat kan gratis op de site van de EU)", deadline: new Date(nu.getTime() + 5 * 864e5), bron: "ai" } });
-  await db.melding.create({ data: { ondernemingId: oid, soort: "herinnering", titel: "Factuur 2026-0031 is 7 dagen te laat", tekst: "Bakkerij De Korst heeft een eerste herinnering gekregen. Over 14 dagen volgt de tweede.", link: "/app/facturen" } });
+  await db.melding.create({ data: { ondernemingId: oid, soort: "herinnering", titel: `Factuur ${teLaat.extra?.nummer} is 7 dagen te laat`, tekst: "Bakkerij De Korst heeft een eerste herinnering gekregen. Over 14 dagen volgt de tweede.", link: "/app/facturen" } });
   await db.melding.create({ data: { ondernemingId: oid, soort: "deadline", titel: "Btw-aangifte over dit kwartaal", tekst: "De aangifte staat klaar. Uiterlijk de laatste dag van de volgende maand indienen en betalen.", link: "/app/btw" } });
   await db.melding.create({ data: { ondernemingId: oid, soort: "sync", titel: "Bankbestand verwerkt", tekst: `${regels.length} regels geboekt.`, link: "/app/bank", gelezen: true } });
 

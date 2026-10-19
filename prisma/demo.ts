@@ -20,7 +20,7 @@ async function main() {
   const lid = await db.lidmaatschap.findFirst({ where: { gebruikerId: gebruiker.id } });
   if (!lid) throw new Error("Gebruiker heeft geen onderneming.");
   const r = await vulDemo(db, lid.ondernemingId);
-  console.log(`Klaar: ${r.regels} bankregels (ING en Revolut), 7 facturen, 2 offertes, 3 bonnen, ${r.klanten} klanten voor "Studio Noord" (${gebruiker.email}).`);
+  console.log(`Klaar: ${r.regels} bankregels (ING en Revolut), facturen (ook vaste), 2 offertes, 3 bonnen, ${r.klanten} klanten voor "Studio Noord" (${gebruiker.email}).`);
 }
 
 main().finally(() => db.$disconnect());

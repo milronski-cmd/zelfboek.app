@@ -2,21 +2,9 @@ import { db } from "@/lib/db";
 import { berekenTotalen, parseRegels } from "./bereken";
 import { volgendFactuurnummer } from "./nummering";
 import { verzendFactuur } from "./verzend";
+import { volgendeDatum } from "./planning";
 
-export function volgendeDatum(d: Date, interval: string): Date {
-  const n = new Date(d);
-  if (interval === "week") {
-    n.setDate(n.getDate() + 7);
-    return n;
-  }
-  const maanden = interval === "kwartaal" ? 3 : interval === "jaar" ? 12 : 1;
-  const dag = n.getDate();
-  n.setDate(1);
-  n.setMonth(n.getMonth() + maanden);
-  const laatste = new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate();
-  n.setDate(Math.min(dag, laatste)); // 31 januari + 1 maand = 28/29 februari
-  return n;
-}
+export { volgendeDatum };
 
 /** Contract: maakTerugkerendeFacturen(ondernemingId) → { aangemaakt }. Draait dagelijks vanuit de cron. */
 export async function maakTerugkerendeFacturen(ondernemingId: string): Promise<{ aangemaakt: number }> {

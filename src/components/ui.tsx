@@ -66,6 +66,16 @@ export function Kaart({ titel, actie, children, className = "" }: { titel?: stri
   );
 }
 
+/** Ronde badge met de beginletters van een naam, voor klanten zonder logo. */
+export function Initialen({ naam, groot = false }: { naam: string; groot?: boolean }) {
+  const letters = naam.split(/\s+/).filter((w) => /^[A-Za-zÀ-ÿ0-9]/.test(w)).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  return (
+    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full bg-primair-licht font-semibold text-primair-tekst ${groot ? "size-11 text-[15px]" : "size-9 text-[13px]"}`}>
+      {letters || "?"}
+    </span>
+  );
+}
+
 export function Pil({ kleur, children }: { kleur: "groen" | "geel" | "rood" | "grijs"; children: React.ReactNode }) {
   return <span className={`pil pil-${kleur}`}>{children}</span>;
 }
