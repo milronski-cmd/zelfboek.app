@@ -135,6 +135,9 @@ type Resolver = (hostname: string, opties: { all: true }, cb: (err: NodeJS.Errno
  * daarna nog eens op; een domein met korte TTL kan de tweede keer 127.0.0.1 geven. Deze lookup draait op het moment dat
  * de verbinding wordt gemaakt en weigert elk adres dat privéAdres() afwijst, zodat er alleen verbonden wordt met een
  * adres dat dezelfde controle heeft doorstaan.
+ *
+ * LET OP: bij een IP-adres als hostnaam (https://127.0.0.1, [::ffff:7f00:1]) roept undici geen lookup aan. Dan beschermt
+ * alleen de pre-check openbaarAdres(). Gebruik deze agent dus nooit zonder die pre-check (zie haalJsonMetKoppen).
  */
 export function maakVeiligeLookup(resolver: Resolver = dnsLookup as unknown as Resolver) {
   return (hostname: string, opties: { all?: boolean }, cb: LookupTerug) => {
