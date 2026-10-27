@@ -19,7 +19,9 @@ export function zetRoutes(r: Route[]) {
 const origineel = globalThis.fetch;
 // Adressen die een gebruiker invult worden voor het ophalen gecontroleerd (openbaarAdres); zonder netwerk: elk adres is "publiek".
 import dns from "dns/promises";
+import { syncBuiltinESMExports } from "node:module";
 (dns as unknown as { lookup: unknown }).lookup = async () => [{ address: "93.184.216.34", family: 4 }];
+syncBuiltinESMExports(); // ook de named export, waar openbaarAdres() uit leest
 
 globalThis.fetch = (async (invoer: string | URL | Request, init?: RequestInit) => {
   const req = invoer instanceof Request ? invoer : undefined;
