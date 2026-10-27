@@ -20,6 +20,12 @@ function check(naam: string, ok: boolean, info?: unknown) {
 async function main() {
   // Geen verzoeken naar ons eigen netwerk via een "winkeladres"
   for (const ip of ["127.0.0.1", "10.0.0.5", "192.168.1.1", "172.16.3.4", "169.254.169.254", "100.64.0.1", "::1", "fd00::1", "::ffff:127.0.0.1", "0.0.0.0"]) check(`privé: ${ip}`, privéAdres(ip));
+  // IPv6-vormen van interne adressen (Tester 28-10): URL() maakt van [::ffff:127.0.0.1] de hexvorm [::ffff:7f00:1]
+  for (const ip of ["::ffff:7f00:1", "::ffff:a9fe:a9fe", "::ffff:10.0.0.1", "::7f00:1", "::127.0.0.1", "0:0:0:0:0:ffff:7f00:1", "64:ff9b::a9fe:a9fe", "64:ff9b::7f00:1", "64:ff9b:1::1", "fec0::1", "fe80::1", "fe80::1%eth0", "ff02::1", "2002:7f00:1::1", "2002:a9fe:a9fe::", "2001::1", "2001:db8::1", "::", "kapot", "1:2:3:4:5:6:7:8:9", "300.1.1.1"]) check(`privé: ${ip}`, privéAdres(ip));
+  for (const ip of ["::ffff:808:808", "::ffff:8.8.8.8", "2606:4700:4700::1111", "64:ff9b::808:808", "2002:808:808::1"]) check(`openbaar: ${ip}`, !privéAdres(ip));
+  for (const url of ["https://[::ffff:127.0.0.1]/", "https://[::ffff:169.254.169.254]/latest", "https://[64:ff9b::a9fe:a9fe]/", "https://[fec0::1]/", "https://[::7f00:1]/"]) {
+    check(`geweigerd: ${url}`, await openbaarAdres(url).then(() => false, () => true));
+  }
   for (const ip of ["8.8.8.8", "185.15.59.224", "2a00:1450:4001::64"]) check(`openbaar: ${ip}`, !privéAdres(ip));
   for (const url of ["http://winkel.nl", "https://127.0.0.1/wp-json", "https://169.254.169.254/latest", "https://user:pw@winkel.nl", "https://localhost/x"]) {
     const geweigerd = await openbaarAdres(url).then(() => false, () => true);

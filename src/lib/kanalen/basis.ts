@@ -74,15 +74,54 @@ export async function openbaarAdres(url: string): Promise<URL> {
 
 function isIP(h: string) { return /^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.includes(":"); }
 
-export function privéAdres(ip: string): boolean {
-  const v4 = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
-  const d = v4.split(".").map(Number);
-  if (d.length === 4 && d.every((x) => x >= 0 && x <= 255)) {
-    const [a, b] = d;
-    return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 192 && b === 0) || (a === 198 && (b === 18 || b === 19)) || a >= 224;
+function privéV4(a: number, b: number): boolean {
+  return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 192 && b === 0) || (a === 198 && (b === 18 || b === 19)) || a >= 224;
+}
+
+/** IPv6 (ook met ingebed IPv4-staartje, bijv. ::ffff:1.2.3.4) naar 16 bytes; null als het geen geldig IPv6-adres is. */
+function ipv6Bytes(ip: string): number[] | null {
+  let h = ip.toLowerCase().split("%")[0];
+  const staart = /^(.*:)(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (staart) {
+    const q = staart.slice(2).map(Number);
+    if (q.some((x) => x > 255)) return null;
+    h = `${staart[1]}${((q[0] << 8) | q[1]).toString(16)}:${((q[2] << 8) | q[3]).toString(16)}`;
   }
-  const l = ip.toLowerCase();
-  return l === "::" || l === "::1" || l.startsWith("fc") || l.startsWith("fd") || l.startsWith("fe80") || l.startsWith("ff");
+  if (!/^[0-9a-f:]+$/.test(h) || (h.match(/::/g) ?? []).length > 1) return null;
+  const [kop, rest] = h.split("::");
+  const delen = (t: string | undefined) => (t ? t.split(":") : []);
+  const k = delen(kop), r = rest === undefined ? [] : delen(rest);
+  if (rest === undefined ? k.length !== 8 : k.length + r.length > 7) return null;
+  const groepen = rest === undefined ? k : [...k, ...Array(8 - k.length - r.length).fill("0"), ...r];
+  const bytes: number[] = [];
+  for (const g of groepen) {
+    if (!/^[0-9a-f]{1,4}$/.test(g)) return null;
+    const n = parseInt(g, 16);
+    bytes.push(n >> 8, n & 255);
+  }
+  return bytes;
+}
+
+/** Is dit een adres waar de server niet naartoe mag (intern, loopback, link-local, metadata, multicast, of een IPv6-vorm daarvan)? Onleesbaar = geweigerd. */
+export function privéAdres(ip: string): boolean {
+  const d = ip.split(".").map(Number);
+  if (d.length === 4 && /^[\d.]+$/.test(ip)) return d.some((x) => !(x >= 0 && x <= 255)) || privéV4(d[0], d[1]);
+  const x = ipv6Bytes(ip);
+  if (!x) return true;
+  const nul = (van: number, tot: number) => x.slice(van, tot).every((v) => v === 0);
+  // ::/96 (onbepaald, loopback, IPv4-compatible): nooit
+  if (nul(0, 12)) return true;
+  // ::ffff:a.b.c.d (IPv4-mapped), ook in de hexvorm ::ffff:7f00:1
+  if (nul(0, 10) && x[10] === 255 && x[11] === 255) return privéV4(x[12], x[13]);
+  // NAT64: 64:ff9b::/96 met ingebed IPv4, en 64:ff9b:1::/48 (lokaal gebruik)
+  if (x[0] === 0 && x[1] === 0x64 && x[2] === 0xff && x[3] === 0x9b) return x[4] !== 0 || x[5] !== 0 || !nul(6, 12) || privéV4(x[12], x[13]);
+  // 6to4: 2002::/16 met ingebed IPv4
+  if (x[0] === 0x20 && x[1] === 0x02) return privéV4(x[2], x[3]);
+  // Teredo 2001::/32, documentatie 2001:db8::/32, discard 100::/64
+  if (x[0] === 0x20 && x[1] === 0x01 && ((x[2] === 0 && x[3] === 0) || (x[2] === 0x0d && x[3] === 0xb8))) return true;
+  if (x[0] === 0x01 && x[1] === 0 && nul(2, 8)) return true;
+  // fc00::/7 (unique local), fe80::/10 (link-local), fec0::/10 (site-local), ff00::/8 (multicast)
+  return (x[0] & 0xfe) === 0xfc || (x[0] === 0xfe && (x[1] & 0xc0) >= 0x80) || x[0] === 0xff;
 }
 
 /** Bekende API's (vaste adressen in onze code); alle andere adressen komen van de gebruiker en worden gecontroleerd. */
