@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "db:migreer": "prisma migrate deploy",
-    "test": "tsx test/parsers.ts && tsx test/importeer.ts && tsx test/facturen.ts && tsx test/fiscaal.ts && tsx test/getallen.ts && tsx test/exports-db.ts && tsx test/d-moduleD.ts && tsx test/ronde3.ts && tsx test/veilig.ts && tsx test/isolatie.ts && tsx test/testmodus.ts && tsx test/beheer.ts",
-    "demo": "tsx --env-file-if-exists=.env.local prisma/demo.ts"
+    "test": "tsx test/parsers.ts && tsx test/importeer.ts && tsx test/facturen.ts && tsx test/fiscaal.ts && tsx test/getallen.ts && tsx test/exports-db.ts && tsx test/d-moduleD.ts && tsx test/ronde3.ts && tsx test/veilig.ts && tsx test/isolatie.ts && tsx test/testmodus.ts && tsx test/beheer.ts && tsx test/koppelingen.ts",
+    "demo": "tsx --env-file-if-exists=.env.local prisma/demo.ts",
+    "test:koppelingen": "tsx test/koppelingen.ts",
+    "test:koppelingen:live": "tsx test/koppelingen-live.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1",
