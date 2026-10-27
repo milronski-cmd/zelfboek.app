@@ -44,8 +44,8 @@ type Regel = { nr: number; recID: string; datum: Date; omschrijving: string; acc
 
 export type XafBron = {
   onderneming: { id: string; naam: string; kvk: string | null; btwId: string | null; btwNummer: string | null; adres: string | null; plaats: string | null; postcode: string | null; land?: string | null };
-  transacties: { id: string; datum: Date; bedrag: number; tegenpartij: string; omschrijving: string; categorie: string | null; btwCode: string | null; btwBedrag: number | null; priveDeel: number }[];
-  facturen: { nummer: string; datum: Date; klantId: string; klant: { naam: string }; btwVerlegd: boolean; subtotaal: number; btw: number; totaal: number }[];
+  transacties: { id: string; datum: Date; bedrag: number; tegenpartij: string; omschrijving: string; categorie: string | null; btwCode: string | null; btwBedrag: number | null; priveDeel: number; factuurId?: string | null }[];
+  facturen: { nummer: string; datum: Date; klantId: string; soort?: string; klant: { naam: string; land?: string | null }; btwVerlegd: boolean; subtotaal: number; btw: number; totaal: number }[];
   memoriaal: { id: string; datum: Date; omschrijving: string; grootboek: string | null; categorie: string | null; btwCode: string; btwBedrag: number; bedrag: number; soort: string }[];
   klanten: { id: string; naam: string; email?: string | null; kvk?: string | null; btwNummer: string | null; adres: string | null; plaats: string | null; postcode: string | null; land: string }[];
   leveranciers: { leverancier: string | null; leverancierBtw: string | null }[];

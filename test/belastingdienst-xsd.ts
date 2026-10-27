@@ -83,9 +83,14 @@ const bron: XafBron = {
     { id: "trans000000000002", datum: new Date(2026, 2, 5), bedrag: -121, tegenpartij: "Coolblue", omschrijving: "Muis <draadloos>", categorie: "kantoorkosten", btwCode: "21", btwBedrag: null, priveDeel: 0.5 },
     { id: "trans000000000003", datum: new Date("2026-04-02"), bedrag: -24.2, tegenpartij: "Vercel", omschrijving: "Pro", categorie: "software", btwCode: "eu_dienst", btwBedrag: 0, priveDeel: 0 },
     { id: "trans000000000004", datum: new Date(2026, 11, 31), bedrag: -33.33, tegenpartij: "Lunchroom", omschrijving: "lunch", categorie: "representatie", btwCode: "9", btwBedrag: null, priveDeel: 0 },
+    // Ontvangst op een factuur: omzet en btw staan al in het verkoopjournaal, hier alleen debiteuren afboeken.
+    { id: "trans000000000005", datum: new Date(2026, 6, 3), bedrag: 1210, tegenpartij: "Klant NL", omschrijving: "Betaling factuur 2026-0002", categorie: "omzet", btwCode: "21", btwBedrag: 210, priveDeel: 0, factuurId: "fact00000000000002" },
   ],
   facturen: [
     { nummer: "2026-0001", datum: new Date(2026, 5, 1), klantId: "klant00000000000001", klant: { naam: "Klant GmbH" }, btwVerlegd: true, subtotaal: 1000, btw: 0, totaal: 1000 },
+    { nummer: "2026-0002", datum: new Date(2026, 5, 20), klantId: "klant00000000000001", soort: "factuur", klant: { naam: "Klant NL", land: "NL" }, btwVerlegd: false, subtotaal: 1000, btw: 210, totaal: 1210 },
+    { nummer: "2026-0003", datum: new Date(2026, 5, 25), klantId: "klant00000000000001", soort: "factuur", klant: { naam: "Klant Zwitserland", land: "CH" }, btwVerlegd: true, subtotaal: 500, btw: 0, totaal: 500 },
+    { nummer: "2026-0004", datum: new Date(2026, 6, 5), klantId: "klant00000000000001", soort: "credit", klant: { naam: "Klant NL", land: "NL" }, btwVerlegd: false, subtotaal: -100, btw: -9, totaal: -109 },
   ],
   memoriaal: [
     { id: "memo00000000000001", datum: new Date(2026, 11, 31), omschrijving: "AFS:a1| Afschrijving laptop", grootboek: "WAfsAfsMva", categorie: null, btwCode: "", btwBedrag: 0, bedrag: -480, soort: "afschrijving" },

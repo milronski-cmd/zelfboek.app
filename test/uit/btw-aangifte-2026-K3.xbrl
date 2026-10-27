@@ -10,7 +10,7 @@
 <bd-i:ContactType contextRef="c1">BPL</bd-i:ContactType>
 <bd-i:DateTimeCreation contextRef="c1">202610011200</bd-i:DateTimeCreation>
 <bd-i:MessageReferenceSupplierVAT contextRef="c1">123456789-2026K3</bd-i:MessageReferenceSupplierVAT>
-<bd-i:SoftwarePackageName contextRef="c1">Zelfboek</bd-i:SoftwarePackageName>
+<bd-i:SoftwarePackageName contextRef="c1">Saldoplan</bd-i:SoftwarePackageName>
 <bd-i:SoftwarePackageVersion contextRef="c1">1.0</bd-i:SoftwarePackageVersion>
 <bd-i:SoftwareVendorAccountNumber contextRef="c1">SWO00000</bd-i:SoftwareVendorAccountNumber>
 <bd-i:TaxedTurnoverSuppliesServicesGeneralTariff contextRef="c1" unitRef="EUR" decimals="INF">1000</bd-i:TaxedTurnoverSuppliesServicesGeneralTariff>

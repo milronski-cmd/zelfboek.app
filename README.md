@@ -82,6 +82,8 @@ Lokaal werkt elke koppelknop in de proefmodus met voorbeeldgegevens. Demo-gegeve
 
 Tests: `npm test` (met `DATABASE_URL` naar een **test**database). Daarin onder meer `test/getallen.ts` (btw, winst, IB en vrij te besteden met de hand nagerekend: deelbetaling, creditfactuur, EU-dienst, verlegd, buiten de EU, gemengde kosten, KOR, factuur- en kasstelsel), `test/veilig.ts` en `test/isolatie.ts` (scheiding tussen ondernemingen en rollen; met `BASIS=http://127.0.0.1:3011` ook tegen een draaiende server).
 
+Koppelingen controleren: `npm run test:koppelingen` (API-koppelingen tegen gedocumenteerde antwoorden, zonder netwerk; ook in `npm test`). Live met sandboxsleutels: `npm run test:koppelingen:live`.
+
 Exports controleren: `test/belastingdienst-xsd.ts` genereert een voorbeeld-btw-aangifte en auditfiles in XAF 4.0 en 3.2 en valideert ze tegen NT20 en de XSD's (draai ook met `TZ=UTC` en `TZ=Europe/Amsterdam`; zie de kop van dat bestand voor de validators).
 
 Live zetten: zie `LIVEGANG.md`. Schema-wijzigingen gaan via migraties (`prisma/migrations`, `npm run db:migreer`).
@@ -143,4 +145,4 @@ Terugkeer-URL voor elke OAuth-app: `https://app.saldoplan.nl/api/koppelingen/<pa
 - XAF 4.0 is gevalideerd tegen de officiële `XmlAuditfileFinancieel4.0.xsd` uit het ODB-pakket XAF 4.0.3, inclusief de consistentieregels [0003] en [0007]-[0010]. `RGSVersion` wordt nog niet meegegeven, omdat de RGS-versie van de codes niet is vastgelegd.
 - XAF 3.2 is gevalideerd tegen `XmlAuditfileFinancieel3.2.xsd`. De Belastingdienst publiceert die XSD niet meer (auditfiles.nl is offline); gebruikt is een kopie die in twee onafhankelijke repositories byte-gelijk is. Vanaf 1 januari 2027 accepteert de Belastingdienst alleen nog XAF 4.0.
 - Fiscale constanten 2026 staan met bron-URL (Belastingdienst, gecontroleerd 11-10-2026) in `src/lib/fiscaal/constanten-2026.ts`; controleer ze bij elke jaarwisseling.
-- API-adapters (Enable Banking, Mollie, Stripe, Shopify, bol, WooCommerce, PayPal, Moneybird, e-Boekhouden) zijn volledig geschreven maar niet live getest met echte sleutels.
+- API-adapters (Enable Banking, Mollie, Stripe, Shopify, bol, WooCommerce, PayPal, Moneybird, e-Boekhouden) zijn gecontroleerd tegen de actuele API-documentatie (oktober 2026) en hebben contracttests met gedocumenteerde antwoorden (`npx tsx test/koppelingen.ts`). Live testen met sandboxsleutels: zie [docs/koppelingen-testen.md](docs/koppelingen-testen.md).
