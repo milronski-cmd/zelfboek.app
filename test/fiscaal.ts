@@ -18,8 +18,8 @@ check("KIA afbouw", kiaBerekening(200000) === Math.round((20072 - (200000 - 1327
 check("KIA nul", kiaBerekening(400000) === 0);
 
 // Box 1
-check("box1 30k", box1Belasting(30000) === 10710);
-check("box1 50k", Math.abs(box1Belasting(50000) - (38883 * 0.357 + (50000 - 38883) * 0.3756)) < 0.01);
+check("box1 30k", box1Belasting(30000) === 10725);
+check("box1 50k", Math.abs(box1Belasting(50000) - (38883 * 0.3575 + (50000 - 38883) * 0.3756)) < 0.01);
 check("AHK max", algemeneHeffingskorting(20000) === 3115);
 check("AHK afbouw", algemeneHeffingskorting(50000) === Math.round((3115 - (50000 - 29736) * 0.06398) * 100) / 100);
 check("AK max-ish", arbeidskorting(40000) === Math.round((5300 + (40000 - 25845) * 0.0195) * 100) / 100);
@@ -68,6 +68,11 @@ check("SBR concept 1a", String(p["xbrli:xbrl"]["bd-i:ValueAddedTaxSuppliesServic
 const x = (k: string) => Number(p["xbrli:xbrl"][k]["#text"]);
 check("SBR 5a sluit", x("bd-i:ValueAddedTaxOwed") === x("bd-i:ValueAddedTaxSuppliesServicesGeneralTariff") + x("bd-i:ValueAddedTaxSuppliesServicesReducedTariff") + x("bd-i:ValueAddedTaxSuppliesServicesByWhichVATTaxationIsTransferred") + x("bd-i:ValueAddedTaxOnSuppliesFromCountriesOutsideTheEC") + x("bd-i:ValueAddedTaxOnSuppliesFromCountriesWithinTheEC"));
 check("SBR 5c sluit", x("bd-i:ValueAddedTaxOwedToBePaidBack") === x("bd-i:ValueAddedTaxOwed") - x("bd-i:ValueAddedTaxOnInput"));
+
+// 5g = 5a - 5b uit de afgeronde rubrieken (hele euro's), zodat de aangifte intern sluit.
+const sbrV = (c: string) => Number(p["xbrli:xbrl"][`bd-i:${c}`]["#text"]);
+check("SBR 5g = 5a - 5b", sbrV("ValueAddedTaxOwedToBePaidBack") === sbrV("ValueAddedTaxOwed") - sbrV("ValueAddedTaxOnInput"));
+check("SBR 5g ≈ saldo", Math.abs(sbrV("ValueAddedTaxOwedToBePaidBack") - a["5c_te_betalen"]) <= 2);
 check("SBR periode", p["xbrli:xbrl"]["xbrli:context"]["xbrli:period"]["xbrli:startDate"] === "2026-07-01");
 
 // KOR
