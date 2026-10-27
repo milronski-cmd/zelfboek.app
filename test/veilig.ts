@@ -1,6 +1,8 @@
 /** Losse beveiligingsregels: adressen, bestandstypes, meldingen, mail-escaping, tweestap één keer, ondertekende adressen. */
 import { PrismaClient } from "@prisma/client";
-import { privéAdres, openbaarAdres } from "../src/lib/kanalen/basis";
+import dnsPromises from "dns/promises";
+import { syncBuiltinESMExports } from "node:module";
+import { privéAdres, openbaarAdres, haalJson, maakVeiligeLookup } from "../src/lib/kanalen/basis";
 import { klopType } from "../src/lib/bonnen/verwerk";
 import { foutTekst, ALGEMENE_FOUT } from "../src/lib/fout";
 import { vulHtml } from "../src/lib/facturen/taal";
@@ -30,6 +32,29 @@ async function main() {
   for (const url of ["http://winkel.nl", "https://127.0.0.1/wp-json", "https://169.254.169.254/latest", "https://user:pw@winkel.nl", "https://localhost/x"]) {
     const geweigerd = await openbaarAdres(url).then(() => false, () => true);
     check(`geweigerd: ${url}`, geweigerd);
+  }
+
+  // DNS-rebinding: de naam geeft eerst een openbaar adres (pre-check) en bij het verbinden een intern adres
+  type Adr = { address: string; family: number };
+  const resolverMet = (antwoorden: Adr[][]) => { let n = 0; return (_h: string, _o: { all: true }, cb: (e: null, a: Adr[]) => void) => cb(null, antwoorden[Math.min(n++, antwoorden.length - 1)]); };
+  const lookupUit = (lk: ReturnType<typeof maakVeiligeLookup>, all: boolean) => new Promise<{ fout?: string; adres?: unknown }>((ok) => lk("winkel.example", { all }, (e, a) => ok(e ? { fout: e.message } : { adres: a })));
+  const openbaar: Adr[] = [{ address: "93.184.216.34", family: 4 }], intern: Adr[] = [{ address: "127.0.0.1", family: 4 }];
+  check("lookup: openbaar adres toegestaan (all)", (await lookupUit(maakVeiligeLookup(resolverMet([openbaar]) as never), true)).adres !== undefined);
+  check("lookup: openbaar adres toegestaan (enkel)", (await lookupUit(maakVeiligeLookup(resolverMet([openbaar]) as never), false)).adres === "93.184.216.34");
+  check("lookup: intern adres geweigerd", /niet bereikbaar/.test((await lookupUit(maakVeiligeLookup(resolverMet([intern]) as never), true)).fout ?? ""));
+  check("lookup: eerst openbaar, daarna intern (rebinding) geweigerd", /niet bereikbaar/.test((await (async () => { const lk = maakVeiligeLookup(resolverMet([openbaar, intern]) as never); await lookupUit(lk, true); return lookupUit(lk, true); })()).fout ?? ""));
+  check("lookup: gemengd openbaar en intern geweigerd", /niet bereikbaar/.test((await lookupUit(maakVeiligeLookup(resolverMet([[...openbaar, ...intern]]) as never), true)).fout ?? ""));
+  check("lookup: IPv6-mapped intern geweigerd", /niet bereikbaar/.test((await lookupUit(maakVeiligeLookup(resolverMet([[{ address: "::ffff:7f00:1", family: 6 }]]) as never), true)).fout ?? ""));
+  {
+    // Echte fetch: de pre-check (dns/promises) wordt "gerebindet" naar een openbaar adres, de echte verbinding naar localhost moet worden geweigerd
+    const orig = dnsPromises.lookup;
+    (dnsPromises as unknown as { lookup: unknown }).lookup = async () => [{ address: "93.184.216.34", family: 4 }];
+    syncBuiltinESMExports(); // ook de named export van dns/promises
+    let melding = "";
+    try { await haalJson("https://localhost:8443/x", undefined, "Test"); } catch (e) { const er = e as { message?: string; cause?: { message?: string; code?: string } }; melding = `${er.message} ${er.cause?.message ?? ""} ${er.cause?.code ?? ""}`; }
+    (dnsPromises as unknown as { lookup: unknown }).lookup = orig;
+    syncBuiltinESMExports();
+    check("rebinding bij echte fetch geweigerd bij het verbinden (niet ECONNREFUSED)", /niet bereikbaar/.test(melding) && !/ECONNREFUSED/.test(melding), melding);
   }
 
   // Bestandstype volgt uit de inhoud, niet uit wat de browser zegt

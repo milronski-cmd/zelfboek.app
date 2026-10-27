@@ -1,3 +1,5 @@
+import { lookup as dnsLookup } from "node:dns";
+import { Agent } from "undici";
 import { db } from "@/lib/db";
 import { leesKoppeling, koppelingStatus, type KoppelingSoort } from "@/lib/koppelingen";
 import { btwUitInclusief } from "@/lib/btw";
@@ -124,6 +126,34 @@ export function privéAdres(ip: string): boolean {
   return (x[0] & 0xfe) === 0xfc || (x[0] === 0xfe && (x[1] & 0xc0) >= 0x80) || x[0] === 0xff;
 }
 
+type Adres = { address: string; family: number };
+type LookupTerug = (err: NodeJS.ErrnoException | null, adres?: string | Adres[], family?: number) => void;
+type Resolver = (hostname: string, opties: { all: true }, cb: (err: NodeJS.ErrnoException | null, adressen: Adres[]) => void) => void;
+
+/**
+ * Verbindingstijd-controle tegen DNS-rebinding: openbaarAdres() lost de naam op vóór het ophalen, maar fetch lost hem
+ * daarna nog eens op; een domein met korte TTL kan de tweede keer 127.0.0.1 geven. Deze lookup draait op het moment dat
+ * de verbinding wordt gemaakt en weigert elk adres dat privéAdres() afwijst, zodat er alleen verbonden wordt met een
+ * adres dat dezelfde controle heeft doorstaan.
+ *
+ * LET OP: bij een IP-adres als hostnaam (https://127.0.0.1, [::ffff:7f00:1]) roept undici geen lookup aan. Dan beschermt
+ * alleen de pre-check openbaarAdres(). Gebruik deze agent dus nooit zonder die pre-check (zie haalJsonMetKoppen).
+ */
+export function maakVeiligeLookup(resolver: Resolver = dnsLookup as unknown as Resolver) {
+  return (hostname: string, opties: { all?: boolean }, cb: LookupTerug) => {
+    resolver(hostname, { all: true }, (err, adressen) => {
+      if (err) return cb(err);
+      if (!adressen?.length || adressen.some((a) => privéAdres(a.address))) return cb(new Error("Dit adres is niet bereikbaar vanaf internet."));
+      if (opties.all) return cb(null, adressen);
+      cb(null, adressen[0].address, adressen[0].family);
+    });
+  };
+}
+
+let veiligeAgent: Agent | undefined;
+/** undici-verbinding die alleen naar openbare adressen verbindt (voor adressen die een gebruiker invulde). */
+const onvertrouwdeAgent = () => (veiligeAgent ??= new Agent({ connect: { lookup: maakVeiligeLookup() as never } }));
+
 /** Bekende API's (vaste adressen in onze code); alle andere adressen komen van de gebruiker en worden gecontroleerd. */
 const VERTROUWD = /(^|\.)(mollie\.com|stripe\.com|bol\.com|paypal\.com|moneybird\.com|e-boekhouden\.nl|etsy\.com|sumup\.com|izettle\.com|zettle\.com|amazon\.com|amazon\.eu|lightspeedapp\.com|lightspeedhq\.com|googleapis\.com|microsoft\.com|jortt\.nl|enablebanking\.com)$/;
 
@@ -164,7 +194,7 @@ export async function haalJsonMetKoppen<T>(url: string, init?: RequestInit, dien
   const vertrouwd = VERTROUWD.test(new URL(url).hostname);
   if (!vertrouwd) await openbaarAdres(url);
   for (let poging = 0; ; poging++) {
-    const r = await fetch(url, { ...init, redirect: vertrouwd ? "follow" : "error", signal: init?.signal ?? AbortSignal.timeout(30_000) });
+    const r = await fetch(url, { ...init, redirect: vertrouwd ? "follow" : "error", signal: init?.signal ?? AbortSignal.timeout(30_000), ...(vertrouwd ? {} : { dispatcher: onvertrouwdeAgent() }) } as RequestInit);
     if ([429, 502, 503, 504].includes(r.status) && poging < MAX_POGINGEN - 1) {
       await r.text().catch(() => "");
       await wacht(wachtTijd(r, poging));
